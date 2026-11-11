@@ -1,4 +1,6 @@
+import { readDoConfig } from "../env.server.ts";
 import { createCloudflareStores, readCloudflareConfig } from "./cloudflare.ts";
+import { createDoKvStore } from "./durable-object.ts";
 import { createFileStores, defaultFileStorePath } from "./file.ts";
 import { createMemoryStores } from "./memory.ts";
 import type { Stores } from "./types.ts";
@@ -26,6 +28,18 @@ export function getStores(): Stores {
   if ((process.env.AMR_STORE ?? "").trim() === "memory") {
     const { kv, blobs } = createMemoryStores();
     cached = { kind: "memory", kv, blobs };
+    return cached;
+  }
+  const doCfg = readDoConfig();
+  if (doCfg) {
+    const kv = createDoKvStore(doCfg);
+    const cf = readCloudflareConfig();
+    const blobs = cf
+      ? createCloudflareStores(cf).blobs
+      : onVercel()
+        ? createMemoryStores().blobs
+        : createFileStores(process.env.STORE_PATH?.trim() || defaultFileStorePath()).blobs;
+    cached = { kind: "durable-object", kv, blobs };
     return cached;
   }
   const cf = readCloudflareConfig();

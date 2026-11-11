@@ -22,6 +22,9 @@ import { Route as ApiCardNickRouteImport } from './routes/api/card.$nick'
 import { Route as ApiMeIndexRouteImport } from './routes/api/me/index'
 import { Route as ApiMeDataRouteImport } from './routes/api/me/data'
 import { Route as ApiMeDeleteRouteImport } from './routes/api/me/delete'
+import { Route as ApiMeNickRouteImport } from './routes/api/me/nick'
+import { Route as ApiMeOtpChannelRouteImport } from './routes/api/me/otp-channel'
+import { Route as ApiMeRecoveryCodesRouteImport } from './routes/api/me/recovery-codes'
 import { Route as ApiNickCheckRouteImport } from './routes/api/nick/check'
 import { Route as ApiNickSuggestRouteImport } from './routes/api/nick/suggest'
 import { Route as ApiMeContactsIndexRouteImport } from './routes/api/me/contacts/index'
@@ -92,6 +95,21 @@ const ApiMeDeleteRoute = ApiMeDeleteRouteImport.update({
   path: '/api/me/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeNickRoute = ApiMeNickRouteImport.update({
+  id: '/api/me/nick',
+  path: '/api/me/nick',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeOtpChannelRoute = ApiMeOtpChannelRouteImport.update({
+  id: '/api/me/otp-channel',
+  path: '/api/me/otp-channel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeRecoveryCodesRoute = ApiMeRecoveryCodesRouteImport.update({
+  id: '/api/me/recovery-codes',
+  path: '/api/me/recovery-codes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNickCheckRoute = ApiNickCheckRouteImport.update({
   id: '/api/nick/check',
   path: '/api/nick/check',
@@ -126,6 +144,9 @@ export interface FileRoutesByFullPath {
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
+  '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
+  '/api/me/nick': typeof ApiMeNickRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -145,6 +166,9 @@ export interface FileRoutesByTo {
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
+  '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
+  '/api/me/nick': typeof ApiMeNickRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me': typeof ApiMeIndexRoute
@@ -165,6 +189,9 @@ export interface FileRoutesById {
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
+  '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
+  '/api/me/nick': typeof ApiMeNickRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -186,6 +213,9 @@ export interface FileRouteTypes {
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/nick'
+    | '/api/me/otp-channel'
+    | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me/'
@@ -205,6 +235,9 @@ export interface FileRouteTypes {
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/nick'
+    | '/api/me/otp-channel'
+    | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me'
@@ -224,6 +257,9 @@ export interface FileRouteTypes {
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/nick'
+    | '/api/me/otp-channel'
+    | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me/'
@@ -244,6 +280,9 @@ export interface RootRouteChildren {
   ApiCardNickRoute: typeof ApiCardNickRoute
   ApiMeDataRoute: typeof ApiMeDataRoute
   ApiMeDeleteRoute: typeof ApiMeDeleteRoute
+  ApiMeNickRoute: typeof ApiMeNickRoute
+  ApiMeOtpChannelRoute: typeof ApiMeOtpChannelRoute
+  ApiMeRecoveryCodesRoute: typeof ApiMeRecoveryCodesRoute
   ApiNickCheckRoute: typeof ApiNickCheckRoute
   ApiNickSuggestRoute: typeof ApiNickSuggestRoute
   ApiMeIndexRoute: typeof ApiMeIndexRoute
@@ -344,6 +383,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMeDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/nick': {
+      id: '/api/me/nick'
+      path: '/api/me/nick'
+      fullPath: '/api/me/nick'
+      preLoaderRoute: typeof ApiMeNickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/otp-channel': {
+      id: '/api/me/otp-channel'
+      path: '/api/me/otp-channel'
+      fullPath: '/api/me/otp-channel'
+      preLoaderRoute: typeof ApiMeOtpChannelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/recovery-codes': {
+      id: '/api/me/recovery-codes'
+      path: '/api/me/recovery-codes'
+      fullPath: '/api/me/recovery-codes'
+      preLoaderRoute: typeof ApiMeRecoveryCodesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/nick/check': {
       id: '/api/nick/check'
       path: '/api/nick/check'
@@ -388,6 +448,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCardNickRoute: ApiCardNickRoute,
   ApiMeDataRoute: ApiMeDataRoute,
   ApiMeDeleteRoute: ApiMeDeleteRoute,
+  ApiMeNickRoute: ApiMeNickRoute,
+  ApiMeOtpChannelRoute: ApiMeOtpChannelRoute,
+  ApiMeRecoveryCodesRoute: ApiMeRecoveryCodesRoute,
   ApiNickCheckRoute: ApiNickCheckRoute,
   ApiNickSuggestRoute: ApiNickSuggestRoute,
   ApiMeIndexRoute: ApiMeIndexRoute,

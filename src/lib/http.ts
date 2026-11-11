@@ -1,6 +1,7 @@
-import { isTestMode } from "./env.server.ts";
+import { isTestMode, readDoConfig } from "./env.server.ts";
 import { LOGIN_LIMIT, NICK_LIMIT, OTP_LIMIT, createKvRateLimiter, createMemoryRateLimiter, type AsyncRateLimiter } from "./rate-limit.ts";
 import { getStores, readCloudflareConfig } from "./storage/index.ts";
+import { createDoRateLimiter } from "./storage/durable-object.ts";
 
 export type Limiters = { login: AsyncRateLimiter; otp: AsyncRateLimiter; nick: AsyncRateLimiter };
 
@@ -25,6 +26,15 @@ export function getLimits(): Limiters {
       login: createMemoryRateLimiter(LOGIN_LIMIT),
       otp: createMemoryRateLimiter(OTP_LIMIT),
       nick: createMemoryRateLimiter(NICK_LIMIT),
+    };
+    return g.__amridLim;
+  }
+  const doCfg = readDoConfig();
+  if (doCfg) {
+    g.__amridLim = {
+      login: createDoRateLimiter(doCfg, LOGIN_LIMIT, "login"),
+      otp: createDoRateLimiter(doCfg, OTP_LIMIT, "otp"),
+      nick: createDoRateLimiter(doCfg, NICK_LIMIT, "nick"),
     };
     return g.__amridLim;
   }
@@ -60,7 +70,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "DENY",
-  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
   "Content-Security-Policy":
     "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests",
 };

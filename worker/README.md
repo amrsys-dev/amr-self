@@ -17,3 +17,16 @@ after «выкатывай»).
 ## Endpoint
 
 `POST /send` with `{ channel, to, text }` and `Authorization: Bearer <secret>`.
+
+## Durable Object (not deployed)
+
+`AmrIdDo` coordinates nick uniqueness, If-Match version CAS writes, and rate limits.
+The Vercel app uses it when `CF_DO_URL` and `CF_DO_SECRET` are set; otherwise it
+falls back to in-memory or KV stores (preview). Do not deploy this worker until
+Murad writes «выкатывай».
+
+Create the object with `locationHint = "weur"`. R2 buckets use `jurisdiction = "eu"`.
+
+`POST /v1/do` with `{ op, ... }` and `Authorization: Bearer <CF_DO_SECRET>`.
+Ops: `get`, `put`, `delete`, `list`, `cas`, `ratelimit`.
+

@@ -1,6 +1,6 @@
 /** Server-side hash of a *derived* auth/verify key. The raw password never arrives here. */
 import { argon2id } from "hash-wasm";
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 const MEMORY = 19_456;
 const ITERATIONS = 2;
@@ -55,3 +55,18 @@ export function safeEqual(a: string, b: string): boolean {
 export function hashOpaque(value: string): string {
   return createHash("sha256").update(value).digest("base64url");
 }
+
+/** Same argon2id cost as a real password check, for unknown nicks. */
+export async function dummyVerifyAuthKey(raw: Uint8Array, nick: string, secret: string): Promise<void> {
+  const salt = createHmac("sha256", secret).update(`login-probe:${nick.toLowerCase()}`).digest().subarray(0, 16);
+  await argon2id({
+    password: raw,
+    salt,
+    parallelism: PARALLELISM,
+    iterations: ITERATIONS,
+    memorySize: MEMORY,
+    hashLength: HASH_LEN,
+    outputType: "binary",
+  });
+}
+

@@ -3,11 +3,16 @@
  * The Vercel app will call this worker instead of talking to Telegram / Resend itself.
  */
 
+import { routeDo } from "./do.ts";
+export { AmrIdDo } from "./do.ts";
+
 type Env = {
   OTP_RELAY_SECRET: string;
   TG_OTP_BOT_TOKEN?: string;
   RESEND_API_KEY?: string;
   RESEND_FROM?: string;
+  CF_DO_SECRET?: string;
+  AMR_ID?: DurableObjectNamespace;
 };
 
 type Body = {
@@ -26,6 +31,9 @@ export default {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/health") {
       return Response.json({ ok: true, service: "amr-id-otp-relay" });
+    }
+    if (url.pathname === "/v1/do") {
+      return routeDo(request, env as Env & { CF_DO_SECRET: string });
     }
     if (request.method !== "POST" || url.pathname !== "/send") {
       return Response.json({ error: "not_found" }, { status: 404 });

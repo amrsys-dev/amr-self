@@ -1,4 +1,4 @@
-import type { BlobStore, KvStore } from "./types.ts";
+import type { BlobStore, KvPutOpts, KvStore } from "./types.ts";
 
 export type CloudflareConfig = {
   accountId: string;
@@ -19,6 +19,22 @@ function r2Url(cfg: CloudflareConfig, key: string): string {
 
 function auth(cfg: CloudflareConfig): HeadersInit {
   return { Authorization: `Bearer ${cfg.apiToken}` };
+}
+
+function kvPutUrl(cfg: CloudflareConfig, key: string, opts?: KvPutOpts, metadata?: unknown): string {
+  const u = new URL(kvUrl(cfg, key));
+  if (opts?.expirationTtl != null) u.searchParams.set("expiration_ttl", String(Math.max(60, Math.ceil(opts.expirationTtl))));
+  if (metadata !== undefined) u.searchParams.set("metadata", JSON.stringify(metadata));
+  return u.toString();
+}
+
+function r2Headers(cfg: CloudflareConfig, extra?: HeadersInit): HeadersInit {
+  const jurisdiction = (process.env.CF_R2_JURISDICTION ?? "eu").trim();
+  return {
+    ...auth(cfg),
+    ...(jurisdiction ? { "cf-r2-jurisdiction": jurisdiction } : {}),
+    ...extra,
+  };
 }
 
 function kvMetadataUrl(cfg: CloudflareConfig, key: string): string {
@@ -49,8 +65,8 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       if (!res.ok) throw new Error(`cf kv get ${res.status}`);
       return await res.text();
     },
-    async put(key, value) {
-      const res = await fetch(kvUrl(cfg, key), {
+    async put(key, value, opts) {
+      const res = await fetch(kvPutUrl(cfg, key, opts), {
         method: "PUT",
         headers: { ...auth(cfg), "Content-Type": "text/plain" },
         body: value,
@@ -74,7 +90,7 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       } while (cursor);
       return names.sort();
     },
-    async compareAndSet(key, expected, next) {
+    async compareAndSet(key, expected, next, opts) {
       // Cloudflare KV has no linearizable CAS. We read the value and a
       // metadata version, then write only if the value still matches.
       // Concurrent writes can still win the race under eventual consistency.
@@ -88,7 +104,7 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       } else if (metaRes.status !== 404) {
         throw new Error(`cf kv metadata ${metaRes.status}`);
       }
-      const url = `${kvUrl(cfg, key)}?metadata=${encodeURIComponent(JSON.stringify({ version: metaVersion + 1 }))}`;
+      const url = kvPutUrl(cfg, key, opts, { version: metaVersion + 1 });
       const res = await fetch(url, {
         method: "PUT",
         headers: { ...auth(cfg), "Content-Type": "text/plain" },
@@ -100,7 +116,7 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
   };
   const blobs: BlobStore = {
     async get(key) {
-      const res = await fetch(r2Url(cfg, key), { headers: auth(cfg) });
+      const res = await fetch(r2Url(cfg, key), { headers: r2Headers(cfg) });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`cf r2 get ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());
@@ -108,20 +124,20 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
     async put(key, data, contentType = "application/octet-stream") {
       const res = await fetch(r2Url(cfg, key), {
         method: "PUT",
-        headers: { ...auth(cfg), "Content-Type": contentType },
+        headers: r2Headers(cfg, { "Content-Type": contentType }),
         body: data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer,
       });
       if (!res.ok) throw new Error(`cf r2 put ${res.status}`);
     },
     async delete(key) {
-      const res = await fetch(r2Url(cfg, key), { method: "DELETE", headers: auth(cfg) });
+      const res = await fetch(r2Url(cfg, key), { method: "DELETE", headers: r2Headers(cfg) });
       if (!res.ok && res.status !== 404) throw new Error(`cf r2 delete ${res.status}`);
     },
     async list(prefix) {
       const names: string[] = [];
       let cursor: string | undefined;
       do {
-        const res = await fetch(r2ListUrl(cfg, prefix, cursor), { headers: auth(cfg) });
+        const res = await fetch(r2ListUrl(cfg, prefix, cursor), { headers: r2Headers(cfg) });
         if (!res.ok) throw new Error(`cf r2 list ${res.status}`);
         const body = (await res.json()) as { result?: { objects?: { key: string }[]; truncated?: boolean; cursor?: string } | { key: string }[] };
         const result = body.result;

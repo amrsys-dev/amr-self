@@ -260,6 +260,12 @@ export function generateRecoveryCode(): string {
   return encodeCrockford(randomBytes(16));
 }
 
+/** One-time recovery codes. Count is 1..10 (default 10 at signup). */
+export function generateRecoveryCodes(count: number): string[] {
+  const n = Number.isInteger(count) ? Math.min(10, Math.max(1, count)) : 10;
+  return Array.from({ length: n }, () => generateRecoveryCode());
+}
+
 export function normalizeRecoveryCode(raw: string): string {
   const cleaned = raw
     .toUpperCase()

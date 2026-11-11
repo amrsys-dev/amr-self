@@ -20,6 +20,9 @@ import {
   handlePutData,
   handleRecovery,
   handleSignup,
+  handleChangeNick,
+  handleOtpChannel,
+  handleReplaceRecoveryCodes,
   handleVerifyContact,
   reserveNick,
 } from "./handlers.ts";
@@ -27,6 +30,8 @@ import {
 process.env.AMR_STORE = "memory";
 process.env.OTP_MODE = "test";
 process.env.AMR_NICK_REISSUE = "false";
+process.env.AMR_RECOVERY_CODES = "1";
+process.env.AMR_OTP_EMAIL = "false";
 delete process.env.VERCEL_ENV;
 
 function req(path: string, opts: { method?: string; body?: unknown; headers?: Record<string, string>; ip?: string; cookie?: string } = {}): Request {
@@ -66,8 +71,12 @@ async function signup(nick: string, password: string, ip?: string) {
           kdfRecovery: recKeys.params,
           wrapPassword,
           wrapRecovery,
+          kdfRecoveries: [recKeys.params],
+          wrapRecoveries: [wrapRecovery],
+          recoveryVerifyKeys: [encodeAuthKey(recKeys.verifyKey)],
           channel: "telegram",
           dest: "@omar.public",
+          ageConfirmed: true,
         },
       }),
     ),
@@ -83,6 +92,8 @@ describe("auth-key-only login and recovery", () => {
     process.env.AMR_STORE = "memory";
     process.env.OTP_MODE = "test";
     process.env.AMR_NICK_REISSUE = "false";
+    process.env.AMR_RECOVERY_CODES = "1";
+    process.env.AMR_OTP_EMAIL = "false";
   });
   beforeEach(() => {
     resetStoresForTests();
@@ -146,7 +157,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(otp.status, 200);
   });
 
-  it("issues a new recovery code after reset and rejects the old verify key", async () => {
+  it("burns a used recovery code and rejects it afterwards, without requiring a replacement set", async () => {
     const acc = await signup("@AMR-200-200", "old-password-ok");
     const unlock = await json(
       await handleRecovery(
@@ -156,13 +167,10 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(unlock.status, 200, JSON.stringify(unlock.data));
-    assert.equal(unlock.data.newRecoveryRequired, true);
+    assert.equal(unlock.data.newRecoveryRequired, false);
 
     const newPwd = await derivePasswordKeys("new-password-ok");
-    const newCode = generateRecoveryCode();
-    const newRec = await deriveRecoveryKeys(newCode);
     const wrapPassword = await wrapDataKey(acc.dataKey, newPwd.wrapKey);
-    const wrapRecovery = await wrapDataKey(acc.dataKey, newRec.wrapKey);
     const reset = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
@@ -171,17 +179,15 @@ describe("auth-key-only login and recovery", () => {
             recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey),
             authKey: encodeAuthKey(newPwd.authKey),
             wrapPassword,
-            wrapRecovery,
-            recoveryVerifyKeyNew: encodeAuthKey(newRec.verifyKey),
             kdfPassword: newPwd.params,
-            kdfRecovery: newRec.params,
             phase: "reset",
           },
         }),
       ),
     );
     assert.equal(reset.status, 200, JSON.stringify(reset.data));
-    assert.equal(reset.data.newRecoveryIssued, true);
+    assert.equal(reset.data.recoveryBurned, true);
+    assert.equal(reset.data.recoveryLeft, 0);
 
     const oldAgain = await json(
       await handleRecovery(
@@ -192,15 +198,6 @@ describe("auth-key-only login and recovery", () => {
     );
     assert.equal(oldAgain.status, 401);
     assert.equal(oldAgain.data.error, "recovery_replaced");
-
-    const fresh = await json(
-      await handleRecovery(
-        req("/api/auth/recovery", {
-          body: { nick: acc.nick, recoveryVerifyKey: encodeAuthKey(newRec.verifyKey), phase: "unlock" },
-        }),
-      ),
-    );
-    assert.equal(fresh.status, 200, JSON.stringify(fresh.data));
   });
 
   it("returns 409 and the current blob on a stale If-Match, then accepts a merge write", async () => {
@@ -358,6 +355,7 @@ describe("auth-key-only login and recovery", () => {
   });
 
   it("limits contact-verification code attempts", async () => {
+    process.env.AMR_OTP_EMAIL = "true";
     const acc = await signup("@AMR-530-530", "correct-battery-horse");
     const added = await json(
       await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
@@ -377,6 +375,7 @@ describe("auth-key-only login and recovery", () => {
     }
     assert.equal(last.status, 429);
     assert.equal(last.data.error, "too_many_attempts");
+    process.env.AMR_OTP_EMAIL = "false";
   });
 
   it("ignores verified:true from a client PATCH of contacts", async () => {
@@ -428,7 +427,22 @@ describe("auth-key-only login and recovery", () => {
         }),
       ),
     );
-    const del = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie })));
+    const bare = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie })));
+    assert.equal(bare.status, 400);
+    const start = await json(
+      await handleDeleteMe(
+        req("/api/me/delete", { cookie: acc.cookie, body: { phase: "start", authKey: encodeAuthKey(acc.pwd.authKey) } }),
+      ),
+    );
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    const del = await json(
+      await handleDeleteMe(
+        req("/api/me/delete", {
+          cookie: acc.cookie,
+          body: { phase: "confirm", authKey: encodeAuthKey(acc.pwd.authKey), otpId: start.data.otpId, code: start.data.testOtp },
+        }),
+      ),
+    );
     assert.equal(del.status, 200, JSON.stringify(del.data));
     assert.equal(del.data.deleted, true);
     assert.equal(del.data.nickReserved, true);
@@ -441,4 +455,285 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(check.data.ok, false);
     assert.equal(check.data.reason, "taken");
   });
+
+  it("returns a deterministic dummy KDF and a dummy-timed 401 for an unknown nick", async () => {
+    const a = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: "@AMR-999-999", purpose: "login" } })));
+    const b = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: "@AMR-999-999", purpose: "login" } })));
+    assert.equal(a.status, 200);
+    assert.equal((a.data.kdf as { alg: string }).alg, "argon2id");
+    assert.equal((a.data.kdf as { salt: string }).salt, (b.data.kdf as { salt: string }).salt);
+    const other = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: "@AMR-998-998", purpose: "login" } })));
+    assert.notEqual((a.data.kdf as { salt: string }).salt, (other.data.kdf as { salt: string }).salt);
+    const pwd = await derivePasswordKeys("correct-battery-horse", undefined, { memorySize: 19456, iterations: 2, parallelism: 1, hashLength: 32 });
+    const login = await json(
+      await handleLogin(req("/api/auth/login", { body: { nick: "@AMR-999-999", authKey: encodeAuthKey(pwd.authKey) } })),
+    );
+    assert.equal(login.status, 401);
+    assert.equal(login.data.error, "invalid_credentials");
+  });
+
+  it("clears verified when a contact value or kind is patched", async () => {
+    process.env.AMR_OTP_EMAIL = "true";
+    const acc = await signup("@AMR-541-541", "correct-battery-horse");
+    const added = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
+    );
+    const contact = added.data.contact as { id: string; verified: boolean; kind: string; value: string; visible: boolean };
+    const verify = await json(
+      await handleVerifyContact(
+        req("/api/me/contacts/verify", { cookie: acc.cookie, body: { otpId: added.data.otpId, contactId: contact.id, code: added.data.testOtp } }),
+      ),
+    );
+    assert.equal(verify.status, 200, JSON.stringify(verify.data));
+    assert.equal((verify.data.contact as { verified: boolean }).verified, true);
+    const patched = await json(
+      await handleMePatch(
+        req("/api/me", {
+          method: "PATCH",
+          cookie: acc.cookie,
+          body: { contacts: [{ id: contact.id, kind: "email", value: "new@b.example", visible: true }] },
+        }),
+      ),
+    );
+    assert.equal(patched.status, 200, JSON.stringify(patched.data));
+    assert.equal((patched.data.contacts as { verified: boolean; value: string }[])[0]?.verified, false);
+    assert.equal((patched.data.contacts as { value: string }[])[0]?.value, "new@b.example");
+    process.env.AMR_OTP_EMAIL = "false";
+  });
+
+  it("does not switch the 2FA channel on contact verify; change needs password and a code from the old channel", async () => {
+    const acc = await signup("@AMR-570-570", "correct-battery-horse");
+    const added = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "telegram", value: "@new.channel" } })),
+    );
+    assert.equal(added.status, 200, JSON.stringify(added.data));
+    const contact = added.data.contact as { id: string };
+    const verified = await json(
+      await handleVerifyContact(
+        req("/api/me/contacts/verify", { cookie: acc.cookie, body: { otpId: added.data.otpId, contactId: contact.id, code: added.data.testOtp } }),
+      ),
+    );
+    assert.equal(verified.status, 200, JSON.stringify(verified.data));
+    const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: acc.cookie })));
+    assert.equal(((me.data.otp as { telegram: { username?: string } }).telegram.username), "omar.public");
+    const noPwd = await json(
+      await handleOtpChannel(req("/api/me/otp-channel", { cookie: acc.cookie, body: { contactId: contact.id, authKey: "x" } })),
+    );
+    assert.equal(noPwd.status, 400);
+    const start = await json(
+      await handleOtpChannel(
+        req("/api/me/otp-channel", { cookie: acc.cookie, body: { phase: "start", contactId: contact.id, authKey: encodeAuthKey(acc.pwd.authKey) } }),
+      ),
+    );
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    assert.equal(start.data.channel, "telegram");
+    const confirm = await json(
+      await handleOtpChannel(
+        req("/api/me/otp-channel", {
+          cookie: acc.cookie,
+          body: {
+            phase: "confirm",
+            contactId: contact.id,
+            authKey: encodeAuthKey(acc.pwd.authKey),
+            otpId: start.data.otpId,
+            code: start.data.testOtp,
+          },
+        }),
+      ),
+    );
+    assert.equal(confirm.status, 200, JSON.stringify(confirm.data));
+    const after = await json(await handleMe(req("/api/me", { method: "GET", cookie: acc.cookie })));
+    assert.equal(((after.data.otp as { telegram: { username?: string } }).telegram.username), "new.channel");
+  });
+
+  it("rejects signup without the 18+ confirmation and rejects email OTP while the flag is off", async () => {
+    const pwd = await derivePasswordKeys("correct-battery-horse");
+    const rec = await deriveRecoveryKeys(generateRecoveryCode());
+    const dataKey = await generateDataKey();
+    const noAge = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-580-580",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKey: encodeAuthKey(rec.verifyKey),
+            kdfPassword: pwd.params,
+            kdfRecovery: rec.params,
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecovery: await wrapDataKey(dataKey, rec.wrapKey),
+            channel: "telegram",
+            dest: "@omar.public",
+          },
+        }),
+      ),
+    );
+    assert.equal(noAge.status, 400);
+    const email = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-581-581",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKey: encodeAuthKey(rec.verifyKey),
+            kdfPassword: pwd.params,
+            kdfRecovery: rec.params,
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecovery: await wrapDataKey(dataKey, rec.wrapKey),
+            channel: "email",
+            dest: "a@b.example",
+            ageConfirmed: true,
+          },
+        }),
+      ),
+    );
+    assert.equal(email.status, 400);
+    assert.equal(email.data.error, "email_otp_disabled");
+  });
+
+  it("allows a nick change exactly once, only with the password, and never reissues the old nick", async () => {
+    const acc = await signup("@AMR-590-590", "correct-battery-horse");
+    const noPwd = await json(await handleChangeNick(req("/api/me/nick", { cookie: acc.cookie, body: { nick: "@AMR-591-591" } })));
+    assert.equal(noPwd.status, 400);
+    const first = await json(
+      await handleChangeNick(
+        req("/api/me/nick", { cookie: acc.cookie, body: { nick: "@AMR-591-591", authKey: encodeAuthKey(acc.pwd.authKey) } }),
+      ),
+    );
+    assert.equal(first.status, 200, JSON.stringify(first.data));
+    assert.equal(first.data.nickChanged, true);
+    const second = await json(
+      await handleChangeNick(
+        req("/api/me/nick", { cookie: acc.cookie, body: { nick: "@AMR-592-592", authKey: encodeAuthKey(acc.pwd.authKey) } }),
+      ),
+    );
+    assert.equal(second.status, 409);
+    const check = await json(await handleNickCheck(req(`/api/nick/check?nick=${encodeURIComponent(acc.nick)}`, { method: "GET" })));
+    assert.equal(check.data.ok, false);
+    assert.equal(check.data.reason, "taken");
+  });
+
+  it("binds a new 2FA channel with password + one recovery code, then revokes sessions and burns the code", async () => {
+    const acc = await signup("@AMR-600-600", "correct-battery-horse");
+    const oldCookie = acc.cookie;
+    const start = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: acc.nick,
+            recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey),
+            authKey: encodeAuthKey(acc.pwd.authKey),
+            phase: "rebind-start",
+            channel: "telegram",
+            dest: "@new.otp",
+          },
+        }),
+      ),
+    );
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    const confirm = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: acc.nick,
+            recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey),
+            authKey: encodeAuthKey(acc.pwd.authKey),
+            phase: "rebind-confirm",
+            otpId: start.data.otpId,
+            code: start.data.testOtp,
+          },
+        }),
+      ),
+    );
+    assert.equal(confirm.status, 200, JSON.stringify(confirm.data));
+    assert.equal(confirm.data.rebound, true);
+    assert.equal(confirm.data.sessionsRevoked, true);
+    assert.equal(confirm.data.recoveryBurned, true);
+    const dead = await json(await handleMe(req("/api/me", { method: "GET", cookie: oldCookie })));
+    assert.equal(dead.status, 401);
+    const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: confirm.cookie })));
+    assert.equal(me.status, 200);
+    assert.equal((me.data.otp as { telegram: { username?: string } }).telegram.username, "new.otp");
+    const reused = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: acc.nick, recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(reused.status, 401);
+    assert.equal(reused.data.error, "recovery_replaced");
+  });
+
+  it("stores a verifier hash and a wrap per client-generated recovery code with its own salt", async () => {
+    const prev = process.env.AMR_RECOVERY_CODES;
+    process.env.AMR_RECOVERY_CODES = "2";
+    const password = "correct-battery-horse";
+    const dataKey = await generateDataKey();
+    const pwd = await derivePasswordKeys(password);
+    const recs = [generateRecoveryCode(), generateRecoveryCode()];
+    const recKeys = [await deriveRecoveryKeys(recs[0]!), await deriveRecoveryKeys(recs[1]!)];
+    assert.notEqual(recKeys[0]!.params.salt, recKeys[1]!.params.salt);
+    const wraps = [await wrapDataKey(dataKey, recKeys[0]!.wrapKey), await wrapDataKey(dataKey, recKeys[1]!.wrapKey)];
+    const s = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-610-610",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
+            kdfPassword: pwd.params,
+            kdfRecoveries: recKeys.map((k) => k.params),
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecoveries: wraps,
+            channel: "telegram",
+            dest: "@omar.public",
+            ageConfirmed: true,
+          },
+        }),
+      ),
+    );
+    assert.equal(s.status, 200, JSON.stringify(s.data));
+    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
+    assert.equal(otp.status, 200, JSON.stringify(otp.data));
+    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: otp.data.nick, purpose: "recovery" } })));
+    assert.equal(kdf.status, 200);
+    const kdfs = kdf.data.kdfs as { salt: string }[];
+    assert.equal(kdfs.length, 2);
+    assert.notEqual(kdfs[0]?.salt, kdfs[1]?.salt);
+    const first = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(first.status, 200, JSON.stringify(first.data));
+    const newPwd = await derivePasswordKeys("new-password-ok");
+    const reset = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: otp.data.nick,
+            recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey),
+            authKey: encodeAuthKey(newPwd.authKey),
+            wrapPassword: await wrapDataKey(dataKey, newPwd.wrapKey),
+            kdfPassword: newPwd.params,
+            phase: "reset",
+          },
+        }),
+      ),
+    );
+    assert.equal(reset.status, 200, JSON.stringify(reset.data));
+    assert.equal(reset.data.recoveryLeft, 1);
+    const second = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(second.status, 200, JSON.stringify(second.data));
+    process.env.AMR_RECOVERY_CODES = prev ?? "1";
+  });
+
 });

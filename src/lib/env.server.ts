@@ -32,3 +32,27 @@ export function publicCardOrigin(request: Request): string {
   if (!host) return "";
   return `${proto}://${host}`;
 }
+
+/** Login / 2FA / contact-verification codes go only to Telegram until a domain is approved. */
+export function emailOtpEnabled(): boolean {
+  const v = (env("AMR_OTP_EMAIL") ?? "").toLowerCase();
+  return v === "true" || v === "1" || v === "yes";
+}
+
+/** One-time recovery codes issued at signup. Default 10; also supports 1. */
+export function recoveryCodesCount(): number {
+  const raw = env("AMR_RECOVERY_CODES");
+  const n = raw == null ? 10 : Number(raw);
+  if (Number.isInteger(n) && n >= 1 && n <= 10) return n;
+  return 10;
+}
+
+export type DoConfig = { url: string; secret: string };
+
+export function readDoConfig(): DoConfig | null {
+  const url = env("CF_DO_URL");
+  const secret = env("CF_DO_SECRET");
+  if (!url || !secret) return null;
+  return { url: url.replace(/\/$/, ""), secret };
+}
+

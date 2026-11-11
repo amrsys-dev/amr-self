@@ -23,7 +23,7 @@ With `OTP_MODE=test` (the default outside production) a one-time code appears in
 
 ## Nick
 
-Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`. Retired nicks are not reissued (`AMR_NICK_REISSUE=false`, pending Murad). Password reset is only possible with the recovery code — support cannot reset a password.
+Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`. Retired nicks are never reissued. A nick may be changed exactly once. Sign-up issues `AMR_RECOVERY_CODES` (default 10) one-time recovery codes, generated on the device and shown once — never sent to the server or Telegram. Support cannot reset a password. Login codes go only through the Telegram bot until a domain is approved (`AMR_OTP_EMAIL=false`). Logs are kept 30 days, reports 90 days; «delete everything» wipes immediately (provider backups may remain up to 30 days).
 
 ## Preview only
 

@@ -5,16 +5,16 @@ import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
-import { isTestMode, publicCardOrigin, sessionSecret, vercelEnv } from "../env.server.ts";
+import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, vercelEnv } from "../env.server.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
 import { getStores } from "../storage/index.ts";
 import { telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
-import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, type OtpChannel, type UserRecord } from "../user.ts";
+import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, sessionKey, sessionsOfKey, type OtpChannel, type UserRecord } from "../user.ts";
 import { generateOtpDigits, hashOtp, otpMatches, OTP_MAX_ATTEMPTS, OTP_TTL_MS, type OtpRecord } from "./otp.ts";
 import { sendOtp } from "./otp-providers.ts";
-import { hashAuthKey, verifyAuthKey } from "./password.ts";
+import { dummyVerifyAuthKey, hashAuthKey, verifyAuthKey } from "./password.ts";
 import { createSession, destroySession, requireUser, revokeAllSessions } from "./session.ts";
 
 const kdfSchema = z.object({
@@ -36,14 +36,18 @@ const authKeySchema = z.string().min(16).max(128);
 const signupSchema = z.object({
   nick: z.string().optional(),
   authKey: authKeySchema,
-  recoveryVerifyKey: authKeySchema,
+  recoveryVerifyKey: authKeySchema.optional(),
   kdfPassword: kdfSchema,
-  kdfRecovery: kdfSchema,
+  kdfRecovery: kdfSchema.optional(),
+  kdfRecoveries: z.array(kdfSchema).min(1).max(10).optional(),
   wrapPassword: wrappedSchema,
-  wrapRecovery: wrappedSchema,
+  wrapRecovery: wrappedSchema.optional(),
+  wrapRecoveries: z.array(wrappedSchema).min(1).max(10).optional(),
+  recoveryVerifyKeys: z.array(authKeySchema).min(1).max(10).optional(),
   channel: z.enum(["telegram", "email"]),
   dest: z.string().min(2).max(200),
   lang: z.string().optional(),
+  ageConfirmed: z.literal(true),
 });
 
 const loginSchema = z.object({
@@ -65,9 +69,17 @@ const recoverySchema = z.object({
   wrapPassword: wrappedSchema.optional(),
   wrapRecovery: wrappedSchema.optional(),
   recoveryVerifyKeyNew: authKeySchema.optional(),
+  wrapRecoveries: z.array(wrappedSchema).max(10).optional(),
+  recoveryVerifyKeys: z.array(authKeySchema).max(10).optional(),
   kdfPassword: kdfSchema.optional(),
   kdfRecovery: kdfSchema.optional(),
-  phase: z.enum(["unlock", "reset"]).optional(),
+  kdfRecoveries: z.array(kdfSchema).max(10).optional(),
+  channel: z.enum(["telegram", "email"]).optional(),
+  dest: z.string().min(2).max(200).optional(),
+  otpId: z.string().min(8).optional(),
+  code: z.string().min(4).max(12).optional(),
+  lang: z.string().optional(),
+  phase: z.enum(["unlock", "reset", "rebind-start", "rebind-confirm"]).optional(),
 });
 
 const kdfRequestSchema = z.object({
@@ -134,12 +146,68 @@ function requireKey(raw: string): Uint8Array | null {
   return decodeAuthKey(raw);
 }
 
+function otpPutTtl(): { expirationTtl: number } {
+  return { expirationTtl: Math.ceil(OTP_TTL_MS / 1000) + 60 };
+}
+
+function recoverySlots(user: UserRecord): { hashes: string[]; wraps: WrappedKey[]; kdfs: KdfParams[] } {
+  const hashes = user.recoveryHashes?.length ? user.recoveryHashes : user.recoveryHash ? [user.recoveryHash] : [];
+  const wraps = user.wrapRecoveries?.length ? user.wrapRecoveries : user.wrapRecovery ? [user.wrapRecovery] : [];
+  const kdfs = user.recoveryKdfs?.length ? user.recoveryKdfs : user.kdf?.recovery ? hashes.map(() => user.kdf.recovery) : [];
+  return { hashes, wraps, kdfs };
+}
+
+function applyRecoverySlots(user: UserRecord, hashes: string[], wraps: WrappedKey[], kdfs: KdfParams[]): void {
+  user.recoveryHashes = hashes;
+  user.wrapRecoveries = wraps;
+  user.recoveryKdfs = kdfs;
+  user.recoveryHash = hashes[0] ?? "";
+  user.wrapRecovery = wraps[0] ?? user.wrapRecovery;
+  if (kdfs[0]) user.kdf = { ...user.kdf, recovery: kdfs[0] };
+}
+
+async function matchRecoveryIndex(user: UserRecord, keys: Uint8Array[]): Promise<{ index: number; used: boolean }> {
+  const now = Date.now();
+  const slots = recoverySlots(user);
+  for (const key of keys) {
+    for (let i = 0; i < slots.hashes.length; i++) {
+      if (await verifyAuthKey(key, slots.hashes[i]!)) return { index: i, used: false };
+    }
+  }
+  const used = (user.usedRecoveryHashes ?? []).filter((u) => u.until > now);
+  for (const key of keys) {
+    for (const u of used) {
+      if (await verifyAuthKey(key, u.hash)) return { index: -1, used: true };
+    }
+  }
+  return { index: -1, used: false };
+}
+
+function readVerifyKeys(body: { recoveryVerifyKey?: string; recoveryVerifyKeys?: string[] }): Uint8Array[] | null {
+  const raws = body.recoveryVerifyKeys?.length ? body.recoveryVerifyKeys : body.recoveryVerifyKey ? [body.recoveryVerifyKey] : [];
+  const keys: Uint8Array[] = [];
+  for (const raw of raws) {
+    const k = requireKey(raw);
+    if (!k) return null;
+    keys.push(k);
+  }
+  return keys.length ? keys : null;
+}
+
+async function dummyLoginWork(nick: string, authKey: Uint8Array | null): Promise<void> {
+  const key = authKey ?? new Uint8Array(32);
+  await dummyVerifyAuthKey(key, nick || "unknown", sessionSecret());
+}
+
 const USED_RECOVERY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function issueOtp(
   request: Request,
   rec: Omit<OtpRecord, "hash" | "exp" | "attempts"> & { dest: string; lang?: string },
 ): Promise<{ otpId: string; otp: OtpRecord; code: string } | Response> {
+  if (rec.channel === "email" && !emailOtpEnabled()) {
+    return json({ error: "email_otp_disabled" }, 400);
+  }
   const ip = clientIp(request);
   const hit = await limits.otp.take(`otp:${ip}:${rec.nick}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
@@ -185,7 +253,7 @@ function verifiedOtpDest(user: UserRecord): { channel: OtpChannel; dest: string 
     const dest = user.otp.telegram.chatId || user.otp.telegram.id || user.otp.telegram.username;
     if (dest) return { channel: "telegram", dest };
   }
-  if (user.otp.email?.verified && user.otp.email.address) {
+  if (emailOtpEnabled() && user.otp.email?.verified && user.otp.email.address) {
     return { channel: "email", dest: user.otp.email.address };
   }
   return null;
@@ -207,6 +275,8 @@ function sessionPayload(user: UserRecord) {
     dataVersion: user.dataVersion ?? 0,
     cardPath: publicCardPath(user.nick),
     passwordReset: "recovery_code_only" as const,
+    nickChanged: Boolean(user.nickChanged),
+    recoveryLeft: (user.recoveryHashes ?? (user.recoveryHash ? [user.recoveryHash] : [])).length,
   };
 }
 
@@ -216,9 +286,12 @@ export async function handleMeta(request: Request): Promise<Response> {
     testMode: isTestMode(),
     storeKind: stores.kind,
     nickFormat: process.env.AMR_NICK_FORMAT ?? "xxx-xxx",
-    nickReissue: nickReissueAllowed(),
+    nickReissue: false,
     passwordMin: 10,
     passwordReset: "recovery_code_only",
+    recoveryCodes: recoveryCodesCount(),
+    emailOtp: emailOtpEnabled(),
+    ageRequired: true,
     env: vercelEnv(),
     cardOrigin: publicCardOrigin(request),
   });
@@ -255,12 +328,23 @@ export async function handleKdf(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   const purpose = body.data.purpose ?? "login";
   const nick = normalizeNick(body.data.nick, fmt());
-  if (!nick) return json({ kdf: dummyKdf(body.data.nick, purpose) });
+  if (!nick) {
+    const dummy = dummyKdf(body.data.nick, purpose);
+    return json({ kdf: dummy, kdfs: [dummy] });
+  }
   const raw = await getStores().kv.get(nickKey(nick));
-  if (!raw) return json({ kdf: dummyKdf(nick, purpose) });
+  if (!raw) {
+    const dummy = dummyKdf(nick, purpose);
+    return json({ kdf: dummy, kdfs: [dummy] });
+  }
   const user = JSON.parse(raw) as UserRecord;
-  const kdf = purpose === "recovery" ? user.kdf?.recovery : user.kdf?.password;
-  return json({ kdf: kdf ?? dummyKdf(nick, purpose) });
+  if (purpose === "recovery") {
+    const slots = recoverySlots(user);
+    const kdfs = slots.kdfs.length ? slots.kdfs : user.kdf?.recovery ? [user.kdf.recovery] : [];
+    const fallback = dummyKdf(nick, purpose);
+    return json({ kdf: kdfs[0] ?? fallback, kdfs: kdfs.length ? kdfs : [fallback] });
+  }
+  return json({ kdf: user.kdf?.password ?? dummyKdf(nick, purpose) });
 }
 
 export async function handleSignup(request: Request): Promise<Response> {
@@ -269,20 +353,37 @@ export async function handleSignup(request: Request): Promise<Response> {
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const body = signupSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
+  if (body.data.ageConfirmed !== true) return json({ error: "age_required" }, 400);
   const authKey = requireKey(body.data.authKey);
-  const recoveryVerifyKey = requireKey(body.data.recoveryVerifyKey);
-  if (!authKey || !recoveryVerifyKey) return json({ error: "invalid" }, 400);
+  const verifyRaw = body.data.recoveryVerifyKeys?.length ? body.data.recoveryVerifyKeys : body.data.recoveryVerifyKey ? [body.data.recoveryVerifyKey] : [];
+  const wrapList = (body.data.wrapRecoveries?.length ? body.data.wrapRecoveries : body.data.wrapRecovery ? [body.data.wrapRecovery] : []) as WrappedKey[];
+  const kdfList = (body.data.kdfRecoveries?.length ? body.data.kdfRecoveries : body.data.kdfRecovery ? [body.data.kdfRecovery] : []) as KdfParams[];
+  const expected = recoveryCodesCount();
+  if (!authKey || verifyRaw.length !== expected || wrapList.length !== expected || kdfList.length !== expected) {
+    return json({ error: "invalid", hint: "recovery_codes", recoveryCodes: expected }, 400);
+  }
+  const verifyKeys: Uint8Array[] = [];
+  for (const raw of verifyRaw) {
+    const k = requireKey(raw);
+    if (!k) return json({ error: "invalid" }, 400);
+    verifyKeys.push(k);
+  }
   const nick = await uniqueNick(body.data.nick);
   if (!nick) return json({ error: "nick_taken" }, 409);
   const now = new Date().toISOString();
   const channel = body.data.channel as OtpChannel;
+  if (channel === "email" && !emailOtpEnabled()) return json({ error: "email_otp_disabled" }, 400);
   const dest = body.data.dest.trim();
+  const recoveryHashes: string[] = [];
+  for (const k of verifyKeys) recoveryHashes.push(await hashAuthKey(k));
   const user: UserRecord = {
     nick,
     createdAt: now,
     passwordHash: await hashAuthKey(authKey),
-    recoveryHash: await hashAuthKey(recoveryVerifyKey),
-    kdf: { password: body.data.kdfPassword, recovery: body.data.kdfRecovery },
+    recoveryHash: recoveryHashes[0]!,
+    recoveryHashes,
+    recoveryKdfs: kdfList,
+    kdf: { password: body.data.kdfPassword, recovery: kdfList[0]! },
     otp:
       channel === "telegram"
         ? { telegram: telegramFromUserInput(dest, false) }
@@ -290,9 +391,11 @@ export async function handleSignup(request: Request): Promise<Response> {
     contacts: [],
     theme: "graphite",
     wrapPassword: body.data.wrapPassword as WrappedKey,
-    wrapRecovery: body.data.wrapRecovery as WrappedKey,
+    wrapRecovery: wrapList[0]!,
+    wrapRecoveries: wrapList,
     appearance: "dark",
     dataVersion: 0,
+    ageConfirmedAt: now,
   };
   const issued = await issueOtp(request, {
     nick,
@@ -303,7 +406,7 @@ export async function handleSignup(request: Request): Promise<Response> {
   });
   if (issued instanceof Response) return issued;
   const pending: PendingSignup = { kind: "signup", user, otp: issued.otp, dest };
-  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending));
+  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
   const test = isTestMode() ? { testOtp: issued.code } : {};
   return json({ otpId: issued.otpId, nick, channel, ...test });
 }
@@ -316,9 +419,11 @@ export async function handleLogin(request: Request): Promise<Response> {
   const hit = await limits.login.take(`login:${ip}:${(nick ?? body.data.nick).toLowerCase()}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const authKey = requireKey(body.data.authKey);
-  if (!nick || !authKey) return json({ error: "invalid_credentials" }, 401);
-  const raw = await getStores().kv.get(nickKey(nick));
-  if (!raw) return json({ error: "invalid_credentials" }, 401);
+  const raw = nick ? await getStores().kv.get(nickKey(nick)) : null;
+  if (!nick || !authKey || !raw) {
+    await dummyLoginWork(nick ?? body.data.nick, authKey);
+    return json({ error: "invalid_credentials" }, 401);
+  }
   const user = JSON.parse(raw) as UserRecord;
   if (!(await verifyAuthKey(authKey, user.passwordHash))) {
     return json({ error: "invalid_credentials" }, 401);
@@ -336,7 +441,7 @@ export async function handleLogin(request: Request): Promise<Response> {
   });
   if (issued instanceof Response) return issued;
   const pending: PendingLogin = { kind: "login", nick, otp: issued.otp };
-  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending));
+  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
   const test = isTestMode() ? { testOtp: issued.code } : {};
   return json({ otpId: issued.otpId, nick, channel: stored.channel, ...test });
 }
@@ -353,7 +458,7 @@ export async function handleOtp(request: Request): Promise<Response> {
   }
   if (!otpMatches(body.data.code, pending.otp)) {
     pending.otp.attempts += 1;
-    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending));
+    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
     return json({ error: "invalid_code" }, 401);
   }
   let user: UserRecord;
@@ -394,52 +499,135 @@ export async function handleRecovery(request: Request): Promise<Response> {
   const nick = normalizeNick(body.data.nick, fmt());
   const hit = await limits.login.take(`recovery:${ip}:${(nick ?? "x").toLowerCase()}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
-  const verifyKey = requireKey(body.data.recoveryVerifyKey);
-  if (!nick || !verifyKey) return json({ error: "invalid_credentials" }, 401);
+  const verifyKeys = readVerifyKeys(body.data);
+  if (!nick || !verifyKeys) return json({ error: "invalid_credentials" }, 401);
   const raw = await getStores().kv.get(nickKey(nick));
   if (!raw) return json({ error: "invalid_credentials" }, 401);
   const user = JSON.parse(raw) as UserRecord;
   const now = Date.now();
   const used = (user.usedRecoveryHashes ?? []).filter((u) => u.until > now);
-  if (await verifyAuthKey(verifyKey, user.recoveryHash)) {
-    /* current code */
-  } else {
-    let matchedUsed = false;
-    for (const u of used) {
-      if (await verifyAuthKey(verifyKey, u.hash)) {
-        matchedUsed = true;
-        break;
-      }
-    }
-    if (matchedUsed) return json({ error: "recovery_replaced" }, 401);
-    return json({ error: "invalid_credentials" }, 401);
-  }
+  const slots = recoverySlots(user);
+  const matched = await matchRecoveryIndex(user, verifyKeys);
+  if (matched.used) return json({ error: "recovery_replaced" }, 401);
+  if (matched.index < 0) return json({ error: "invalid_credentials" }, 401);
+  const matchIndex = matched.index;
+  const matchedWrap = slots.wraps[matchIndex] ?? user.wrapRecovery;
   const phase = body.data.phase ?? (body.data.wrapPassword && body.data.authKey ? "reset" : "unlock");
+
+  if (phase === "rebind-start" || phase === "rebind-confirm") {
+    return handleRebind(request, body.data, user, matchIndex, now);
+  }
+
   if (phase === "unlock") {
     return json({
       nick: user.nick,
-      wrapRecovery: user.wrapRecovery,
+      wrapRecovery: matchedWrap,
       kdf: user.kdf,
       needsPassword: true,
-      newRecoveryRequired: true,
+      newRecoveryRequired: false,
+      recoveryLeft: slots.hashes.length,
     });
   }
-  const newVerify = body.data.recoveryVerifyKeyNew ? requireKey(body.data.recoveryVerifyKeyNew) : null;
   const newAuth = body.data.authKey ? requireKey(body.data.authKey) : null;
-  if (!newAuth || !newVerify || !body.data.wrapPassword || !body.data.wrapRecovery || !body.data.kdfPassword || !body.data.kdfRecovery) {
-    return json({ error: "invalid", hint: "new_recovery_required" }, 400);
+  if (!newAuth || !body.data.wrapPassword || !body.data.kdfPassword) {
+    return json({ error: "invalid" }, 400);
   }
-  used.push({ hash: user.recoveryHash, until: now + USED_RECOVERY_TTL_MS });
+  used.push({ hash: slots.hashes[matchIndex]!, until: now + USED_RECOVERY_TTL_MS });
   user.usedRecoveryHashes = used;
+  applyRecoverySlots(
+    user,
+    slots.hashes.filter((_, i) => i !== matchIndex),
+    slots.wraps.filter((_, i) => i !== matchIndex),
+    slots.kdfs.filter((_, i) => i !== matchIndex),
+  );
   user.passwordHash = await hashAuthKey(newAuth);
-  user.recoveryHash = await hashAuthKey(newVerify);
   user.wrapPassword = body.data.wrapPassword as WrappedKey;
-  user.wrapRecovery = body.data.wrapRecovery as WrappedKey;
-  user.kdf = { password: body.data.kdfPassword, recovery: body.data.kdfRecovery };
+  user.kdf = { password: body.data.kdfPassword, recovery: user.kdf.recovery };
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
   await revokeAllSessions(user.nick);
   const { cookie } = await createSession(user.nick);
-  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: user.wrapRecovery, newRecoveryIssued: true, sessionsRevoked: true }, cookie);
+  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: matchedWrap, recoveryBurned: true, sessionsRevoked: true, recoveryLeft: recoverySlots(user).hashes.length }, cookie);
+}
+
+type PendingRebind = {
+  kind: "rebind";
+  nick: string;
+  otp: OtpRecord;
+  dest: string;
+  channel: OtpChannel;
+  matchIndex: number;
+};
+
+async function handleRebind(
+  request: Request,
+  data: {
+    authKey?: string;
+    channel?: "telegram" | "email";
+    dest?: string;
+    otpId?: string;
+    code?: string;
+    lang?: string;
+    phase?: string;
+  },
+  user: UserRecord,
+  matchIndex: number,
+  now: number,
+): Promise<Response> {
+  if (!data.authKey || !(await requirePassword(user, data.authKey))) {
+    return json({ error: "invalid_credentials" }, 401);
+  }
+  if (data.phase === "rebind-start") {
+    const channel = (data.channel ?? "telegram") as OtpChannel;
+    if (channel === "email" && !emailOtpEnabled()) return json({ error: "email_otp_disabled" }, 400);
+    const dest = (data.dest ?? "").trim();
+    if (dest.length < 2) return json({ error: "invalid" }, 400);
+    const issued = await issueOtp(request, {
+      nick: user.nick,
+      purpose: "rebind",
+      channel,
+      dest,
+      lang: data.lang,
+    });
+    if (issued instanceof Response) return issued;
+    const pending: PendingRebind = { kind: "rebind", nick: user.nick, otp: issued.otp, dest, channel, matchIndex };
+    await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+    const test = isTestMode() ? { testOtp: issued.code } : {};
+    return json({ otpId: issued.otpId, channel, ...test });
+  }
+  if (!data.otpId || !data.code) return json({ error: "reauth_required" }, 400);
+  const raw = await getStores().kv.get(otpKey(data.otpId));
+  if (!raw) return json({ error: "invalid_code" }, 401);
+  const pending = JSON.parse(raw) as PendingRebind;
+  if (pending.kind !== "rebind" || pending.nick !== user.nick) return json({ error: "invalid_code" }, 401);
+  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+    await getStores().kv.delete(otpKey(data.otpId));
+    return json({ error: "too_many_attempts" }, 429);
+  }
+  if (!otpMatches(data.code, pending.otp)) {
+    pending.otp.attempts += 1;
+    await getStores().kv.put(otpKey(data.otpId), JSON.stringify(pending), otpPutTtl());
+    return json({ error: "invalid_code" }, 401);
+  }
+  const slots = recoverySlots(user);
+  if (pending.matchIndex < 0 || pending.matchIndex >= slots.hashes.length) {
+    return json({ error: "recovery_replaced" }, 401);
+  }
+  const used = (user.usedRecoveryHashes ?? []).filter((u) => u.until > now);
+  used.push({ hash: slots.hashes[pending.matchIndex]!, until: now + USED_RECOVERY_TTL_MS });
+  user.usedRecoveryHashes = used;
+  applyRecoverySlots(
+    user,
+    slots.hashes.filter((_, i) => i !== pending.matchIndex),
+    slots.wraps.filter((_, i) => i !== pending.matchIndex),
+    slots.kdfs.filter((_, i) => i !== pending.matchIndex),
+  );
+  if (pending.channel === "telegram") user.otp.telegram = telegramFromUserInput(pending.dest, true);
+  else user.otp.email = { address: pending.dest, verified: true };
+  await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
+  await getStores().kv.delete(otpKey(data.otpId));
+  await revokeAllSessions(user.nick);
+  const { cookie } = await createSession(user.nick);
+  return jsonWithCookie({ ...sessionPayload(user), recoveryBurned: true, sessionsRevoked: true, rebound: true, recoveryLeft: recoverySlots(user).hashes.length }, cookie);
 }
 
 export async function handleMe(request: Request): Promise<Response> {
@@ -492,7 +680,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
         visible: c.visible,
         label: c.label,
         kind: c.kind,
-        verified: prev.verified,
+        verified: prev.value === c.value && prev.kind === c.kind ? prev.verified : false,
       });
     }
     user.contacts = next;
@@ -516,13 +704,14 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   if (body.data.kind === "other" && !isHttpsUrl(body.data.value)) return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
-  const needsOtp = body.data.kind === "telegram" || body.data.kind === "email";
+  const needsOtp =
+    body.data.kind === "telegram" || (body.data.kind === "email" && emailOtpEnabled());
   const contact: Contact = {
     id,
     kind: body.data.kind,
     value: body.data.value.trim(),
     visible: body.data.visible ?? defaultContactVisible(body.data.kind),
-    verified: !needsOtp,
+    verified: body.data.kind === "telegram" || body.data.kind === "email" ? false : !needsOtp,
     label: body.data.label,
   };
   user.contacts.push(contact);
@@ -540,6 +729,7 @@ export async function handleAddContact(request: Request): Promise<Response> {
   await getStores().kv.put(
     otpKey(issued.otpId),
     JSON.stringify({ kind: "contact", nick: user.nick, contactId: id, otp: issued.otp }),
+    otpPutTtl(),
   );
   const test = isTestMode() ? { testOtp: issued.code } : {};
   return json({ contact, otpId: issued.otpId, ...test });
@@ -566,13 +756,13 @@ export async function handleVerifyContact(request: Request): Promise<Response> {
       await getStores().kv.delete(otpKey(body.data.otpId));
       return json({ error: "too_many_attempts" }, 429);
     }
-    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending));
+    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
     return json({ error: "invalid_code" }, 401);
   }
   const c = user.contacts.find((x) => x.id === body.data.contactId);
   if (c) c.verified = true;
-  if (c?.kind === "telegram") user.otp.telegram = telegramFromUserInput(c.value, true);
-  if (c?.kind === "email") user.otp.email = { address: c.value, verified: true };
+  // Verifying a contact does not change the 2FA channel. That requires
+  // password + a code sent to the current verified destination.
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
   await getStores().kv.delete(otpKey(body.data.otpId));
   return json({ contact: c });
@@ -615,9 +805,33 @@ export async function handlePutData(request: Request): Promise<Response> {
   return json({ ok: true, bytes: bytes.length, version: result.version });
 }
 
-export async function handleDeleteMe(request: Request): Promise<Response> {
-  const user = await requireUser(request);
-  if (user instanceof Response) return user;
+const stepUpSchema = z.object({
+  phase: z.enum(["start", "confirm"]).optional(),
+  authKey: authKeySchema,
+  otpId: z.string().min(8).optional(),
+  code: z.string().min(4).max(12).optional(),
+  contactId: z.string().optional(),
+  lang: z.string().optional(),
+});
+
+type PendingStepUp = {
+  kind: "delete" | "otp-channel";
+  nick: string;
+  otp: import("./otp.ts").OtpRecord;
+  contactId?: string;
+  authOk: true;
+};
+
+async function requirePassword(user: UserRecord, authKeyRaw: string): Promise<boolean> {
+  const key = requireKey(authKeyRaw);
+  if (!key) {
+    await dummyLoginWork(user.nick, null);
+    return false;
+  }
+  return verifyAuthKey(key, user.passwordHash);
+}
+
+async function wipeAccount(request: Request, user: UserRecord): Promise<Response> {
   const stores = getStores();
   const nick = user.nick;
   await clearOtpsForNick(nick);
@@ -625,9 +839,172 @@ export async function handleDeleteMe(request: Request): Promise<Response> {
   await deleteAllDataBlobs(stores.blobs, nick);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
-  await reserveNick(nick);
+  await reserveNick(nick, "retired");
   const cookie = await destroySession(request);
-  return jsonWithCookie({ ok: true, deleted: true, nickReserved: !nickReissueAllowed() }, cookie);
+  return jsonWithCookie({ ok: true, deleted: true, nickReserved: true }, cookie);
+}
+
+export async function handleDeleteMe(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const body = stepUpSchema.safeParse(await readJson(request));
+  if (!body.success) return json({ error: "reauth_required" }, 400);
+  if (!(await requirePassword(user, body.data.authKey))) {
+    return json({ error: "invalid_credentials" }, 401);
+  }
+  const phase = body.data.phase ?? (body.data.otpId && body.data.code ? "confirm" : "start");
+  if (phase === "start") {
+    const stored = verifiedOtpDest(user);
+    if (!stored) return json({ error: "no_otp_dest" }, 400);
+    const issued = await issueOtp(request, {
+      nick: user.nick,
+      purpose: "delete",
+      channel: stored.channel,
+      dest: stored.dest,
+      lang: body.data.lang,
+    });
+    if (issued instanceof Response) return issued;
+    const pending: PendingStepUp = { kind: "delete", nick: user.nick, otp: issued.otp, authOk: true };
+    await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+    const test = isTestMode() ? { testOtp: issued.code } : {};
+    return json({ otpId: issued.otpId, channel: stored.channel, ...test });
+  }
+  if (!body.data.otpId || !body.data.code) return json({ error: "reauth_required" }, 400);
+  const raw = await getStores().kv.get(otpKey(body.data.otpId));
+  if (!raw) return json({ error: "invalid_code" }, 401);
+  const pending = JSON.parse(raw) as PendingStepUp;
+  if (pending.kind !== "delete" || pending.nick !== user.nick) return json({ error: "invalid_code" }, 401);
+  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+    await getStores().kv.delete(otpKey(body.data.otpId));
+    return json({ error: "too_many_attempts" }, 429);
+  }
+  if (!otpMatches(body.data.code, pending.otp)) {
+    pending.otp.attempts += 1;
+    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
+    return json({ error: "invalid_code" }, 401);
+  }
+  await getStores().kv.delete(otpKey(body.data.otpId));
+  return wipeAccount(request, user);
+}
+
+function maskDest(dest: string): string {
+  const trimmed = dest.replace(/^@/, "");
+  if (trimmed.length <= 3) return "@" + trimmed[0] + "***";
+  return "@" + trimmed.slice(0, 2) + "***";
+}
+
+export async function handleOtpChannel(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const body = stepUpSchema.safeParse(await readJson(request));
+  if (!body.success || !body.data.contactId) return json({ error: "invalid" }, 400);
+  if (!(await requirePassword(user, body.data.authKey))) {
+    return json({ error: "invalid_credentials" }, 401);
+  }
+  const contact = user.contacts.find((c) => c.id === body.data.contactId);
+  if (!contact || !contact.verified) return json({ error: "unverified_contact" }, 400);
+  if (contact.kind !== "telegram" && !(contact.kind === "email" && emailOtpEnabled())) {
+    return json({ error: "channel_unsupported" }, 400);
+  }
+  const stored = verifiedOtpDest(user);
+  if (!stored) return json({ error: "no_otp_dest" }, 400);
+  const phase = body.data.phase ?? (body.data.otpId && body.data.code ? "confirm" : "start");
+  if (phase === "start") {
+    const issued = await issueOtp(request, {
+      nick: user.nick,
+      purpose: "otp-channel",
+      channel: stored.channel,
+      dest: stored.dest,
+      lang: body.data.lang,
+    });
+    if (issued instanceof Response) return issued;
+    const pending: PendingStepUp = {
+      kind: "otp-channel",
+      nick: user.nick,
+      otp: issued.otp,
+      contactId: contact.id,
+      authOk: true,
+    };
+    await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+    const test = isTestMode() ? { testOtp: issued.code } : {};
+    return json({
+      otpId: issued.otpId,
+      channel: stored.channel,
+      current: { channel: stored.channel, dest: maskDest(stored.dest) },
+      next: { channel: contact.kind, verified: true },
+      ...test,
+    });
+  }
+  if (!body.data.otpId || !body.data.code) return json({ error: "reauth_required" }, 400);
+  const raw = await getStores().kv.get(otpKey(body.data.otpId));
+  if (!raw) return json({ error: "invalid_code" }, 401);
+  const pending = JSON.parse(raw) as PendingStepUp;
+  if (pending.kind !== "otp-channel" || pending.nick !== user.nick || pending.contactId !== contact.id) {
+    return json({ error: "invalid_code" }, 401);
+  }
+  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+    await getStores().kv.delete(otpKey(body.data.otpId));
+    return json({ error: "too_many_attempts" }, 429);
+  }
+  if (!otpMatches(body.data.code, pending.otp)) {
+    pending.otp.attempts += 1;
+    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
+    return json({ error: "invalid_code" }, 401);
+  }
+  if (contact.kind === "telegram") user.otp.telegram = telegramFromUserInput(contact.value, true);
+  else if (contact.kind === "email") user.otp.email = { address: contact.value, verified: true };
+  await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
+  await getStores().kv.delete(otpKey(body.data.otpId));
+  return json({ ok: true, otp: { channel: contact.kind } });
+}
+
+const nickChangeSchema = z.object({ nick: z.string().min(3), authKey: authKeySchema });
+
+export async function handleChangeNick(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  if (user.nickChanged || user.previousNick) return json({ error: "nick_change_used" }, 409);
+  const body = nickChangeSchema.safeParse(await readJson(request));
+  if (!body.success) return json({ error: "invalid" }, 400);
+  if (!(await requirePassword(user, body.data.authKey))) return json({ error: "invalid_credentials" }, 401);
+  const next = await uniqueNick(body.data.nick);
+  if (!next) return json({ error: "nick_taken" }, 409);
+  if (next.toLowerCase() === user.nick.toLowerCase()) return json({ error: "invalid" }, 400);
+  const stores = getStores();
+  const oldNick = user.nick;
+  const version = await readDataVersion(stores.kv, oldNick);
+  if (version > 0) {
+    await stores.kv.put(dataVersionKey(next), String(version));
+    const prefix = `user/${oldNick.replace(/^@/, "")}/`;
+    for (const key of await stores.blobs.list(prefix)) {
+      const blob = await stores.blobs.get(key);
+      if (!blob) continue;
+      const moved = key.replace(`user/${oldNick.replace(/^@/, "")}/`, `user/${next.replace(/^@/, "")}/`);
+      await stores.blobs.put(moved, blob);
+      await stores.blobs.delete(key);
+    }
+    await stores.kv.delete(dataVersionKey(oldNick));
+  }
+  user.previousNick = oldNick;
+  user.nickChanged = true;
+  user.nick = next;
+  await stores.kv.put(nickKey(next), JSON.stringify(user));
+  await stores.kv.delete(nickKey(oldNick));
+  await reserveNick(oldNick, "renamed");
+  const sessionsRaw = await stores.kv.get(sessionsOfKey(oldNick));
+  if (sessionsRaw) {
+    const ids = JSON.parse(sessionsRaw) as string[];
+    for (const id of ids) {
+      const raw = await stores.kv.get(sessionKey(id));
+      if (!raw) continue;
+      const s = JSON.parse(raw) as { id: string; nick: string; exp: number };
+      s.nick = next;
+      await stores.kv.put(sessionKey(id), JSON.stringify(s));
+    }
+    await stores.kv.put(sessionsOfKey(next), sessionsRaw);
+    await stores.kv.delete(sessionsOfKey(oldNick));
+  }
+  return json({ ok: true, nick: next, previousNick: oldNick, nickChanged: true, cardPath: publicCardPath(next) });
 }
 
 function listedByOwnerLabel(request: Request): string {
@@ -641,6 +1018,39 @@ function listedByOwnerLabel(request: Request): string {
     en: "listed by the owner",
   };
   return labels[lang] ?? labels.en;
+}
+
+
+const replaceRecoverySchema = z.object({
+  authKey: authKeySchema,
+  recoveryVerifyKeys: z.array(authKeySchema).min(1).max(10),
+  wrapRecoveries: z.array(wrappedSchema).min(1).max(10),
+  kdfRecoveries: z.array(kdfSchema).min(1).max(10),
+});
+
+export async function handleReplaceRecoveryCodes(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const body = replaceRecoverySchema.safeParse(await readJson(request));
+  if (!body.success) return json({ error: "invalid" }, 400);
+  if (!(await requirePassword(user, body.data.authKey))) return json({ error: "invalid_credentials" }, 401);
+  const expected = recoveryCodesCount();
+  if (
+    body.data.recoveryVerifyKeys.length !== expected ||
+    body.data.wrapRecoveries.length !== expected ||
+    body.data.kdfRecoveries.length !== expected
+  ) {
+    return json({ error: "invalid", hint: "recovery_codes", recoveryCodes: expected }, 400);
+  }
+  const hashes: string[] = [];
+  for (const raw of body.data.recoveryVerifyKeys) {
+    const k = requireKey(raw);
+    if (!k) return json({ error: "invalid" }, 400);
+    hashes.push(await hashAuthKey(k));
+  }
+  applyRecoverySlots(user, hashes, body.data.wrapRecoveries as WrappedKey[], body.data.kdfRecoveries);
+  await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
+  return json({ ok: true, recoveryLeft: hashes.length });
 }
 
 export async function handlePublicCard(request: Request, nickParam: string): Promise<Response> {

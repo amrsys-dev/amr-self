@@ -8,6 +8,7 @@ import {
   encodeAuthKey,
   generateDataKey,
   generateRecoveryCode,
+  generateRecoveryCodes,
   keysFromParams,
   type KdfParams,
   unwrapDataKey,
@@ -40,9 +41,21 @@ type Screen =
   | "sport"
   | "plans"
   | "card"
-  | "card-themes";
+  | "card-themes"
+  | "sec-2fa-change"
+  | "account-delete"
+  | "nick-change"
+  | "rebind-2fa";
 
-type Meta = { testMode: boolean; storeKind: string; nickFormat: string; env: string; cardOrigin: string };
+type Meta = {
+  testMode: boolean;
+  storeKind: string;
+  nickFormat: string;
+  env: string;
+  cardOrigin: string;
+  emailOtp?: boolean;
+  recoveryCodes?: number;
+};
 
 type SessionState = {
   nick: string;
@@ -52,6 +65,7 @@ type SessionState = {
   wrapPassword?: WrappedKey;
   kdf?: { password: KdfParams; recovery: KdfParams };
   cardPath: string;
+  nickChanged?: boolean;
 };
 
 const GLYPH: Record<ContactKind, string> = {
@@ -83,6 +97,28 @@ function TestBanner({ code, t }: { code?: string; t: (k: MsgKey) => string }) {
       <b>{t("test_banner")}</b>
       {t("test_otp")}
       <div className="code">{code}</div>
+    </div>
+  );
+}
+
+function CodeBoxes({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const v = value.replace(/\D/g, "").slice(0, 6);
+  return (
+    <div className="otp-boxes">
+      {Array.from({ length: 6 }, (_, i) => (
+        <span key={i} className="otp-box">
+          {v[i] ?? ""}
+        </span>
+      ))}
+      <input
+        className="otp-hidden"
+        inputMode="numeric"
+        autoComplete="one-time-code"
+        value={v}
+        maxLength={6}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        aria-label="otp"
+      />
     </div>
   );
 }
@@ -123,6 +159,13 @@ export function IdApp() {
   const [otpId, setOtpId] = useState("");
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [newNick, setNewNick] = useState("");
+  const [newNickStatus, setNewNickStatus] = useState<"free" | "taken" | "format" | "">("");
+  const [pendingContactId, setPendingContactId] = useState("");
+  const [rebindDest, setRebindDest] = useState("");
   const dataKeyRef = useRef<Uint8Array | null>(null);
   const accountIdRef = useRef<string | null>(null);
 
@@ -200,33 +243,46 @@ export function IdApp() {
         setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
         return;
       }
-      const rec = generateRecoveryCode();
+      if (!ageConfirmed) {
+        setErr(t("age_hint"));
+        return;
+      }
+      const count = meta?.recoveryCodes ?? 10;
+      const codes = generateRecoveryCodes(count);
       const dataKey = await generateDataKey();
       dataKeyRef.current = dataKey;
       const pwd = await derivePasswordKeys(password);
-      const recKeys = await deriveRecoveryKeys(rec);
+      const recKeys = [];
+      for (const c of codes) recKeys.push(await deriveRecoveryKeys(c));
       const wrapPassword = await wrapDataKey(dataKey, pwd.wrapKey);
-      const wrapRecovery = await wrapDataKey(dataKey, recKeys.wrapKey);
+      const wrapRecoveries = [];
+      for (const k of recKeys) wrapRecoveries.push(await wrapDataKey(dataKey, k.wrapKey));
+      const useEmail = Boolean(meta?.emailOtp) && channel === "email";
       const r = await api<{ otpId: string; nick: string; testOtp?: string }>("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           nick,
           authKey: encodeAuthKey(pwd.authKey),
-          recoveryVerifyKey: encodeAuthKey(recKeys.verifyKey),
+          recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey),
+          recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
           kdfPassword: pwd.params,
-          kdfRecovery: recKeys.params,
+          kdfRecovery: recKeys[0]!.params,
+          kdfRecoveries: recKeys.map((k) => k.params),
           wrapPassword,
-          wrapRecovery,
-          channel,
+          wrapRecovery: wrapRecoveries[0],
+          wrapRecoveries,
+          channel: useEmail ? "email" : "telegram",
           dest,
           lang,
+          ageConfirmed: true,
         }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       setNick(r.data.nick);
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
-      setRecovery(rec);
+      setRecovery(codes[0] ?? "");
+      setRecoveryCodes(codes);
       setScreen("signup-code");
     } finally {
       setBusy(false);
@@ -296,18 +352,197 @@ export function IdApp() {
     setScreen("welcome");
   }
 
-  async function deleteMyData() {
-    if (typeof window !== "undefined" && !window.confirm(t("delete_my_data_confirm"))) return;
-    const r = await api("/api/me/delete", { method: "POST" });
-    if (!r.ok) return fail(r.status, r.data as { error?: string });
+  async function afterWipe() {
     await wipeLocalData();
     dataKeyRef.current = null;
     accountIdRef.current = null;
     setSession(null);
     setPassword("");
+    setReauthPassword("");
     setRecovery("");
+    setRecoveryCodes([]);
+    setCode("");
+    setOtpId("");
     setScreen("welcome");
   }
+
+  async function authKeyFrom(pw: string) {
+    if (!session?.kdf?.password) throw new Error("no kdf");
+    const { salt, opts } = keysFromParams(session.kdf.password);
+    const pwd = await derivePasswordKeys(pw, salt, opts);
+    return encodeAuthKey(pwd.authKey);
+  }
+
+
+  async function checkNickStatus(value: string) {
+    if (value.trim().length < 5) {
+      setNewNickStatus("");
+      return;
+    }
+    const r = await api<{ ok: boolean; reason?: string }>(`/api/nick/check?nick=${encodeURIComponent(value)}`);
+    if (!r.ok) return;
+    setNewNickStatus(r.data.ok ? "free" : ((r.data.reason as "taken" | "format") ?? "taken"));
+  }
+
+  async function submitNickChange() {
+    if (!session) return;
+    setErr("");
+    setBusy(true);
+    try {
+      const authKey = await authKeyFrom(reauthPassword);
+      const r = await api<{ nick: string; nickChanged: boolean; cardPath: string }>("/api/me/nick", {
+        method: "POST",
+        body: JSON.stringify({ nick: newNick, authKey }),
+      });
+      if (!r.ok) return fail(r.status, r.data as { error?: string });
+      setSession({ ...session, nick: r.data.nick, nickChanged: true, cardPath: r.data.cardPath });
+      setReauthPassword("");
+      setScreen("profile");
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitChannelChange() {
+    if (!session) return;
+    setErr("");
+    setBusy(true);
+    try {
+      const contact = session.contacts.find((c) => c.id === pendingContactId) ?? session.contacts.find((c) => c.verified && c.kind === "telegram");
+      if (!contact) {
+        setErr(t("error"));
+        return;
+      }
+      setPendingContactId(contact.id);
+      const authKey = await authKeyFrom(reauthPassword);
+      if (!otpId || code.replace(/\D/g, "").length < 6) {
+        const start = await api<{ otpId: string; testOtp?: string }>("/api/me/otp-channel", {
+          method: "POST",
+          body: JSON.stringify({ phase: "start", contactId: contact.id, authKey, lang }),
+        });
+        if (!start.ok) return fail(start.status, start.data as { error?: string });
+        setOtpId(start.data.otpId);
+        setTestOtp(start.data.testOtp);
+        return;
+      }
+      const confirm = await api<{ ok: boolean }>("/api/me/otp-channel", {
+        method: "POST",
+        body: JSON.stringify({ phase: "confirm", contactId: contact.id, authKey, otpId, code, lang }),
+      });
+      if (!confirm.ok) return fail(confirm.status, confirm.data as { error?: string });
+      const me = await api<SessionState>("/api/me");
+      if (me.ok) setSession(me.data);
+      setReauthPassword("");
+      setCode("");
+      setOtpId("");
+      setTestOtp(undefined);
+      setScreen("profile");
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitDeleteAccount() {
+    if (!session) return;
+    setErr("");
+    setBusy(true);
+    try {
+      const authKey = await authKeyFrom(reauthPassword);
+      if (!otpId || code.replace(/\D/g, "").length < 6) {
+        const start = await api<{ otpId: string; testOtp?: string }>("/api/me/delete", {
+          method: "POST",
+          body: JSON.stringify({ phase: "start", authKey, lang }),
+        });
+        if (!start.ok) return fail(start.status, start.data as { error?: string });
+        setOtpId(start.data.otpId);
+        setTestOtp(start.data.testOtp);
+        return;
+      }
+      const del = await api("/api/me/delete", {
+        method: "POST",
+        body: JSON.stringify({ phase: "confirm", authKey, otpId, code }),
+      });
+      if (!del.ok) return fail(del.status, del.data as { error?: string });
+      await afterWipe();
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitRebind() {
+    setErr("");
+    setBusy(true);
+    try {
+      const kdfRes = await api<{ kdf: KdfParams; kdfs?: KdfParams[] }>(
+        "/api/auth/kdf",
+        { method: "POST", body: JSON.stringify({ nick, purpose: "recovery" }) },
+      );
+      if (!kdfRes.ok) return fail(kdfRes.status, kdfRes.data as { error?: string });
+      const list = kdfRes.data.kdfs?.length ? kdfRes.data.kdfs : kdfRes.data.kdf ? [kdfRes.data.kdf] : [];
+      const verifyKeys = [];
+      for (const params of list) {
+        const { salt, opts } = keysFromParams(params);
+        const rec = await deriveRecoveryKeys(recovery, salt, opts);
+        verifyKeys.push(encodeAuthKey(rec.verifyKey));
+      }
+      const loginKdf = await api<{ kdf: KdfParams }>(
+        "/api/auth/kdf",
+        { method: "POST", body: JSON.stringify({ nick, purpose: "login" }) },
+      );
+      if (!loginKdf.ok || !loginKdf.data.kdf) return fail(loginKdf.status, loginKdf.data as { error?: string });
+      const loginKeys = keysFromParams(loginKdf.data.kdf);
+      const pwd = await derivePasswordKeys(password, loginKeys.salt, loginKeys.opts);
+      if (!otpId) {
+        const start = await api<{ otpId: string; testOtp?: string }>("/api/auth/recovery", {
+          method: "POST",
+          body: JSON.stringify({
+            nick,
+            recoveryVerifyKey: verifyKeys[0],
+            recoveryVerifyKeys: verifyKeys,
+            authKey: encodeAuthKey(pwd.authKey),
+            phase: "rebind-start",
+            channel: "telegram",
+            dest: rebindDest,
+            lang,
+          }),
+        });
+        if (!start.ok) return fail(start.status, start.data as { error?: string });
+        setOtpId(start.data.otpId);
+        setTestOtp(start.data.testOtp);
+        return;
+      }
+      const confirm = await api<SessionState>("/api/auth/recovery", {
+        method: "POST",
+        body: JSON.stringify({
+          nick,
+          recoveryVerifyKey: verifyKeys[0],
+          recoveryVerifyKeys: verifyKeys,
+          authKey: encodeAuthKey(pwd.authKey),
+          phase: "rebind-confirm",
+          otpId,
+          code,
+        }),
+      });
+      if (!confirm.ok) return fail(confirm.status, confirm.data as { error?: string });
+      setSession(confirm.data);
+      setAppearance(confirm.data.appearance);
+      setTestOtp(undefined);
+      setOtpId("");
+      setCode("");
+      setScreen("today");
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
 
   async function saveProfile(patch: Partial<SessionState>) {
     if (!session) return;
@@ -452,8 +687,10 @@ export function IdApp() {
 
       {screen === "signup-pass" && (
         <>
-          <Header title={t("password")} onBack={() => setScreen("signup-nick")} />
+          <Header title={t("signup_create")} onBack={() => setScreen("signup-nick")} />
           <div className="page auth">
+            <h1>{t("password")}</h1>
+            <p className="sub">{t("password_hint")}</p>
             <div className="field">
               <label>{t("password")}</label>
               <div className="box">
@@ -466,17 +703,29 @@ export function IdApp() {
                 <input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} />
               </div>
             </div>
-            <p className="hint">{t("password_hint")}</p>
+            <button
+              type="button"
+              className={`check-row ${ageConfirmed ? "on" : ""}`}
+              onClick={() => setAgeConfirmed((v) => !v)}
+            >
+              <span className="check">✓</span>
+              {t("age_confirm")}
+            </button>
+            <p className="hint">{t("age_hint")}</p>
             {password && password2 && password !== password2 ? <div className="err">{t("mismatch")}</div> : null}
             {err ? <div className="err">{err}</div> : null}
             <div className="btns">
               <button
-                className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
+                className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 || !ageConfirmed ? "off" : ""}`}
                 type="button"
                 onClick={() => {
                   const policy = checkPassword(password, nick);
                   if (!policy.ok) {
                     setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
+                    return;
+                  }
+                  if (!ageConfirmed) {
+                    setErr(t("age_hint"));
                     return;
                   }
                   setErr("");
@@ -494,14 +743,18 @@ export function IdApp() {
         <>
           <Header title={t("second_factor")} onBack={() => setScreen("signup-pass")} />
           <div className="page auth">
-            <div className="seg">
-              <button type="button" className={channel === "telegram" ? "on" : ""} onClick={() => setChannel("telegram")}>
-                {t("telegram")}
-              </button>
-              <button type="button" className={channel === "email" ? "on" : ""} onClick={() => setChannel("email")}>
-                {t("email")}
-              </button>
-            </div>
+            {meta?.emailOtp ? (
+              <div className="seg">
+                <button type="button" className={channel === "telegram" ? "on" : ""} onClick={() => setChannel("telegram")}>
+                  {t("telegram")}
+                </button>
+                <button type="button" className={channel === "email" ? "on" : ""} onClick={() => setChannel("email")}>
+                  {t("email")}
+                </button>
+              </div>
+            ) : (
+              <p className="hint">{t("telegram")}</p>
+            )}
             <div className="field">
               <label>{channel === "telegram" ? t("dest_tg") : t("dest_email")}</label>
               <div className="box">
@@ -590,6 +843,11 @@ export function IdApp() {
             <div className="btns">
               <button className="link-quiet" type="button" onClick={() => setScreen("recovery")}>
                 {t("forgot")}
+              </button>
+            </div>
+            <div className="btns">
+              <button className="link-quiet" type="button" onClick={() => { setErr(""); setCode(""); setOtpId(""); setScreen("rebind-2fa"); }}>
+                {t("lost_telegram")}
               </button>
             </div>
           </div>
@@ -731,12 +989,57 @@ export function IdApp() {
                 </div>
                 <LangPicker lang={lang} setLang={setLang} t={t} />
                 <div className="btns">
+                  <button
+                    className={`btn g ${session.nickChanged ? "off" : ""}`}
+                    type="button"
+                    onClick={() => {
+                      if (session.nickChanged) return;
+                      setNewNick("");
+                      setNewNickStatus("");
+                      setReauthPassword("");
+                      setErr("");
+                      setScreen("nick-change");
+                    }}
+                  >
+                    {session.nickChanged ? t("nick_change_used") : t("change_nick")}
+                  </button>
+                </div>
+                <div className="btns">
+                  <button
+                    className="btn g"
+                    type="button"
+                    onClick={() => {
+                      const next = session.contacts.find((c) => c.verified && c.kind === "telegram");
+                      setPendingContactId(next?.id ?? "");
+                      setReauthPassword("");
+                      setCode("");
+                      setOtpId("");
+                      setTestOtp(undefined);
+                      setErr("");
+                      setScreen("sec-2fa-change");
+                    }}
+                  >
+                    {t("change_channel")}
+                  </button>
+                </div>
+                <div className="btns">
                   <button className="btn t" type="button" onClick={() => void logout()}>
                     {t("sign_out")}
                   </button>
                 </div>
                 <div className="btns">
-                  <button className="btn t" type="button" onClick={() => void deleteMyData()}>
+                  <button
+                    className="btn t"
+                    type="button"
+                    onClick={() => {
+                      setReauthPassword("");
+                      setCode("");
+                      setOtpId("");
+                      setTestOtp(undefined);
+                      setErr("");
+                      setScreen("account-delete");
+                    }}
+                  >
                     {t("delete_my_data")}
                   </button>
                 </div>
@@ -762,6 +1065,179 @@ export function IdApp() {
               </button>
             ))}
           </nav>
+        </>
+      )}
+
+
+      {session && screen === "nick-change" && (
+        <>
+          <Header title={t("nick")} onBack={() => setScreen("profile")} />
+          <div className="page auth">
+            <div className="kicker">{t("profile_sec")}</div>
+            <h1>{t("change_nick")}</h1>
+            <p className="sub">{t("nick_now")}: {session.nick}</p>
+            <div className="field">
+              <label>{t("new_nick_label")}</label>
+              <div className="box">
+                <span className="pre">@</span>
+                <input
+                  value={newNick.replace(/^@/, "")}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setNewNick(v);
+                    void checkNickStatus(v);
+                  }}
+                  autoCapitalize="off"
+                />
+              </div>
+              {newNickStatus ? (
+                <div className={`nick-status ${newNickStatus === "free" ? "ok" : "bad"}`}>
+                  <span className="dot" />
+                  {newNickStatus === "free" ? t("nick_free") : t("nick_taken")}
+                </div>
+              ) : null}
+            </div>
+            <div className="ex-row"><span className="ex">{t("example")}</span></div>
+            <div className="note">{t("nick_change_hint")}</div>
+            <div className="field">
+              <label>{t("password")}</label>
+              <div className="box">
+                <input type="password" value={reauthPassword} onChange={(e) => setReauthPassword(e.target.value)} />
+              </div>
+            </div>
+            {err ? <div className="err">{err}</div> : null}
+            <div className="btns">
+              <button className="btn g" type="button" onClick={() => setScreen("profile")}>{t("cancel")}</button>
+              <button
+                className={`btn p ${busy || newNickStatus !== "free" || reauthPassword.length < 10 ? "off" : ""}`}
+                type="button"
+                onClick={() => void submitNickChange()}
+              >
+                {t("change_nick_once")}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {session && screen === "sec-2fa-change" && (
+        <>
+          <Header title={t("login_code")} onBack={() => setScreen("profile")} />
+          <div className="page auth">
+            <div className="kicker">{t("security")}</div>
+            <h1>{t("change_channel")}</h1>
+            <p className="sub">{t("change_channel_sub")}</p>
+            <div className="card pad0">
+              <div className="row">
+                <span className="glyph ico">TG</span>
+                <div className="txt">
+                  <b>{t("channel_now")}</b>
+                  <span>Telegram</span>
+                </div>
+              </div>
+              <div className="row">
+                <span className="glyph ico">TG</span>
+                <div className="txt">
+                  <b>{t("channel_new")}</b>
+                  <span>Telegram · {t("verified_by_code")}</span>
+                </div>
+              </div>
+            </div>
+            <div className="field">
+              <label>{t("password")}</label>
+              <div className="box">
+                <input type="password" value={reauthPassword} onChange={(e) => setReauthPassword(e.target.value)} />
+              </div>
+            </div>
+            <div className="field">
+              <label>{t("code_from_tg")}</label>
+              <CodeBoxes value={code} onChange={setCode} />
+            </div>
+            {testOtp ? <TestBanner code={testOtp} t={t} /> : <div className="ex-row"><span className="ex">{t("example")}</span></div>}
+            <div className="note">{t("change_channel_hint")}</div>
+            {err ? <div className="err">{err}</div> : null}
+            <div className="btns">
+              <button className={`btn p ${busy ? "off" : ""}`} type="button" onClick={() => void submitChannelChange()}>
+                {t("change")}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {session && screen === "account-delete" && (
+        <>
+          <Header title={t("deletion")} onBack={() => setScreen("profile")} />
+          <div className="page auth center-copy">
+            <div className="danger-ico">×</div>
+            <h1>{t("delete_account")}</h1>
+            <p className="sub">{t("delete_wipe_a")} {session.nick}, {t("delete_wipe_b")}</p>
+            <p className="hint">{t("backup_hint")}</p>
+            <div className="field" style={{ textAlign: "start" }}>
+              <label>{t("password")}</label>
+              <div className="box">
+                <input type="password" value={reauthPassword} onChange={(e) => setReauthPassword(e.target.value)} />
+              </div>
+            </div>
+            <div className="field" style={{ textAlign: "start" }}>
+              <label>{t("code_from_tg")}</label>
+              <CodeBoxes value={code} onChange={setCode} />
+            </div>
+            {testOtp ? <TestBanner code={testOtp} t={t} /> : <div className="ex-row"><span className="ex">{t("example")}</span> · {t("delete_need_both")}</div>}
+            {err ? <div className="err">{err}</div> : null}
+            <div className="btns">
+              <button className="btn g" type="button" onClick={() => setScreen("profile")}>{t("cancel")}</button>
+              <button className={`btn bad ${busy ? "off" : ""}`} type="button" onClick={() => void submitDeleteAccount()}>
+                {t("delete_action")}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {screen === "rebind-2fa" && (
+        <>
+          <Header title={t("rebind_2fa")} onBack={() => setScreen("login")} />
+          <div className="page auth">
+            <p className="sub">{t("rebind_hint")}</p>
+            <div className="field">
+              <label>{t("nick")}</label>
+              <div className="box">
+                <input value={nick} onChange={(e) => setNick(e.target.value)} autoCapitalize="off" />
+              </div>
+            </div>
+            <div className="field">
+              <label>{t("password")}</label>
+              <div className="box">
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+            </div>
+            <div className="field">
+              <label>{t("recovery_code")}</label>
+              <div className="box">
+                <input value={recovery} onChange={(e) => setRecovery(e.target.value)} autoCapitalize="off" />
+              </div>
+            </div>
+            <div className="field">
+              <label>{t("dest_tg")}</label>
+              <div className="box">
+                <input value={rebindDest} onChange={(e) => setRebindDest(e.target.value)} autoCapitalize="off" />
+              </div>
+            </div>
+            {otpId ? (
+              <div className="field">
+                <label>{t("code_from_tg")}</label>
+                <CodeBoxes value={code} onChange={setCode} />
+              </div>
+            ) : null}
+            <TestBanner code={testOtp} t={t} />
+            {err ? <div className="err">{err}</div> : null}
+            <div className="btns">
+              <button className={`btn p ${busy ? "off" : ""}`} type="button" onClick={() => void submitRebind()}>
+                {otpId ? t("change") : t("send_code")}
+              </button>
+            </div>
+          </div>
         </>
       )}
 

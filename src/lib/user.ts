@@ -13,6 +13,8 @@ export type UserRecord = {
   passwordHash: string;
   /** Hash of the client-derived recovery verify key (never the raw code). */
   recoveryHash: string;
+  /** Unused one-time recovery hashes (includes recoveryHash). Each code can be used once. */
+  recoveryHashes?: string[];
   usedRecoveryHashes?: UsedRecovery[];
   kdf: { password: KdfParams; recovery: KdfParams };
   otp: {
@@ -23,8 +25,16 @@ export type UserRecord = {
   theme: CardTheme;
   wrapPassword: WrappedKey;
   wrapRecovery: WrappedKey;
+  /** One wrap per unused recovery code, same order as recoveryHashes. */
+  wrapRecoveries?: WrappedKey[];
+  /** Per-code argon2id params (salt is unique to that recovery code). */
+  recoveryKdfs?: KdfParams[];
   appearance: "dark" | "light";
   dataVersion?: number;
+  /** Nick may be changed exactly once. After that the old nick stays reserved. */
+  nickChanged?: boolean;
+  previousNick?: string;
+  ageConfirmedAt?: string;
 };
 
 export function nickKey(nick: string): string {
