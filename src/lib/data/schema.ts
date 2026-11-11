@@ -1,19 +1,28 @@
 /** Empty tab schema for stage 1. Content arrives in later PRs. */
+
+export type DataRecord = {
+  id: string;
+  updatedAt: string;
+  deleted?: boolean;
+};
+
+export type SalaryRecord = DataRecord & { amount: number; currency: "SAR" };
+
 export type UserData = {
   v: 1;
   finance: {
-    salary: null | { amount: number; currency: "SAR" };
-    gigs: unknown[];
-    income: unknown[];
-    expense: unknown[];
-    planned: unknown[];
-    limits: unknown[];
+    salary: SalaryRecord | null;
+    gigs: DataRecord[];
+    income: DataRecord[];
+    expense: DataRecord[];
+    planned: DataRecord[];
+    limits: DataRecord[];
   };
-  work: { tasks: unknown[] };
-  visa: { entries: unknown[] };
-  diary: { items: unknown[] };
-  sport: { sessions: unknown[] };
-  plans: { items: unknown[] };
+  work: { tasks: DataRecord[] };
+  visa: { entries: DataRecord[] };
+  diary: { items: DataRecord[] };
+  sport: { sessions: DataRecord[] };
+  plans: { items: DataRecord[] };
 };
 
 export function emptyUserData(): UserData {

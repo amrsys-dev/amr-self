@@ -3,14 +3,19 @@ import type { CardTheme, Contact, ContactKind, PublicContact } from "@/lib/card/
 import { CARD_THEMES, toPublicContacts } from "@/lib/card/visibility.ts";
 import { api } from "@/lib/client.ts";
 import {
+  derivePasswordKeys,
+  deriveRecoveryKeys,
+  encodeAuthKey,
   generateDataKey,
   generateRecoveryCode,
-  recoveryCodeCompact,
-  wrapKey,
-  unwrapKey,
+  keysFromParams,
+  type KdfParams,
+  unwrapDataKey,
+  wrapDataKey,
   type WrappedKey,
 } from "@/lib/crypto.ts";
 import { startSyncLoop } from "@/lib/data/sync.ts";
+import { checkPassword, PASSWORD_MIN } from "@/lib/password-policy.ts";
 import { LANGS, detectLang, isRtl, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { CardHero } from "./qr-card.tsx";
 
@@ -24,6 +29,7 @@ type Screen =
   | "login"
   | "login-2fa"
   | "recovery"
+  | "recovery-done"
   | "today"
   | "finance"
   | "work"
@@ -44,6 +50,7 @@ type SessionState = {
   appearance: "dark" | "light";
   contacts: Contact[];
   wrapPassword?: WrappedKey;
+  kdf?: { password: KdfParams; recovery: KdfParams };
   cardPath: string;
 };
 
@@ -117,6 +124,7 @@ export function IdApp() {
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState("");
   const dataKeyRef = useRef<Uint8Array | null>(null);
+  const accountIdRef = useRef<string | null>(null);
 
   const [sheet, setSheet] = useState<"kind" | "value" | null>(null);
   const [newKind, setNewKind] = useState<ContactKind>("telegram");
@@ -140,20 +148,27 @@ export function IdApp() {
   }, []);
 
   useEffect(() => {
-    return startSyncLoop(() => dataKeyRef.current);
+    return startSyncLoop(() => ({ key: dataKeyRef.current, accountId: accountIdRef.current }));
   }, []);
+
+  useEffect(() => {
+    accountIdRef.current = session?.nick ?? null;
+  }, [session]);
 
   const origin = meta?.cardOrigin || (typeof window !== "undefined" ? window.location.origin : "");
   const cardUrl = session ? `${origin}${session.cardPath}` : origin;
   const publicContacts: PublicContact[] = useMemo(
-    () => (session ? toPublicContacts(session.contacts) : []),
-    [session],
+    () => (session ? toPublicContacts(session.contacts, t("listed_by_owner")) : []),
+    [session, lang],
   );
 
   function fail(status: number, data: { error?: string }) {
     if (status === 429) setErr(t("rate_limited"));
     else if (data.error === "invalid_code" || data.error === "invalid_credentials") setErr(t("invalid_code"));
     else if (data.error === "nick_taken") setErr(t("nick_taken_hint"));
+    else if (data.error === "password_short") setErr(t("password_short"));
+    else if (data.error === "password_weak" || data.error === "same_as_nick") setErr(t("password_weak"));
+    else if (data.error === "recovery_replaced") setErr(t("new_recovery_issued"));
     else setErr(t("error"));
   }
 
@@ -180,17 +195,26 @@ export function IdApp() {
     setErr("");
     setBusy(true);
     try {
+      const policy = checkPassword(password, nick);
+      if (!policy.ok) {
+        setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
+        return;
+      }
       const rec = generateRecoveryCode();
       const dataKey = await generateDataKey();
       dataKeyRef.current = dataKey;
-      const wrapPassword = await wrapKey(dataKey, password);
-      const wrapRecovery = await wrapKey(dataKey, recoveryCodeCompact(rec));
+      const pwd = await derivePasswordKeys(password);
+      const recKeys = await deriveRecoveryKeys(rec);
+      const wrapPassword = await wrapDataKey(dataKey, pwd.wrapKey);
+      const wrapRecovery = await wrapDataKey(dataKey, recKeys.wrapKey);
       const r = await api<{ otpId: string; nick: string; testOtp?: string }>("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           nick,
-          password,
-          recoveryCode: rec,
+          authKey: encodeAuthKey(pwd.authKey),
+          recoveryVerifyKey: encodeAuthKey(recKeys.verifyKey),
+          kdfPassword: pwd.params,
+          kdfRecovery: recKeys.params,
           wrapPassword,
           wrapRecovery,
           channel,
@@ -218,9 +242,11 @@ export function IdApp() {
         body: JSON.stringify({ otpId, code }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
-      if (kind === "login" && r.data.wrapPassword) {
+      if (kind === "login" && r.data.wrapPassword && r.data.kdf) {
         try {
-          dataKeyRef.current = await unwrapKey(r.data.wrapPassword, password);
+          const { salt, opts } = keysFromParams(r.data.kdf.password);
+          const pwd = await derivePasswordKeys(password, salt, opts);
+          dataKeyRef.current = await unwrapDataKey(r.data.wrapPassword, pwd.wrapKey);
         } catch {
           setErr(t("error"));
           return;
@@ -239,45 +265,21 @@ export function IdApp() {
     setErr("");
     setBusy(true);
     try {
+      const kdfRes = await api<{ kdf: KdfParams }>("/api/auth/kdf", {
+        method: "POST",
+        body: JSON.stringify({ nick, purpose: "login" }),
+      });
+      if (!kdfRes.ok || !kdfRes.data.kdf) return fail(kdfRes.status, kdfRes.data as { error?: string });
+      const { salt, opts } = keysFromParams(kdfRes.data.kdf);
+      const pwd = await derivePasswordKeys(password, salt, opts);
       const r = await api<{ otpId: string; testOtp?: string }>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ nick, password, channel, dest: dest || undefined, lang }),
+        body: JSON.stringify({ nick, authKey: encodeAuthKey(pwd.authKey), channel, dest: dest || undefined, lang }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
       setScreen("login-2fa");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitRecovery() {
-    setErr("");
-    if (password !== password2) {
-      setErr(t("mismatch"));
-      return;
-    }
-    setBusy(true);
-    try {
-      const compact = recoveryCodeCompact(recovery);
-      // We don't have the data key yet; client unwraps wrapRecovery after the server accepts.
-      // First ask the server... we need wrapRecovery before re-wrap. Recovery handler returns wrapRecovery
-      // but also expects wrapPassword already. So unwrap first requires wrapRecovery from a preliminary call.
-      // Stage-1 API combines verify + new password: client cannot unwrap without wrapRecovery.
-      // We fetch wrap by sending the new wraps after a two-step would be better; here we derive the
-      // new wrap only after we... can't. Change: call recovery only after we have wrapRecovery.
-      // Workaround: include a GET? Simpler: recovery endpoint already returns wrapRecovery, but needs wrapPassword.
-      // So we need a probe. I'll add a small two-phase in the client using a first request that fails... no.
-      // I'll compute wrapPassword after opening wrapRecovery. That needs wrapRecovery first.
-      // Use a dedicated probe: POST /api/auth/recovery with a dummy? Bad.
-      // I will split: the current handleRecovery expects wrapPassword. Let me change the client to
-      // first... I'll add an unwrap-only request? Fastest fix: change recovery to accept recoveryCode+nick
-      // and return wrapRecovery, then a second call with wrapPassword. I already shipped a combined endpoint.
-      // Let me adjust the handler later; for now I'll call a first-class flow:
-      // I'll store wrapRecovery only on the client if we had it — we don't at login-less recovery.
-      // FIX the API: if wrapPassword is omitted, return wrapRecovery after verifying the code (no password change yet).
-      setErr(t("error"));
     } finally {
       setBusy(false);
     }
@@ -303,7 +305,7 @@ export function IdApp() {
     if (!session || !newValue.trim()) return;
     const r = await api<{ contact: Contact; otpId?: string; testOtp?: string }>("/api/me/contacts", {
       method: "POST",
-      body: JSON.stringify({ kind: newKind, value: newValue.trim(), visible: true, lang }),
+      body: JSON.stringify({ kind: newKind, value: newValue.trim(), visible: newKind !== "whatsapp", lang }),
     });
     if (!r.ok) return;
     setSession({ ...session, contacts: [...session.contacts, r.data.contact] });
@@ -451,11 +453,20 @@ export function IdApp() {
             </div>
             <p className="hint">{t("password_hint")}</p>
             {password && password2 && password !== password2 ? <div className="err">{t("mismatch")}</div> : null}
+            {err ? <div className="err">{err}</div> : null}
             <div className="btns">
               <button
-                className={`btn p ${password.length < 8 || password !== password2 ? "off" : ""}`}
+                className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
                 type="button"
-                onClick={() => setScreen("signup-2fa")}
+                onClick={() => {
+                  const policy = checkPassword(password, nick);
+                  if (!policy.ok) {
+                    setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
+                    return;
+                  }
+                  setErr("");
+                  setScreen("signup-2fa");
+                }}
               >
                 {t("next")}
               </button>
@@ -586,14 +597,41 @@ export function IdApp() {
               setPassword2={setPassword2}
               err={err}
               busy={busy}
-              onDone={(s, key) => {
+              onDone={(s, key, newCode) => {
                 dataKeyRef.current = key;
                 setSession(s);
                 setAppearance(s.appearance);
-                setScreen("today");
+                if (newCode) {
+                  setRecovery(newCode);
+                  setScreen("recovery-done");
+                } else {
+                  setScreen("today");
+                }
               }}
               onError={fail}
             />
+            <p className="hint">{t("no_support_reset")}</p>
+          </div>
+        </>
+      )}
+
+      {screen === "recovery-done" && session && (
+        <>
+          <Header />
+          <div className="page auth">
+            <div className="kicker">{t("signup_done")}</div>
+            <h1>{session.nick}</h1>
+            <div className="field">
+              <label>{t("recovery_code")}</label>
+              <div className="recovery-code">{recovery}</div>
+            </div>
+            <p className="hint">{t("new_recovery_issued")}</p>
+            <p className="hint">{t("save_recovery")}</p>
+            <div className="btns">
+              <button className="btn p" type="button" onClick={() => setScreen("today")}>
+                {t("i_wrote_it")}
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -847,34 +885,64 @@ function RecoveryForm({
   setPassword2: (s: string) => void;
   err: string;
   busy: boolean;
-  onDone: (s: SessionState, key: Uint8Array) => void;
+  onDone: (s: SessionState, key: Uint8Array, newRecoveryCode?: string) => void;
   onError: (status: number, data: { error?: string }) => void;
 }) {
   const [localBusy, setLocalBusy] = useState(false);
   async function go() {
     if (password !== password2) return;
+    const policy = checkPassword(password, nick);
+    if (!policy.ok) {
+      onError(400, { error: policy.reason === "short" ? "password_short" : "password_weak" });
+      return;
+    }
     setLocalBusy(true);
     try {
-      // Phase 1: verify code, get wrapRecovery (API accepts wrapPassword optional — patched below).
-      const first = await api<{ wrapRecovery: WrappedKey; needsPassword?: boolean; nick?: string }>("/api/auth/recovery", {
+      const kdfRes = await api<{ kdf: KdfParams }>("/api/auth/kdf", {
         method: "POST",
-        body: JSON.stringify({ nick, recoveryCode: recovery, phase: "unlock" }),
+        body: JSON.stringify({ nick, purpose: "recovery" }),
       });
+      if (!kdfRes.ok || !kdfRes.data.kdf) {
+        onError(kdfRes.status, kdfRes.data as { error?: string });
+        return;
+      }
+      const recOld = await deriveRecoveryKeys(recovery, keysFromParams(kdfRes.data.kdf).salt, keysFromParams(kdfRes.data.kdf).opts);
+      const first = await api<{ wrapRecovery: WrappedKey; needsPassword?: boolean; nick?: string; kdf?: { password: KdfParams; recovery: KdfParams } }>(
+        "/api/auth/recovery",
+        {
+          method: "POST",
+          body: JSON.stringify({ nick, recoveryVerifyKey: encodeAuthKey(recOld.verifyKey), phase: "unlock" }),
+        },
+      );
       if (!first.ok || !first.data.wrapRecovery) {
         onError(first.status, first.data as { error?: string });
         return;
       }
-      const key = await unwrapKey(first.data.wrapRecovery, recoveryCodeCompact(recovery));
-      const wrapPassword = await wrapKey(key, password);
+      const key = await unwrapDataKey(first.data.wrapRecovery, recOld.wrapKey);
+      const newCode = generateRecoveryCode();
+      const pwd = await derivePasswordKeys(password);
+      const recNew = await deriveRecoveryKeys(newCode);
+      const wrapPassword = await wrapDataKey(key, pwd.wrapKey);
+      const wrapRecovery = await wrapDataKey(key, recNew.wrapKey);
       const second = await api<SessionState>("/api/auth/recovery", {
         method: "POST",
-        body: JSON.stringify({ nick, recoveryCode: recovery, password, wrapPassword, phase: "reset" }),
+        body: JSON.stringify({
+          nick,
+          recoveryVerifyKey: encodeAuthKey(recOld.verifyKey),
+          authKey: encodeAuthKey(pwd.authKey),
+          wrapPassword,
+          wrapRecovery,
+          recoveryVerifyKeyNew: encodeAuthKey(recNew.verifyKey),
+          kdfPassword: pwd.params,
+          kdfRecovery: recNew.params,
+          phase: "reset",
+        }),
       });
       if (!second.ok) {
         onError(second.status, second.data as { error?: string });
         return;
       }
-      onDone(second.data, key);
+      onDone(second.data, key, newCode);
     } catch {
       onError(400, { error: "invalid" });
     } finally {
@@ -909,7 +977,8 @@ function RecoveryForm({
       </div>
       {err ? <div className="err">{err}</div> : null}
       <div className="btns">
-        <button className={`btn p ${localBusy || busy || password.length < 8 ? "off" : ""}`} type="button" onClick={() => void go()}>
+        <p className="hint">{t("password_hint")}</p>
+        <button className={`btn p ${localBusy || busy || !checkPassword(password, nick).ok || password !== password2 ? "off" : ""}`} type="button" onClick={() => void go()}>
           {t("recover")}
         </button>
       </div>

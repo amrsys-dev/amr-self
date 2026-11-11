@@ -22,6 +22,11 @@ function onVercel(): boolean {
 
 export function getStores(): Stores {
   if (cached) return cached;
+  if ((process.env.AMR_STORE ?? "").trim() === "memory") {
+    const { kv, blobs } = createMemoryStores();
+    cached = { kind: "memory", kv, blobs };
+    return cached;
+  }
   const cf = readCloudflareConfig();
   if (cf) {
     const { kv, blobs } = createCloudflareStores(cf);

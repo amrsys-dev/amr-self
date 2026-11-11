@@ -3,6 +3,7 @@ import { sessionSecret } from "../env.server.ts";
 import { sessionKey, type UserRecord } from "../user.ts";
 import { getStores } from "../storage/index.ts";
 
+/** Only essential cookie: session id. No analytics or marketing cookies. */
 const COOKIE = "amrid_session";
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 

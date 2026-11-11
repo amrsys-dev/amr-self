@@ -1,6 +1,7 @@
 import { compressAndEncrypt, decryptAndDecompress, type EncryptedBlob } from "../crypto.ts";
-import { emptyUserData, type UserData } from "./schema.ts";
 import { api } from "../client.ts";
+import { mergeUserData } from "./merge.ts";
+import { emptyUserData, type UserData } from "./schema.ts";
 
 const DB = "amrid";
 const STORE = "kv";
@@ -45,37 +46,74 @@ export async function saveLocalData(data: UserData): Promise<void> {
   await idbSet("dirty", true);
 }
 
-export async function pullRemote(dataKey: Uint8Array): Promise<UserData> {
-  const res = await api<{ blob: string | null }>("/api/me/data");
+export async function loadLocalVersion(): Promise<number> {
+  return (await idbGet<number>("version")) ?? 0;
+}
+
+function decodeBlob(b64: string): EncryptedBlob {
+  const raw = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(raw)) as EncryptedBlob;
+}
+
+function encodeBlob(blob: EncryptedBlob): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(blob));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+export async function pullRemote(dataKey: Uint8Array, accountId: string): Promise<UserData> {
+  const res = await api<{ blob: string | null; version: number }>("/api/me/data");
   if (!res.ok || !res.data.blob) return loadLocalData();
-  const raw = Uint8Array.from(atob(res.data.blob), (c) => c.charCodeAt(0));
-  // stored as iv||ct json? We store EncryptedBlob JSON as the blob bytes.
-  const parsed = JSON.parse(new TextDecoder().decode(raw)) as EncryptedBlob;
-  const data = (await decryptAndDecompress(dataKey, parsed)) as UserData;
+  const parsed = decodeBlob(res.data.blob);
+  const data = (await decryptAndDecompress(dataKey, parsed, { accountId, version: res.data.version })) as UserData;
   await idbSet("data", data);
+  await idbSet("version", res.data.version);
   await idbSet("dirty", false);
   return data;
 }
 
-export async function pushRemote(dataKey: Uint8Array, data: UserData): Promise<void> {
-  const encBlob = await compressAndEncrypt(dataKey, data);
-  const bytes = new TextEncoder().encode(JSON.stringify(encBlob));
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  await api("/api/me/data", { method: "PUT", body: JSON.stringify({ blob: btoa(bin) }) });
-  await idbSet("dirty", false);
+export async function pushRemote(dataKey: Uint8Array, accountId: string, data: UserData): Promise<void> {
+  let base = await loadLocalVersion();
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const nextVersion = base + 1;
+    const encBlob = await compressAndEncrypt(dataKey, data, { accountId, version: nextVersion });
+    const res = await api<{ ok?: boolean; version?: number; blob?: string | null; error?: string }>("/api/me/data", {
+      method: "PUT",
+      headers: { "If-Match": String(base), "Content-Type": "application/json" },
+      body: JSON.stringify({ blob: encodeBlob(encBlob), version: base }),
+    });
+    if (res.ok) {
+      await idbSet("version", res.data.version ?? nextVersion);
+      await idbSet("dirty", false);
+      return;
+    }
+    if (res.status !== 409 || res.data.blob == null || res.data.version == null) {
+      throw new Error(res.data.error ?? "sync_failed");
+    }
+    const remote = (await decryptAndDecompress(dataKey, decodeBlob(res.data.blob), {
+      accountId,
+      version: res.data.version,
+    })) as UserData;
+    data = mergeUserData(data, remote);
+    await idbSet("data", data);
+    base = res.data.version;
+  }
+  throw new Error("sync_conflict");
 }
 
-export function startSyncLoop(getKey: () => Uint8Array | null, intervalMs = 3 * 60_000): () => void {
+export type SyncContext = { key: Uint8Array | null; accountId: string | null };
+
+export function startSyncLoop(getCtx: () => SyncContext, intervalMs = 3 * 60_000): () => void {
   let stopped = false;
   const tick = async () => {
-    if (stopped || typeof navigator !== "undefined" && !navigator.onLine) return;
-    const key = getKey();
-    if (!key) return;
+    if (stopped || (typeof navigator !== "undefined" && !navigator.onLine)) return;
+    const { key, accountId } = getCtx();
+    if (!key || !accountId) return;
     const dirty = await idbGet<boolean>("dirty");
     const data = await loadLocalData();
-    if (dirty) await pushRemote(key, data);
-    else await pullRemote(key);
+    if (dirty) await pushRemote(key, accountId, data);
+    else await pullRemote(key, accountId);
   };
   const id = setInterval(() => void tick(), intervalMs);
   const onOnline = () => void tick();

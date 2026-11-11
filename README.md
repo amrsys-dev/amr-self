@@ -6,7 +6,7 @@ Stage 1 is a preview skeleton: sign-up, password + one-time code, a public busin
 
 ## Stack
 
-TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. User data is a small compressed and encrypted file. Test storage is a local file (or in-memory on a preview); Cloudflare KV and R2 are wired and stay off until the keys are set.
+TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. The data-file key is random and wrapped twice (password and recovery code) with argon2id then HKDF; the server only ever sees a derived auth key. Blobs are XChaCha20-Poly1305 with AAD = account id + version. Test storage is a local file (or in-memory on a preview); Cloudflare KV and R2 are wired and stay off until the keys are set.
 
 ## Local
 
@@ -23,7 +23,7 @@ With `OTP_MODE=test` (the default outside production) a one-time code appears in
 
 ## Nick
 
-Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`.
+Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`. Retired nicks are not reissued (`AMR_NICK_REISSUE=false`, pending Murad). Password reset is only possible with the recovery code — support cannot reset a password.
 
 ## Preview only
 

@@ -71,21 +71,25 @@ export function contactAction(kind: ContactKind): ContactAction {
   return WRITE_KINDS.has(kind) ? "write" : "open";
 }
 
-export function displayContactValue(c: Contact): string {
-  if (c.kind === "whatsapp") return "";
+export function defaultContactVisible(kind: ContactKind): boolean {
+  return kind !== "whatsapp";
+}
+
+export function displayContactValue(c: Contact, listedByOwner = ""): string {
+  if (c.kind === "whatsapp") return listedByOwner;
   if (c.kind === "telegram" || c.kind === "signal") {
     return c.value.startsWith("@") ? c.value : `@${c.value}`;
   }
   return c.label || c.value;
 }
 
-export function toPublicContacts(contacts: readonly Contact[]): PublicContact[] {
+export function toPublicContacts(contacts: readonly Contact[], listedByOwner = ""): PublicContact[] {
   return visibleContacts(contacts).map((c) => ({
     id: c.id,
     kind: c.kind,
     href: contactHref(c),
     action: contactAction(c.kind),
-    display: displayContactValue(c),
+    display: displayContactValue(c, listedByOwner),
     verified: c.verified,
   }));
 }

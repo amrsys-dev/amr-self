@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiMetaRouteImport } from './routes/api/meta'
 import { Route as UNickRouteImport } from './routes/u.$nick'
+import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
@@ -38,6 +39,11 @@ const ApiMetaRoute = ApiMetaRouteImport.update({
 const UNickRoute = UNickRouteImport.update({
   id: '/u/$nick',
   path: '/u/$nick',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthKdfRoute = ApiAuthKdfRouteImport.update({
+  id: '/api/auth/kdf',
+  path: '/api/auth/kdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/u/$nick': typeof UNickRoute
+  '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/u/$nick': typeof UNickRoute
+  '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/u/$nick': typeof UNickRoute
+  '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/u/$nick'
+    | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/auth/otp'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/u/$nick'
+    | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/auth/otp'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/u/$nick'
+    | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/auth/otp'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiMetaRoute: typeof ApiMetaRoute
   UNickRoute: typeof UNickRoute
+  ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
@@ -246,6 +259,13 @@ declare module '@tanstack/react-router' {
       path: '/u/$nick'
       fullPath: '/u/$nick'
       preLoaderRoute: typeof UNickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/kdf': {
+      id: '/api/auth/kdf'
+      path: '/api/auth/kdf'
+      fullPath: '/api/auth/kdf'
+      preLoaderRoute: typeof ApiAuthKdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/login': {
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiMetaRoute: ApiMetaRoute,
   UNickRoute: UNickRoute,
+  ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,
