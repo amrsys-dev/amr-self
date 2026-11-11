@@ -24,6 +24,8 @@ import {
   handleOtpChannel,
   handleReplaceRecoveryCodes,
   handleVerifyContact,
+  handlePublicCard,
+  PUBLIC_CARD_CACHE,
   reserveNick,
 } from "./handlers.ts";
 
@@ -736,4 +738,23 @@ describe("auth-key-only login and recovery", () => {
     process.env.AMR_RECOVERY_CODES = prev ?? "1";
   });
 
+});
+
+describe("public business card cache", () => {
+  beforeEach(() => {
+    resetStoresForTests();
+    process.env.AMR_STORE = "memory";
+    process.env.OTP_MODE = "test";
+  });
+
+  it("sets a short stale-while-revalidate cache on a public card, and no-store on a miss", async () => {
+    const acc = await signup("@AMR-610-610", "correct-battery-horse");
+    const hit = await handlePublicCard(req(`/api/card/${encodeURIComponent(acc.nick)}`, { method: "GET" }), acc.nick);
+    assert.equal(hit.status, 200);
+    assert.equal(hit.headers.get("cache-control"), PUBLIC_CARD_CACHE);
+    assert.match(PUBLIC_CARD_CACHE, /stale-while-revalidate/);
+    const miss = await handlePublicCard(req("/api/card/@AMR-000-000", { method: "GET" }), "@AMR-000-000");
+    assert.equal(miss.status, 404);
+    assert.equal(miss.headers.get("cache-control"), "private, no-store");
+  });
 });

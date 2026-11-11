@@ -1,17 +1,13 @@
-name = "amr-id-otp-relay"
-main = "src/index.ts"
+name = "amr-id-do-preview"
+main = "src/do-worker.ts"
 compatibility_date = "2026-11-11"
+workers_dev = true
 
-# Not deployed in stage 1. When Murad sends Cloudflare access, deploy this
-# worker to a preview first. Production only after «выкатывай».
+# Preview Durable Object worker. The OTP relay in src/index.ts is not deployed
+# until a Telegram bot token is available. Do not bind R2 until it is enabled.
+# Production only after «выкатывай». Never deploy over amr-master.
 #
-# Durable Object lives in Western Europe. R2 buckets must be created with
-# jurisdiction "eu". The Vercel app talks to the DO via CF_DO_URL + CF_DO_SECRET.
-
 # Secrets (wrangler secret put):
-# OTP_RELAY_SECRET
-# TG_OTP_BOT_TOKEN
-# RESEND_API_KEY
 # CF_DO_SECRET
 
 [[durable_objects.bindings]]
@@ -22,9 +18,4 @@ class_name = "AmrIdDo"
 tag = "v1-amr-id-do"
 new_sqlite_classes = ["AmrIdDo"]
 
-# Location is set in code: env.AMR_ID.get(id, { locationHint = "weur" })
-
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "amr-id"
-jurisdiction = "eu"
+# Location is set in code: env.AMR_ID.get(id, { locationHint: "weur" })

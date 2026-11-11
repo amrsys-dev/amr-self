@@ -1,0 +1,20 @@
+name = "amr-id-do-preview"
+main = "src/do-worker.ts"
+compatibility_date = "2026-11-11"
+workers_dev = true
+
+# Preview Durable Object only. Do not attach R2 until it is enabled on the
+# account. Production only after «выкатывай». Never deploy over amr-master.
+#
+# Secret (wrangler secret put CF_DO_SECRET):
+# CF_DO_SECRET
+
+[[durable_objects.bindings]]
+name = "AMR_ID"
+class_name = "AmrIdDo"
+
+[[migrations]]
+tag = "v1-amr-id-do"
+new_sqlite_classes = ["AmrIdDo"]
+
+# Location is set in code: env.AMR_ID.get(id, { locationHint: "weur" })

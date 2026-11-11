@@ -1,9 +1,10 @@
 import { readDoConfig } from "../env.server.ts";
 import { createCloudflareStores, readCloudflareConfig } from "./cloudflare.ts";
+import { createCoordinatedKvStore } from "./coordinated.ts";
 import { createDoKvStore } from "./durable-object.ts";
 import { createFileStores, defaultFileStorePath } from "./file.ts";
 import { createMemoryStores } from "./memory.ts";
-import type { Stores } from "./types.ts";
+import type { BlobStore, Stores } from "./types.ts";
 
 export type { BlobStore, KvStore, StoreKind, Stores } from "./types.ts";
 export { createCloudflareStores, readCloudflareConfig } from "./cloudflare.ts";
@@ -23,6 +24,11 @@ function onVercel(): boolean {
   return Boolean(process.env.VERCEL);
 }
 
+function localBlobs(): BlobStore {
+  if (onVercel()) return createMemoryStores().blobs;
+  return createFileStores(process.env.STORE_PATH?.trim() || defaultFileStorePath()).blobs;
+}
+
 export function getStores(): Stores {
   if (cached) return cached;
   if ((process.env.AMR_STORE ?? "").trim() === "memory") {
@@ -31,21 +37,26 @@ export function getStores(): Stores {
     return cached;
   }
   const doCfg = readDoConfig();
-  if (doCfg) {
-    const kv = createDoKvStore(doCfg);
-    const cf = readCloudflareConfig();
-    const blobs = cf
-      ? createCloudflareStores(cf).blobs
-      : onVercel()
-        ? createMemoryStores().blobs
-        : createFileStores(process.env.STORE_PATH?.trim() || defaultFileStorePath()).blobs;
-    cached = { kind: "durable-object", kv, blobs };
+  const cf = readCloudflareConfig();
+  const cfStores = cf ? createCloudflareStores(cf) : null;
+  if (doCfg && cfStores) {
+    cached = {
+      kind: "durable-object",
+      kv: createCoordinatedKvStore(createDoKvStore(doCfg), cfStores.kv),
+      blobs: cfStores.blobs ?? localBlobs(),
+    };
     return cached;
   }
-  const cf = readCloudflareConfig();
-  if (cf) {
-    const { kv, blobs } = createCloudflareStores(cf);
-    cached = { kind: "cloudflare", kv, blobs };
+  if (doCfg) {
+    cached = {
+      kind: "durable-object",
+      kv: createDoKvStore(doCfg),
+      blobs: localBlobs(),
+    };
+    return cached;
+  }
+  if (cfStores) {
+    cached = { kind: "cloudflare", kv: cfStores.kv, blobs: cfStores.blobs ?? localBlobs() };
     return cached;
   }
   if (!onVercel()) {

@@ -4,7 +4,8 @@ export type CloudflareConfig = {
   accountId: string;
   apiToken: string;
   kvNamespaceId: string;
-  r2Bucket: string;
+  /** Absent until R2 is enabled on the account. */
+  r2Bucket?: string;
 };
 
 function kvUrl(cfg: CloudflareConfig, key: string): string {
@@ -57,7 +58,7 @@ function r2ListUrl(cfg: CloudflareConfig, prefix: string, cursor?: string): stri
 }
 
 
-export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; blobs: BlobStore } {
+export function createCloudflareKv(cfg: CloudflareConfig): KvStore {
   const kv: KvStore = {
     async get(key) {
       const res = await fetch(kvUrl(cfg, key), { headers: auth(cfg) });
@@ -66,6 +67,8 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       return await res.text();
     },
     async put(key, value, opts) {
+      const current = await kv.get(key);
+      if (current === value) return;
       const res = await fetch(kvPutUrl(cfg, key, opts), {
         method: "PUT",
         headers: { ...auth(cfg), "Content-Type": "text/plain" },
@@ -114,6 +117,13 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       return true;
     },
   };
+  return kv;
+}
+
+function createCloudflareBlobs(cfg: CloudflareConfig): BlobStore {
+  if (!cfg.r2Bucket) {
+    throw new Error("cf r2 inactive");
+  }
   const blobs: BlobStore = {
     async get(key) {
       const res = await fetch(r2Url(cfg, key), { headers: r2Headers(cfg) });
@@ -149,14 +159,22 @@ export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; bl
       return names.sort();
     },
   };
-  return { kv, blobs };
+  return blobs;
+}
+
+export function createCloudflareStores(cfg: CloudflareConfig): { kv: KvStore; blobs: BlobStore | null } {
+  return { kv: createCloudflareKv(cfg), blobs: cfg.r2Bucket ? createCloudflareBlobs(cfg) : null };
 }
 
 export function readCloudflareConfig(): CloudflareConfig | null {
   const accountId = process.env.CF_ACCOUNT_ID?.trim();
   const apiToken = process.env.CF_API_TOKEN?.trim();
   const kvNamespaceId = process.env.CF_KV_NAMESPACE_ID?.trim();
-  const r2Bucket = process.env.CF_R2_BUCKET?.trim();
-  if (!accountId || !apiToken || !kvNamespaceId || !r2Bucket) return null;
+  const r2Bucket = process.env.CF_R2_BUCKET?.trim() || undefined;
+  if (!accountId || !apiToken || !kvNamespaceId) return null;
   return { accountId, apiToken, kvNamespaceId, r2Bucket };
+}
+
+export function cloudflareR2Enabled(cfg: CloudflareConfig = readCloudflareConfig() ?? { accountId: "", apiToken: "", kvNamespaceId: "" }): boolean {
+  return Boolean(cfg.r2Bucket);
 }

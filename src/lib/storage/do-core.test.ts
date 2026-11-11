@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AmrIdCoordinator } from "./do-core.ts";
+import { AmrIdCoordinator, isDurableDoKey } from "./do-core.ts";
 
 describe("durable object coordinator", () => {
   it("CAS-claims a nick, rejects a stale If-Match, and expires rate-limit keys", () => {
@@ -18,5 +18,7 @@ describe("durable object coordinator", () => {
     c.put("ttl", "x", { expirationTtl: 1 }, t0);
     assert.equal(c.get("ttl", t0 + 500), "x");
     assert.equal(c.get("ttl", t0 + 1500), null);
+    assert.equal(isDurableDoKey("nick:@amr-1-1"), true);
+    assert.equal(isDurableDoKey("ratelimit:login:ip"), false);
   });
 });

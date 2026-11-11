@@ -113,7 +113,17 @@ async function nickAvailable(n: string): Promise<boolean> {
 export async function reserveNick(nick: string, reason: ReservedNick["reason"] = "retired"): Promise<void> {
   if (nickReissueAllowed()) return;
   const rec: ReservedNick = { reservedAt: new Date().toISOString(), reason };
-  await getStores().kv.put(reservedNickKey(nick), JSON.stringify(rec));
+  const key = reservedNickKey(nick);
+  const kv = getStores().kv;
+  if (await kv.get(key)) return;
+  await kv.put(key, JSON.stringify(rec));
+}
+
+/** Claim a free nick atomically (DO CAS when configured). */
+async function claimNick(nick: string, userJson: string): Promise<boolean> {
+  const kv = getStores().kv;
+  if (!nickReissueAllowed() && (await kv.get(reservedNickKey(nick)))) return false;
+  return kv.compareAndSet(nickKey(nick), null, userJson);
 }
 
 async function uniqueNick(preferred?: string): Promise<string | null> {
@@ -472,11 +482,10 @@ export async function handleOtp(request: Request): Promise<Response> {
     } else {
       user.otp.email = { address: pending.dest, verified: true };
     }
-    if (!(await nickAvailable(user.nick))) {
+    if (!(await claimNick(user.nick, JSON.stringify(user)))) {
       await getStores().kv.delete(otpKey(body.data.otpId));
       return json({ error: "nick_taken" }, 409);
     }
-    await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
   } else {
     const stored = await getStores().kv.get(nickKey(pending.nick));
     if (!stored) return json({ error: "invalid_code" }, 401);
@@ -972,6 +981,12 @@ export async function handleChangeNick(request: Request): Promise<Response> {
   if (next.toLowerCase() === user.nick.toLowerCase()) return json({ error: "invalid" }, 400);
   const stores = getStores();
   const oldNick = user.nick;
+  user.previousNick = oldNick;
+  user.nickChanged = true;
+  user.nick = next;
+  if (!(await claimNick(next, JSON.stringify(user)))) {
+    return json({ error: "nick_taken" }, 409);
+  }
   const version = await readDataVersion(stores.kv, oldNick);
   if (version > 0) {
     await stores.kv.put(dataVersionKey(next), String(version));
@@ -985,10 +1000,6 @@ export async function handleChangeNick(request: Request): Promise<Response> {
     }
     await stores.kv.delete(dataVersionKey(oldNick));
   }
-  user.previousNick = oldNick;
-  user.nickChanged = true;
-  user.nick = next;
-  await stores.kv.put(nickKey(next), JSON.stringify(user));
   await stores.kv.delete(nickKey(oldNick));
   await reserveNick(oldNick, "renamed");
   const sessionsRaw = await stores.kv.get(sessionsOfKey(oldNick));
@@ -1053,21 +1064,28 @@ export async function handleReplaceRecoveryCodes(request: Request): Promise<Resp
   return json({ ok: true, recoveryLeft: hashes.length });
 }
 
+/** Short edge cache for public business cards. 404s are not cached. */
+export const PUBLIC_CARD_CACHE = "public, max-age=30, s-maxage=30, stale-while-revalidate=120";
+
 export async function handlePublicCard(request: Request, nickParam: string): Promise<Response> {
   const nick = normalizeNick(nickParam, fmt());
-  if (!nick) return json({ error: "not_found" }, 404);
+  if (!nick) return json({ error: "not_found" }, 404, { "Cache-Control": "private, no-store" });
   const raw = await getStores().kv.get(nickKey(nick));
-  if (!raw) return json({ error: "not_found" }, 404);
+  if (!raw) return json({ error: "not_found" }, 404, { "Cache-Control": "private, no-store" });
   const user = JSON.parse(raw) as UserRecord;
   const theme = parseCardTheme(new URL(request.url).searchParams.get("t") ?? user.theme);
   const contacts = toPublicContacts(user.contacts, listedByOwnerLabel(request));
   const origin = publicCardOrigin(request);
-  return json({
-    nick: user.nick,
-    theme,
-    contacts,
-    url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
-  });
+  return json(
+    {
+      nick: user.nick,
+      theme,
+      contacts,
+      url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
+    },
+    200,
+    { "Cache-Control": PUBLIC_CARD_CACHE },
+  );
 }
 
 export { nickAvailable };

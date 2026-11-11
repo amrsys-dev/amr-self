@@ -9,6 +9,11 @@ function ttlExp(opts: KvPutOpts | undefined, now: number): number | undefined {
   return now + Math.max(1, Math.ceil(opts.expirationTtl)) * 1000;
 }
 
+/** Rate-limit keys stay in memory with a TTL and must not be persisted. */
+export function isDurableDoKey(key: string): boolean {
+  return !key.startsWith("ratelimit:");
+}
+
 export class AmrIdCoordinator {
   private kv = new Map<string, Entry>();
 
@@ -48,6 +53,13 @@ export class AmrIdCoordinator {
     if (cur !== expected) return false;
     this.put(key, next, opts, now);
     return true;
+  }
+
+
+  inspect(key: string, now = Date.now()): { value: string; exp?: number } | null {
+    const value = this.get(key, now);
+    if (value == null) return null;
+    return this.kv.get(key) ?? { value };
   }
 
   takeRateLimit(key: string, windowMs: number, max: number, now = Date.now()): { ok: boolean; retryAfterMs: number; remaining: number } {

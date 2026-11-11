@@ -1,10 +1,10 @@
 /**
- * AMR ID Durable Object: nick uniqueness, If-Match version CAS, rate limits.
- * Not deployed in stage 1. The Vercel app selects it when CF_DO_URL + CF_DO_SECRET are set.
+ * AMR ID Durable Object: nick uniqueness, If-Match version CAS, in-memory rate limits.
+ * Preview worker: amr-id-do-preview. Production only after «выкатывай».
  *
- * Create the stub with locationHint "weur". R2 buckets should use jurisdiction "eu".
+ * Create the stub with locationHint "weur". Rate-limit keys are never persisted.
  */
-import { AmrIdCoordinator } from "../../src/lib/storage/do-core.ts";
+import { AmrIdCoordinator, isDurableDoKey } from "../../src/lib/storage/do-core.ts";
 import type { DoRequest, DoResponse } from "../../src/lib/storage/durable-object.ts";
 
 type Env = {
@@ -12,9 +12,9 @@ type Env = {
   AMR_ID?: DurableObjectNamespace;
 };
 
-const store = new AmrIdCoordinator();
+type Stored = { v: string; e?: number };
 
-export async function handleDoRequest(body: DoRequest): Promise<DoResponse> {
+export async function handleDoRequest(store: AmrIdCoordinator, body: DoRequest): Promise<DoResponse> {
   switch (body.op) {
     case "get":
       return { ok: true, value: store.get(body.key) };
@@ -35,41 +35,84 @@ export async function handleDoRequest(body: DoRequest): Promise<DoResponse> {
   }
 }
 
+function mutatedKey(body: DoRequest, result: DoResponse): string | "delete" | null {
+  if (body.op === "put" && isDurableDoKey(body.key)) return body.key;
+  if (body.op === "delete" && isDurableDoKey(body.key)) return body.key;
+  if (body.op === "cas" && result.cas && isDurableDoKey(body.key)) return body.key;
+  return null;
+}
+
 export class AmrIdDo {
+  private readonly store = new AmrIdCoordinator();
+  private ready = false;
+
   constructor(
     private readonly state: DurableObjectState,
     _env: Env,
-  ) {
-    this.state = state;
+  ) {}
+
+  private async load(): Promise<void> {
+    if (this.ready) return;
+    await this.state.blockConcurrencyWhile(async () => {
+      if (this.ready) return;
+      const now = Date.now();
+      const map = await this.state.storage.list<Stored | string>();
+      for (const [key, raw] of map) {
+        if (key === "snapshot" && typeof raw === "string") {
+          try {
+            const parsed = JSON.parse(raw) as { k?: string; v?: string; e?: number }[];
+            for (const row of parsed) {
+              if (!row.k || row.v == null || !isDurableDoKey(row.k)) continue;
+              const ttl = row.e != null ? Math.ceil((row.e - now) / 1000) : undefined;
+              if (ttl != null && ttl <= 0) continue;
+              this.store.put(row.k, row.v, ttl != null ? { expirationTtl: ttl } : undefined, now);
+              await this.persistKey(row.k);
+            }
+          } catch {
+            /* ignore a corrupt legacy snapshot */
+          }
+          await this.state.storage.delete("snapshot");
+          continue;
+        }
+        if (!isDurableDoKey(key) || typeof raw === "string") continue;
+        const ttl = raw.e != null ? Math.ceil((raw.e - now) / 1000) : undefined;
+        if (ttl != null && ttl <= 0) {
+          await this.state.storage.delete(key);
+          continue;
+        }
+        this.store.put(key, raw.v, ttl != null ? { expirationTtl: ttl } : undefined, now);
+      }
+      this.ready = true;
+    });
+  }
+
+  private async persistKey(key: string): Promise<void> {
+    if (!isDurableDoKey(key)) return;
+    const entry = this.store.inspect(key);
+    if (!entry) {
+      await this.state.storage.delete(key);
+      return;
+    }
+    const record: Stored = entry.exp != null ? { v: entry.value, e: entry.exp } : { v: entry.value };
+    const opts = entry.exp != null ? { expirationTtl: Math.max(1, Math.ceil((entry.exp - Date.now()) / 1000)) } : undefined;
+    if (opts && opts.expirationTtl <= 0) {
+      await this.state.storage.delete(key);
+      return;
+    }
+    await this.state.storage.put(key, record, opts);
   }
 
   async fetch(request: Request): Promise<Response> {
-    // Persist a snapshot around each mutation. The in-memory coordinator is
-    // rebuilt from DO storage when the isolate starts.
-    const loaded = await this.state.blockConcurrencyWhile(async () => {
-      const raw = await this.state.storage.get<string>("snapshot");
-      if (typeof raw === "string") {
-        try {
-          const parsed = JSON.parse(raw) as { k?: string; v?: string; e?: number }[];
-          for (const row of parsed) {
-            if (row.k && row.v != null) store.put(row.k, row.v, row.e != null ? { expirationTtl: Math.max(1, Math.ceil((row.e - Date.now()) / 1000)) } : undefined);
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-    });
-    void loaded;
+    await this.load();
     let body: DoRequest;
     try {
       body = (await request.json()) as DoRequest;
     } catch {
       return Response.json({ ok: false, error: "invalid" }, { status: 400 });
     }
-    const result = await handleDoRequest(body);
-    const keys = store.list("");
-    const snap = keys.map((k) => ({ k, v: store.get(k) }));
-    await this.state.storage.put("snapshot", JSON.stringify(snap));
+    const result = await handleDoRequest(this.store, body);
+    const key = mutatedKey(body, result);
+    if (key) await this.persistKey(body.op === "delete" ? body.key : key);
     return Response.json(result);
   }
 }
@@ -78,19 +121,20 @@ export function unauthorized(): Response {
   return Response.json({ error: "unauthorized" }, { status: 401 });
 }
 
+const localStore = new AmrIdCoordinator();
+
 export async function routeDo(request: Request, env: Env): Promise<Response> {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!env.CF_DO_SECRET || token !== env.CF_DO_SECRET) return unauthorized();
   if (!env.AMR_ID) {
-    // Local / preview fallback: process-local coordinator (same process as this worker).
     let body: DoRequest;
     try {
       body = (await request.json()) as DoRequest;
     } catch {
       return Response.json({ ok: false, error: "invalid" }, { status: 400 });
     }
-    return Response.json(await handleDoRequest(body));
+    return Response.json(await handleDoRequest(localStore, body));
   }
   const id = env.AMR_ID.idFromName("amr-id-v1");
   const stub = env.AMR_ID.get(id, { locationHint: "weur" });
