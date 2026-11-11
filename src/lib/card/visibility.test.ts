@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { defaultContactVisible, toPublicContacts, type Contact } from "./visibility.ts";
+import { defaultContactVisible, isHttpsUrl, toPublicContacts, type Contact } from "./visibility.ts";
 
 function c(partial: Partial<Contact> & Pick<Contact, "id" | "kind" | "value">): Contact {
   return { visible: true, verified: true, ...partial };
@@ -44,5 +44,16 @@ describe("public card visibility", () => {
     };
     const pub = toPublicContacts([hidden], "listed by the owner");
     assert.equal(pub.length, 0);
+  });
+
+  it("allows only https URLs for kind=other", () => {
+    assert.equal(isHttpsUrl("https://example.com/x"), true);
+    assert.equal(isHttpsUrl("http://example.com/x"), false);
+    assert.equal(isHttpsUrl("javascript:alert(1)"), false);
+    assert.equal(isHttpsUrl("example.com"), false);
+    const pub = toPublicContacts([
+      c({ id: "o", kind: "other", value: "https://example.com/me" }),
+    ]);
+    assert.equal(pub[0]?.href, "https://example.com/me");
   });
 });

@@ -12,8 +12,9 @@ let cached: Stores | null = null;
 
 export function resetStoresForTests(): void {
   cached = null;
-  const g = globalThis as unknown as { __amridMem?: unknown };
+  const g = globalThis as unknown as { __amridMem?: unknown; __amridLim?: unknown };
   delete g.__amridMem;
+  delete g.__amridLim;
 }
 
 function onVercel(): boolean {

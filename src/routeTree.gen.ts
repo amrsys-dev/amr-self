@@ -21,6 +21,7 @@ import { Route as ApiAuthSignupRouteImport } from './routes/api/auth/signup'
 import { Route as ApiCardNickRouteImport } from './routes/api/card.$nick'
 import { Route as ApiMeIndexRouteImport } from './routes/api/me/index'
 import { Route as ApiMeDataRouteImport } from './routes/api/me/data'
+import { Route as ApiMeDeleteRouteImport } from './routes/api/me/delete'
 import { Route as ApiNickCheckRouteImport } from './routes/api/nick/check'
 import { Route as ApiNickSuggestRouteImport } from './routes/api/nick/suggest'
 import { Route as ApiMeContactsIndexRouteImport } from './routes/api/me/contacts/index'
@@ -86,6 +87,11 @@ const ApiMeDataRoute = ApiMeDataRouteImport.update({
   path: '/api/me/data',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeDeleteRoute = ApiMeDeleteRouteImport.update({
+  id: '/api/me/delete',
+  path: '/api/me/delete',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiNickCheckRoute = ApiNickCheckRouteImport.update({
   id: '/api/nick/check',
   path: '/api/nick/check',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
+  '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
+  '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me': typeof ApiMeIndexRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
+  '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/card/$nick'
     | '/api/me/data'
+    | '/api/me/delete'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me/'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/card/$nick'
     | '/api/me/data'
+    | '/api/me/delete'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/card/$nick'
     | '/api/me/data'
+    | '/api/me/delete'
     | '/api/nick/check'
     | '/api/nick/suggest'
     | '/api/me/'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   ApiAuthSignupRoute: typeof ApiAuthSignupRoute
   ApiCardNickRoute: typeof ApiCardNickRoute
   ApiMeDataRoute: typeof ApiMeDataRoute
+  ApiMeDeleteRoute: typeof ApiMeDeleteRoute
   ApiNickCheckRoute: typeof ApiNickCheckRoute
   ApiNickSuggestRoute: typeof ApiNickSuggestRoute
   ApiMeIndexRoute: typeof ApiMeIndexRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMeDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/delete': {
+      id: '/api/me/delete'
+      path: '/api/me/delete'
+      fullPath: '/api/me/delete'
+      preLoaderRoute: typeof ApiMeDeleteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/nick/check': {
       id: '/api/nick/check'
       path: '/api/nick/check'
@@ -367,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSignupRoute: ApiAuthSignupRoute,
   ApiCardNickRoute: ApiCardNickRoute,
   ApiMeDataRoute: ApiMeDataRoute,
+  ApiMeDeleteRoute: ApiMeDeleteRoute,
   ApiNickCheckRoute: ApiNickCheckRoute,
   ApiNickSuggestRoute: ApiNickSuggestRoute,
   ApiMeIndexRoute: ApiMeIndexRoute,

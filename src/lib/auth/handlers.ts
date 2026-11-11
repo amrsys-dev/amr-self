@@ -1,27 +1,27 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { z } from "zod";
-import { defaultContactVisible, parseCardTheme, toPublicContacts, type Contact, type CardTheme } from "../card/visibility.ts";
-import { decodeAuthKey, type KdfParams, type WrappedKey } from "../crypto.ts";
+import { defaultContactVisible, isHttpsUrl, parseCardTheme, toPublicContacts, type Contact, type CardTheme } from "../card/visibility.ts";
+import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "../crypto.ts";
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
-import { putVersionedBlob } from "../data/versions.ts";
+import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
 import { isTestMode, publicCardOrigin, sessionSecret, vercelEnv } from "../env.server.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
 import { getStores } from "../storage/index.ts";
 import { telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
-import { dataBlobKey, nickKey, otpKey, type OtpChannel, type UserRecord } from "../user.ts";
+import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, type OtpChannel, type UserRecord } from "../user.ts";
 import { generateOtpDigits, hashOtp, otpMatches, OTP_MAX_ATTEMPTS, OTP_TTL_MS, type OtpRecord } from "./otp.ts";
 import { sendOtp } from "./otp-providers.ts";
 import { hashAuthKey, verifyAuthKey } from "./password.ts";
-import { createSession, destroySession, requireUser } from "./session.ts";
+import { createSession, destroySession, requireUser, revokeAllSessions } from "./session.ts";
 
 const kdfSchema = z.object({
   alg: z.literal("argon2id"),
   salt: z.string().min(8),
-  memorySize: z.number().int().min(8_192).max(1_048_576),
-  iterations: z.number().int().min(1).max(16),
+  memorySize: z.number().int().min(ARGON2_PARAMS.memorySize).max(1_048_576),
+  iterations: z.number().int().min(ARGON2_PARAMS.iterations).max(16),
   parallelism: z.number().int().min(1).max(16),
 });
 
@@ -49,9 +49,8 @@ const signupSchema = z.object({
 const loginSchema = z.object({
   nick: z.string().min(3),
   authKey: authKeySchema,
-  channel: z.enum(["telegram", "email"]).optional(),
-  dest: z.string().min(2).max(200).optional(),
   lang: z.string().optional(),
+  // channel and dest are ignored if a client still sends them.
 });
 
 const otpSchema = z.object({
@@ -142,7 +141,7 @@ async function issueOtp(
   rec: Omit<OtpRecord, "hash" | "exp" | "attempts"> & { dest: string; lang?: string },
 ): Promise<{ otpId: string; otp: OtpRecord; code: string } | Response> {
   const ip = clientIp(request);
-  const hit = limits.otp.take(`otp:${ip}:${rec.nick}`);
+  const hit = await limits.otp.take(`otp:${ip}:${rec.nick}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const code = generateOtpDigits();
   const otpId = randomBytes(16).toString("base64url");
@@ -155,7 +154,46 @@ async function issueOtp(
     attempts: 0,
   };
   await sendOtp({ channel: rec.channel, to: rec.dest, code, lang: rec.lang });
+  const idxRaw = await getStores().kv.get(otpIndexKey(rec.nick));
+  const ids = idxRaw ? (JSON.parse(idxRaw) as string[]) : [];
+  ids.push(otpId);
+  await getStores().kv.put(otpIndexKey(rec.nick), JSON.stringify(ids));
   return { otpId, otp, code };
+}
+
+async function clearOtpsForNick(nick: string): Promise<void> {
+  const kv = getStores().kv;
+  const idxRaw = await kv.get(otpIndexKey(nick));
+  const ids = new Set(idxRaw ? (JSON.parse(idxRaw) as string[]) : []);
+  for (const key of await kv.list("otp:")) {
+    const raw = await kv.get(key);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw) as { nick?: string; otp?: { nick?: string }; user?: { nick?: string } };
+      const owner = parsed.nick ?? parsed.otp?.nick ?? parsed.user?.nick;
+      if (owner && owner.toLowerCase() === nick.toLowerCase()) ids.add(key.slice("otp:".length));
+    } catch {
+      /* ignore */
+    }
+  }
+  for (const id of ids) await kv.delete(otpKey(id));
+  await kv.delete(otpIndexKey(nick));
+}
+
+function verifiedOtpDest(user: UserRecord): { channel: OtpChannel; dest: string } | null {
+  if (user.otp.telegram?.verified) {
+    const dest = user.otp.telegram.chatId || user.otp.telegram.id || user.otp.telegram.username;
+    if (dest) return { channel: "telegram", dest };
+  }
+  if (user.otp.email?.verified && user.otp.email.address) {
+    return { channel: "email", dest: user.otp.email.address };
+  }
+  return null;
+}
+
+async function dummyNickProbe(nick: string): Promise<void> {
+  const salt = createHmac("sha256", sessionSecret()).update(`nick-probe:${nick.toLowerCase()}`).digest().subarray(0, 16);
+  await argon2idMaster("amrid-nick-probe", new Uint8Array(salt), ARGON2_PARAMS);
 }
 
 function sessionPayload(user: UserRecord) {
@@ -187,15 +225,23 @@ export async function handleMeta(request: Request): Promise<Response> {
 }
 
 export async function handleNickCheck(request: Request): Promise<Response> {
+  const ip = clientIp(request);
+  const hit = await limits.nick.take(`nick-check:${ip}`);
+  if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const url = new URL(request.url);
   const raw = url.searchParams.get("nick") ?? "";
   const n = normalizeNick(raw, fmt());
   if (!n) return json({ ok: false, reason: "format" });
   const free = await nickAvailable(n);
+  // Dummy argon2id so a missing nick is not cheaper than a taken one.
+  await dummyNickProbe(n);
   return json({ ok: free, nick: n, reason: free ? "free" : "taken" });
 }
 
-export async function handleNickSuggest(): Promise<Response> {
+export async function handleNickSuggest(request: Request): Promise<Response> {
+  const ip = clientIp(request);
+  const hit = await limits.nick.take(`nick-suggest:${ip}`);
+  if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const nick = await uniqueNick();
   if (!nick) return json({ error: "busy" }, 503);
   return json({ nick });
@@ -203,7 +249,7 @@ export async function handleNickSuggest(): Promise<Response> {
 
 export async function handleKdf(request: Request): Promise<Response> {
   const ip = clientIp(request);
-  const hit = limits.login.take(`kdf:${ip}`);
+  const hit = await limits.login.take(`kdf:${ip}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const body = kdfRequestSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
@@ -219,7 +265,7 @@ export async function handleKdf(request: Request): Promise<Response> {
 
 export async function handleSignup(request: Request): Promise<Response> {
   const ip = clientIp(request);
-  const hit = limits.login.take(`signup:${ip}`);
+  const hit = await limits.login.take(`signup:${ip}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const body = signupSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
@@ -267,7 +313,7 @@ export async function handleLogin(request: Request): Promise<Response> {
   const body = loginSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
   const nick = normalizeNick(body.data.nick, fmt());
-  const hit = limits.login.take(`login:${ip}:${(nick ?? body.data.nick).toLowerCase()}`);
+  const hit = await limits.login.take(`login:${ip}:${(nick ?? body.data.nick).toLowerCase()}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const authKey = requireKey(body.data.authKey);
   if (!nick || !authKey) return json({ error: "invalid_credentials" }, 401);
@@ -277,28 +323,22 @@ export async function handleLogin(request: Request): Promise<Response> {
   if (!(await verifyAuthKey(authKey, user.passwordHash))) {
     return json({ error: "invalid_credentials" }, 401);
   }
-  let channel: OtpChannel = body.data.channel ?? (user.otp.telegram?.verified ? "telegram" : "email");
-  let dest = body.data.dest;
-  if (!dest) {
-    if (channel === "telegram") dest = user.otp.telegram?.chatId || user.otp.telegram?.id || user.otp.telegram?.username;
-    else dest = user.otp.email?.address;
-  }
-  if (!dest) {
-    if (isTestMode()) dest = "test";
-    else return json({ error: "no_otp_dest" }, 400);
-  }
+  // Ignore any client-supplied channel/dest (2FA bypass). OTP goes only to the
+  // account's stored, already-verified destination.
+  const stored = verifiedOtpDest(user);
+  if (!stored) return json({ error: "no_otp_dest" }, 400);
   const issued = await issueOtp(request, {
     nick,
     purpose: "login",
-    channel,
-    dest,
+    channel: stored.channel,
+    dest: stored.dest,
     lang: body.data.lang,
   });
   if (issued instanceof Response) return issued;
   const pending: PendingLogin = { kind: "login", nick, otp: issued.otp };
   await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending));
   const test = isTestMode() ? { testOtp: issued.code } : {};
-  return json({ otpId: issued.otpId, nick, channel, ...test });
+  return json({ otpId: issued.otpId, nick, channel: stored.channel, ...test });
 }
 
 export async function handleOtp(request: Request): Promise<Response> {
@@ -352,7 +392,7 @@ export async function handleRecovery(request: Request): Promise<Response> {
   const body = recoverySchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
   const nick = normalizeNick(body.data.nick, fmt());
-  const hit = limits.login.take(`recovery:${ip}:${(nick ?? "x").toLowerCase()}`);
+  const hit = await limits.login.take(`recovery:${ip}:${(nick ?? "x").toLowerCase()}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const verifyKey = requireKey(body.data.recoveryVerifyKey);
   if (!nick || !verifyKey) return json({ error: "invalid_credentials" }, 401);
@@ -397,8 +437,9 @@ export async function handleRecovery(request: Request): Promise<Response> {
   user.wrapRecovery = body.data.wrapRecovery as WrappedKey;
   user.kdf = { password: body.data.kdfPassword, recovery: body.data.kdfRecovery };
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
+  await revokeAllSessions(user.nick);
   const { cookie } = await createSession(user.nick);
-  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: user.wrapRecovery, newRecoveryIssued: true }, cookie);
+  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: user.wrapRecovery, newRecoveryIssued: true, sessionsRevoked: true }, cookie);
 }
 
 export async function handleMe(request: Request): Promise<Response> {
@@ -425,7 +466,6 @@ const patchSchema = z.object({
         kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"]),
         value: z.string().max(200),
         visible: z.boolean(),
-        verified: z.boolean().optional(),
         label: z.string().max(80).optional(),
       }),
     )
@@ -440,10 +480,22 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (body.data.theme) user.theme = body.data.theme as CardTheme;
   if (body.data.appearance) user.appearance = body.data.appearance;
   if (body.data.contacts) {
-    user.contacts = body.data.contacts.map((c) => ({
-      ...c,
-      verified: c.verified ?? false,
-    })) as Contact[];
+    const previous = new Map(user.contacts.map((c) => [c.id, c]));
+    const next: Contact[] = [];
+    for (const c of body.data.contacts) {
+      if (c.kind === "other" && !isHttpsUrl(c.value)) return json({ error: "invalid", hint: "https_only" }, 400);
+      const prev = previous.get(c.id);
+      if (!prev) return json({ error: "invalid", hint: "unknown_contact" }, 400);
+      next.push({
+        ...prev,
+        value: c.value,
+        visible: c.visible,
+        label: c.label,
+        kind: c.kind,
+        verified: prev.verified,
+      });
+    }
+    user.contacts = next;
   }
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
   return json({ ok: true, contacts: user.contacts, theme: user.theme, appearance: user.appearance });
@@ -462,6 +514,7 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (user instanceof Response) return user;
   const body = addContactSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
+  if (body.data.kind === "other" && !isHttpsUrl(body.data.value)) return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
   const needsOtp = body.data.kind === "telegram" || body.data.kind === "email";
   const contact: Contact = {
@@ -503,7 +556,19 @@ export async function handleVerifyContact(request: Request): Promise<Response> {
   if (pending.kind !== "contact" || pending.nick !== user.nick || pending.contactId !== body.data.contactId) {
     return json({ error: "invalid_code" }, 401);
   }
-  if (!otpMatches(body.data.code, pending.otp)) return json({ error: "invalid_code" }, 401);
+  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+    await getStores().kv.delete(otpKey(body.data.otpId));
+    return json({ error: "too_many_attempts" }, 429);
+  }
+  if (!otpMatches(body.data.code, pending.otp)) {
+    pending.otp.attempts += 1;
+    if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+      await getStores().kv.delete(otpKey(body.data.otpId));
+      return json({ error: "too_many_attempts" }, 429);
+    }
+    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending));
+    return json({ error: "invalid_code" }, 401);
+  }
   const c = user.contacts.find((x) => x.id === body.data.contactId);
   if (c) c.verified = true;
   if (c?.kind === "telegram") user.otp.telegram = telegramFromUserInput(c.value, true);
@@ -520,8 +585,10 @@ function blobToB64(blob: Uint8Array | null): string | null {
 export async function handleGetData(request: Request): Promise<Response> {
   const user = await requireUser(request);
   if (user instanceof Response) return user;
-  const blob = await getStores().blobs.get(dataBlobKey(user.nick));
-  return json({ blob: blobToB64(blob), version: user.dataVersion ?? 0 });
+  const stores = getStores();
+  const blob = await stores.blobs.get(dataBlobKey(user.nick));
+  const version = await readDataVersion(stores.kv, user.nick);
+  return json({ blob: blobToB64(blob), version });
 }
 
 export async function handlePutData(request: Request): Promise<Response> {
@@ -532,19 +599,35 @@ export async function handlePutData(request: Request): Promise<Response> {
   const bytes = Buffer.from(body.data.blob, "base64");
   if (bytes.length > 64_000) return json({ error: "too_large" }, 413);
   const ifMatch = request.headers.get("If-Match") ?? (body.data.version != null ? String(body.data.version) : null);
+  const stores = getStores();
   const result = await putVersionedBlob({
-    blobs: getStores().blobs,
+    kv: stores.kv,
+    blobs: stores.blobs,
     nick: user.nick,
     bytes: new Uint8Array(bytes),
-    currentVersion: user.dataVersion ?? 0,
     ifMatch,
   });
   if (!result.ok) {
     return json({ error: "conflict", version: result.version, blob: blobToB64(result.blob) }, 409);
   }
   user.dataVersion = result.version;
-  await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
+  await stores.kv.put(nickKey(user.nick), JSON.stringify(user));
   return json({ ok: true, bytes: bytes.length, version: result.version });
+}
+
+export async function handleDeleteMe(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const stores = getStores();
+  const nick = user.nick;
+  await clearOtpsForNick(nick);
+  await revokeAllSessions(nick);
+  await deleteAllDataBlobs(stores.blobs, nick);
+  await stores.kv.delete(dataVersionKey(nick));
+  await stores.kv.delete(nickKey(nick));
+  await reserveNick(nick);
+  const cookie = await destroySession(request);
+  return jsonWithCookie({ ok: true, deleted: true, nickReserved: !nickReissueAllowed() }, cookie);
 }
 
 function listedByOwnerLabel(request: Request): string {

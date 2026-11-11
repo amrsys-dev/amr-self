@@ -1,3 +1,5 @@
+import type { KvStore } from "./storage/types.ts";
+
 export type RateLimitResult = {
   ok: boolean;
   retryAfterMs: number;
@@ -5,7 +7,11 @@ export type RateLimitResult = {
 };
 
 export type RateLimiter = {
-  take(key: string, now?: number): RateLimitResult;
+  take(key: string, now?: number): Promise<RateLimitResult> | RateLimitResult;
+};
+
+export type AsyncRateLimiter = {
+  take(key: string, now?: number): Promise<RateLimitResult>;
 };
 
 export type RateLimitOpts = {
@@ -13,10 +19,10 @@ export type RateLimitOpts = {
   max: number;
 };
 
-export function createMemoryRateLimiter(opts: RateLimitOpts): RateLimiter {
+export function createMemoryRateLimiter(opts: RateLimitOpts): AsyncRateLimiter {
   const hits = new Map<string, number[]>();
   return {
-    take(key, now = Date.now()) {
+    async take(key, now = Date.now()) {
       const arr = (hits.get(key) ?? []).filter((t) => now - t < opts.windowMs);
       if (arr.length >= opts.max) {
         hits.set(key, arr);
@@ -30,5 +36,29 @@ export function createMemoryRateLimiter(opts: RateLimitOpts): RateLimiter {
   };
 }
 
+/** Rate-limit counters stored in the app KV (Cloudflare KV when those envs are set). */
+export function createKvRateLimiter(kv: KvStore, opts: RateLimitOpts, scope: string): AsyncRateLimiter {
+  return {
+    async take(key, now = Date.now()) {
+      const rk = `ratelimit:${scope}:${key}`;
+      for (let i = 0; i < 4; i++) {
+        const raw = await kv.get(rk);
+        const arr = (raw ? (JSON.parse(raw) as number[]) : []).filter((t) => now - t < opts.windowMs);
+        if (arr.length >= opts.max) {
+          if (JSON.stringify(arr) !== raw) await kv.compareAndSet(rk, raw, JSON.stringify(arr));
+          const oldest = arr[0] ?? now;
+          return { ok: false, retryAfterMs: Math.max(0, opts.windowMs - (now - oldest)), remaining: 0 };
+        }
+        const next = [...arr, now];
+        if (await kv.compareAndSet(rk, raw, JSON.stringify(next))) {
+          return { ok: true, retryAfterMs: 0, remaining: opts.max - next.length };
+        }
+      }
+      return { ok: false, retryAfterMs: opts.windowMs, remaining: 0 };
+    },
+  };
+}
+
 export const LOGIN_LIMIT: RateLimitOpts = { windowMs: 15 * 60_000, max: 8 };
 export const OTP_LIMIT: RateLimitOpts = { windowMs: 15 * 60_000, max: 5 };
+export const NICK_LIMIT: RateLimitOpts = { windowMs: 15 * 60_000, max: 30 };

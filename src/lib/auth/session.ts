@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { sessionSecret } from "../env.server.ts";
-import { sessionKey, type UserRecord } from "../user.ts";
+import { sessionKey, sessionsOfKey, type UserRecord } from "../user.ts";
 import { getStores } from "../storage/index.ts";
 
 /** Only essential cookie: session id. No analytics or marketing cookies. */
@@ -51,14 +51,39 @@ export async function readSession(request: Request): Promise<Session | null> {
 export async function createSession(nick: string): Promise<{ cookie: string; session: Session }> {
   const id = randomBytes(18).toString("base64url");
   const session: Session = { id, nick, exp: Date.now() + TTL_MS };
-  await getStores().kv.put(sessionKey(id), JSON.stringify(session));
+  const kv = getStores().kv;
+  await kv.put(sessionKey(id), JSON.stringify(session));
+  const listRaw = await kv.get(sessionsOfKey(nick));
+  const ids = listRaw ? (JSON.parse(listRaw) as string[]) : [];
+  if (!ids.includes(id)) ids.push(id);
+  await kv.put(sessionsOfKey(nick), JSON.stringify(ids));
   return { cookie: serializeCookie(cookieValue(id), TTL_MS / 1000), session };
 }
 
 export async function destroySession(request: Request): Promise<string> {
   const id = readSessionId(request);
-  if (id) await getStores().kv.delete(sessionKey(id));
+  if (id) {
+    const kv = getStores().kv;
+    const raw = await kv.get(sessionKey(id));
+    await kv.delete(sessionKey(id));
+    if (raw) {
+      const s = JSON.parse(raw) as Session;
+      const listRaw = await kv.get(sessionsOfKey(s.nick));
+      const ids = (listRaw ? (JSON.parse(listRaw) as string[]) : []).filter((x) => x !== id);
+      if (ids.length) await kv.put(sessionsOfKey(s.nick), JSON.stringify(ids));
+      else await kv.delete(sessionsOfKey(s.nick));
+    }
+  }
   return serializeCookie("", 0);
+}
+
+/** Revoke every session for this account (password reset / account deletion). */
+export async function revokeAllSessions(nick: string): Promise<void> {
+  const kv = getStores().kv;
+  const listRaw = await kv.get(sessionsOfKey(nick));
+  const ids = listRaw ? (JSON.parse(listRaw) as string[]) : [];
+  for (const id of ids) await kv.delete(sessionKey(id));
+  await kv.delete(sessionsOfKey(nick));
 }
 
 function serializeCookie(value: string, maxAge: number): string {

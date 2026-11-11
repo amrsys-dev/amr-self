@@ -14,7 +14,7 @@ import {
   wrapDataKey,
   type WrappedKey,
 } from "@/lib/crypto.ts";
-import { startSyncLoop } from "@/lib/data/sync.ts";
+import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
 import { checkPassword, PASSWORD_MIN } from "@/lib/password-policy.ts";
 import { LANGS, detectLang, isRtl, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { CardHero } from "./qr-card.tsx";
@@ -274,7 +274,7 @@ export function IdApp() {
       const pwd = await derivePasswordKeys(password, salt, opts);
       const r = await api<{ otpId: string; testOtp?: string }>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ nick, authKey: encodeAuthKey(pwd.authKey), channel, dest: dest || undefined, lang }),
+        body: JSON.stringify({ nick, authKey: encodeAuthKey(pwd.authKey), lang }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       setOtpId(r.data.otpId);
@@ -287,7 +287,22 @@ export function IdApp() {
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
+    await wipeLocalData();
     dataKeyRef.current = null;
+    accountIdRef.current = null;
+    setSession(null);
+    setPassword("");
+    setRecovery("");
+    setScreen("welcome");
+  }
+
+  async function deleteMyData() {
+    if (typeof window !== "undefined" && !window.confirm(t("delete_my_data_confirm"))) return;
+    const r = await api("/api/me/delete", { method: "POST" });
+    if (!r.ok) return fail(r.status, r.data as { error?: string });
+    await wipeLocalData();
+    dataKeyRef.current = null;
+    accountIdRef.current = null;
     setSession(null);
     setPassword("");
     setRecovery("");
@@ -718,6 +733,11 @@ export function IdApp() {
                 <div className="btns">
                   <button className="btn t" type="button" onClick={() => void logout()}>
                     {t("sign_out")}
+                  </button>
+                </div>
+                <div className="btns">
+                  <button className="btn t" type="button" onClick={() => void deleteMyData()}>
+                    {t("delete_my_data")}
                   </button>
                 </div>
                 {meta?.testMode ? (

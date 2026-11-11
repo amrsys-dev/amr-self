@@ -18,6 +18,15 @@ export function createMemoryStores(): { kv: KvStore; blobs: BlobStore } {
       async delete(key) {
         kv.delete(key);
       },
+      async list(prefix) {
+        return [...kv.keys()].filter((k) => k.startsWith(prefix)).sort();
+      },
+      async compareAndSet(key, expected, next) {
+        const cur = kv.get(key) ?? null;
+        if (cur !== expected) return false;
+        kv.set(key, next);
+        return true;
+      },
     },
     blobs: {
       async get(key) {
@@ -29,6 +38,9 @@ export function createMemoryStores(): { kv: KvStore; blobs: BlobStore } {
       },
       async delete(key) {
         blobs.delete(key);
+      },
+      async list(prefix) {
+        return [...blobs.keys()].filter((k) => k.startsWith(prefix)).sort();
       },
     },
   };

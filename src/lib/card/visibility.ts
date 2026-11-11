@@ -50,6 +50,8 @@ export function contactHref(c: Contact): string | null {
     case "telegram":
       return `https://t.me/${v.replace(/^@/, "")}`;
     case "whatsapp":
+      // The number in the wa.me href is by design so WhatsApp can open a chat.
+      // The visible label never includes the number (see listed_by_owner).
       return `https://wa.me/${v.replace(/[^\d]/g, "")}`;
     case "signal":
       return `https://signal.me/#u/${encodeURIComponent(v.replace(/^@/, ""))}`;
@@ -62,7 +64,7 @@ export function contactHref(c: Contact): string | null {
     case "email":
       return `mailto:${v}`;
     case "other":
-      if (/^https?:\/\//i.test(v)) return v;
+      if (isHttpsUrl(v)) return v;
       return null;
   }
 }
@@ -100,4 +102,14 @@ export type CardTheme = (typeof CARD_THEMES)[number];
 export function parseCardTheme(raw: string | null | undefined): CardTheme {
   const v = (raw ?? "").toLowerCase();
   return (CARD_THEMES as readonly string[]).includes(v) ? (v as CardTheme) : "graphite";
+}
+
+/** Contact kind=other may only be an https URL. */
+export function isHttpsUrl(value: string): boolean {
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }

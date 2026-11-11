@@ -5,16 +5,22 @@ import { resetStoresForTests } from "../storage/index.ts";
 import { getStores } from "../storage/index.ts";
 import { reservedNickKey as reservedKey } from "../nick-reserve.ts";
 import { nickKey } from "../user.ts";
+import { ARGON2_PARAMS } from "../crypto.ts";
+import { dataBlobKey } from "../user.ts";
+import { OTP_MAX_ATTEMPTS } from "./otp.ts";
 import {
   handleAddContact,
+  handleDeleteMe,
   handleKdf,
   handleLogin,
   handleMe,
+  handleMePatch,
   handleNickCheck,
   handleOtp,
   handlePutData,
   handleRecovery,
   handleSignup,
+  handleVerifyContact,
   reserveNick,
 } from "./handlers.ts";
 
@@ -263,5 +269,176 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(check.data.ok, false);
     assert.equal(check.data.reason, "taken");
     assert.ok(await getStores().kv.get(reservedKey("@AMR-417-283")));
+  });
+
+  it("ignores a client-supplied dest and channel on login and sends OTP only to the stored verified destination", async () => {
+    const acc = await signup("@AMR-500-500", "correct-battery-horse");
+    const login = await json(
+      await handleLogin(
+        req("/api/auth/login", {
+          body: {
+            nick: acc.nick,
+            authKey: encodeAuthKey(acc.pwd.authKey),
+            channel: "email",
+            dest: "attacker@evil.example",
+          },
+        }),
+      ),
+    );
+    assert.equal(login.status, 200, JSON.stringify(login.data));
+    assert.equal(login.data.channel, "telegram");
+    assert.notEqual(login.data.channel, "email");
+    const otp = await json(
+      await handleOtp(req("/api/auth/otp", { body: { otpId: login.data.otpId, code: login.data.testOtp } })),
+    );
+    assert.equal(otp.status, 200, JSON.stringify(otp.data));
+    const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: otp.cookie })));
+    const tg = (me.data.otp as { telegram: { username?: string } }).telegram;
+    assert.equal(tg.username, "omar.public");
+    assert.equal((me.data.otp as { email?: unknown }).email, undefined);
+  });
+
+  it("rejects KDF parameters weaker than 19 MiB / t=2", async () => {
+    const dataKey = await generateDataKey();
+    const pwd = await derivePasswordKeys("correct-battery-horse");
+    const recKeys = await deriveRecoveryKeys(generateRecoveryCode());
+    const weak = { ...pwd.params, memorySize: 8_192, iterations: 1 };
+    const res = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-510-510",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKey: encodeAuthKey(recKeys.verifyKey),
+            kdfPassword: weak,
+            kdfRecovery: recKeys.params,
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecovery: await wrapDataKey(dataKey, recKeys.wrapKey),
+            channel: "telegram",
+            dest: "@omar.public",
+          },
+        }),
+      ),
+    );
+    assert.equal(res.status, 400);
+    assert.ok(pwd.params.memorySize >= ARGON2_PARAMS.memorySize);
+    assert.ok(pwd.params.iterations >= ARGON2_PARAMS.iterations);
+  });
+
+  it("revokes all existing sessions after a recovery password reset", async () => {
+    const acc = await signup("@AMR-520-520", "old-password-ok");
+    const oldCookie = acc.cookie;
+    const still = await json(await handleMe(req("/api/me", { method: "GET", cookie: oldCookie })));
+    assert.equal(still.status, 200);
+    const newPwd = await derivePasswordKeys("new-password-ok");
+    const newRec = await deriveRecoveryKeys(generateRecoveryCode());
+    const reset = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: acc.nick,
+            recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey),
+            authKey: encodeAuthKey(newPwd.authKey),
+            wrapPassword: await wrapDataKey(acc.dataKey, newPwd.wrapKey),
+            wrapRecovery: await wrapDataKey(acc.dataKey, newRec.wrapKey),
+            recoveryVerifyKeyNew: encodeAuthKey(newRec.verifyKey),
+            kdfPassword: newPwd.params,
+            kdfRecovery: newRec.params,
+            phase: "reset",
+          },
+        }),
+      ),
+    );
+    assert.equal(reset.status, 200, JSON.stringify(reset.data));
+    assert.equal(reset.data.sessionsRevoked, true);
+    const dead = await json(await handleMe(req("/api/me", { method: "GET", cookie: oldCookie })));
+    assert.equal(dead.status, 401);
+    const alive = await json(await handleMe(req("/api/me", { method: "GET", cookie: reset.cookie })));
+    assert.equal(alive.status, 200);
+  });
+
+  it("limits contact-verification code attempts", async () => {
+    const acc = await signup("@AMR-530-530", "correct-battery-horse");
+    const added = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
+    );
+    assert.equal(added.status, 200, JSON.stringify(added.data));
+    const contact = added.data.contact as { id: string };
+    let last = { status: 0, data: {} as Record<string, unknown> };
+    for (let i = 0; i < OTP_MAX_ATTEMPTS; i++) {
+      last = await json(
+        await handleVerifyContact(
+          req("/api/me/contacts/verify", {
+            cookie: acc.cookie,
+            body: { otpId: added.data.otpId, contactId: contact.id, code: "000000" },
+          }),
+        ),
+      );
+    }
+    assert.equal(last.status, 429);
+    assert.equal(last.data.error, "too_many_attempts");
+  });
+
+  it("ignores verified:true from a client PATCH of contacts", async () => {
+    const acc = await signup("@AMR-540-540", "correct-battery-horse");
+    const added = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
+    );
+    const contact = added.data.contact as { id: string; verified: boolean; kind: string; value: string; visible: boolean };
+    assert.equal(contact.verified, false);
+    const patched = await json(
+      await handleMePatch(
+        req("/api/me", {
+          method: "PATCH",
+          cookie: acc.cookie,
+          body: { contacts: [{ ...contact, verified: true, visible: true }] },
+        }),
+      ),
+    );
+    assert.equal(patched.status, 200, JSON.stringify(patched.data));
+    const contacts = patched.data.contacts as { verified: boolean }[];
+    assert.equal(contacts[0]?.verified, false);
+  });
+
+  it("rejects kind=other contacts that are not https URLs", async () => {
+    const acc = await signup("@AMR-550-550", "correct-battery-horse");
+    const http = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "other", value: "http://example.com" } })),
+    );
+    assert.equal(http.status, 400);
+    const js = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "other", value: "javascript:alert(1)" } })),
+    );
+    assert.equal(js.status, 400);
+    const ok = await json(
+      await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "other", value: "https://example.com/me" } })),
+    );
+    assert.equal(ok.status, 200, JSON.stringify(ok.data));
+  });
+
+  it("deletes nick data, sessions, OTPs and blobs while reserving the nick", async () => {
+    const acc = await signup("@AMR-560-560", "correct-battery-horse");
+    await json(
+      await handlePutData(
+        req("/api/me/data", {
+          method: "PUT",
+          cookie: acc.cookie,
+          headers: { "If-Match": "0" },
+          body: { blob: Buffer.from("v1").toString("base64"), version: 0 },
+        }),
+      ),
+    );
+    const del = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie })));
+    assert.equal(del.status, 200, JSON.stringify(del.data));
+    assert.equal(del.data.deleted, true);
+    assert.equal(del.data.nickReserved, true);
+    const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: acc.cookie })));
+    assert.equal(me.status, 401);
+    assert.equal(await getStores().kv.get(nickKey(acc.nick)), null);
+    assert.ok(await getStores().kv.get(reservedKey(acc.nick)));
+    assert.equal(await getStores().blobs.get(dataBlobKey(acc.nick)), null);
+    const check = await json(await handleNickCheck(req(`/api/nick/check?nick=${encodeURIComponent(acc.nick)}`, { method: "GET" })));
+    assert.equal(check.data.ok, false);
+    assert.equal(check.data.reason, "taken");
   });
 });

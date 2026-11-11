@@ -1,5 +1,5 @@
-import { DATA_VERSIONS_KEPT, dataBlobKey, dataVersionBlobKey } from "../user.ts";
-import type { BlobStore } from "../storage/types.ts";
+import { DATA_VERSIONS_KEPT, dataBlobKey, dataVersionBlobKey, dataVersionKey } from "../user.ts";
+import type { BlobStore, KvStore } from "../storage/types.ts";
 
 export { DATA_VERSIONS_KEPT };
 
@@ -20,20 +20,39 @@ export function ifMatchOk(currentVersion: number, ifMatch: string | null | undef
   return raw === String(currentVersion);
 }
 
+export async function readDataVersion(kv: KvStore, nick: string): Promise<number> {
+  const raw = await kv.get(dataVersionKey(nick));
+  const n = raw == null ? 0 : Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+/**
+ * Atomic If-Match write: CAS the version key, then store the blob and a
+ * retained historical copy. The CAS lives in the storage adapter.
+ */
 export async function putVersionedBlob(opts: {
   blobs: BlobStore;
+  kv: KvStore;
   nick: string;
   bytes: Uint8Array;
-  currentVersion: number;
   ifMatch: string | null | undefined;
   kept?: number;
 }): Promise<PutDataResult> {
   const kept = opts.kept ?? DATA_VERSIONS_KEPT;
-  if (!ifMatchOk(opts.currentVersion, opts.ifMatch)) {
+  const verKey = dataVersionKey(opts.nick);
+  const raw = await opts.kv.get(verKey);
+  const currentVersion = raw == null ? 0 : Number(raw);
+  if (!ifMatchOk(currentVersion, opts.ifMatch)) {
     const blob = await opts.blobs.get(dataBlobKey(opts.nick));
-    return { ok: false, conflict: true, version: opts.currentVersion, blob };
+    return { ok: false, conflict: true, version: currentVersion, blob };
   }
-  const version = opts.currentVersion + 1;
+  const version = currentVersion + 1;
+  const swapped = await opts.kv.compareAndSet(verKey, raw, String(version));
+  if (!swapped) {
+    const latest = await readDataVersion(opts.kv, opts.nick);
+    const blob = await opts.blobs.get(dataBlobKey(opts.nick));
+    return { ok: false, conflict: true, version: latest, blob };
+  }
   await opts.blobs.put(dataBlobKey(opts.nick), opts.bytes, "application/octet-stream");
   await opts.blobs.put(dataVersionBlobKey(opts.nick, version), opts.bytes, "application/octet-stream");
   const dropped = droppedVersion(version, kept);
@@ -48,4 +67,10 @@ export async function listRetainedVersionBlobs(blobs: BlobStore, nick: string, c
     if (await blobs.get(dataVersionBlobKey(nick, v))) found.push(v);
   }
   return found;
+}
+
+export async function deleteAllDataBlobs(blobs: BlobStore, nick: string): Promise<void> {
+  const prefix = `user/${nick.replace(/^@/, "")}/`;
+  const keys = await blobs.list(prefix);
+  for (const key of keys) await blobs.delete(key);
 }

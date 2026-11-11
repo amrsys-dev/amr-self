@@ -6,11 +6,26 @@ import { emptyUserData, type UserData } from "./schema.ts";
 const DB = "amrid";
 const STORE = "kv";
 
+/** Only encrypted blobs (plus non-secret sync metadata) live in IndexedDB. */
+type LocalRecord = {
+  blob: EncryptedBlob;
+  version: number;
+  dirty: boolean;
+  accountId: string;
+};
+
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
+    const req = indexedDB.open(DB, 2);
     req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE);
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+      // Drop any leftover plaintext records from older schema versions.
+      const tx = req.transaction;
+      if (tx) {
+        const store = tx.objectStore(STORE);
+        store.delete("data");
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -37,17 +52,42 @@ async function idbSet(key: string, value: unknown): Promise<void> {
   });
 }
 
-export async function loadLocalData(): Promise<UserData> {
-  return (await idbGet<UserData>("data")) ?? emptyUserData();
+export async function wipeLocalData(): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(DB);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+    req.onblocked = () => resolve();
+  });
 }
 
-export async function saveLocalData(data: UserData): Promise<void> {
-  await idbSet("data", data);
-  await idbSet("dirty", true);
+async function readRecord(): Promise<LocalRecord | undefined> {
+  return idbGet<LocalRecord>("enc");
+}
+
+async function writeRecord(rec: LocalRecord): Promise<void> {
+  await idbSet("enc", rec);
+}
+
+export async function loadLocalData(dataKey: Uint8Array, accountId: string): Promise<UserData> {
+  const rec = await readRecord();
+  if (!rec || rec.accountId !== accountId) return emptyUserData();
+  return (await decryptAndDecompress(dataKey, rec.blob, { accountId, version: rec.version })) as UserData;
+}
+
+export async function saveLocalData(dataKey: Uint8Array, accountId: string, data: UserData): Promise<void> {
+  const rec = await readRecord();
+  const version = rec && rec.accountId === accountId ? rec.version : 0;
+  const pendingVersion = Math.max(version, 0) + (rec?.dirty ? 0 : 1) || 1;
+  const nextVersion = rec?.dirty ? Math.max(version, 1) : pendingVersion;
+  const blob = await compressAndEncrypt(dataKey, data, { accountId, version: nextVersion });
+  await writeRecord({ blob, version: nextVersion, dirty: true, accountId });
 }
 
 export async function loadLocalVersion(): Promise<number> {
-  return (await idbGet<number>("version")) ?? 0;
+  const rec = await readRecord();
+  return rec?.dirty ? Math.max(0, rec.version - 1) : (rec?.version ?? 0);
 }
 
 function decodeBlob(b64: string): EncryptedBlob {
@@ -64,12 +104,10 @@ function encodeBlob(blob: EncryptedBlob): string {
 
 export async function pullRemote(dataKey: Uint8Array, accountId: string): Promise<UserData> {
   const res = await api<{ blob: string | null; version: number }>("/api/me/data");
-  if (!res.ok || !res.data.blob) return loadLocalData();
+  if (!res.ok || !res.data.blob) return loadLocalData(dataKey, accountId);
   const parsed = decodeBlob(res.data.blob);
   const data = (await decryptAndDecompress(dataKey, parsed, { accountId, version: res.data.version })) as UserData;
-  await idbSet("data", data);
-  await idbSet("version", res.data.version);
-  await idbSet("dirty", false);
+  await writeRecord({ blob: parsed, version: res.data.version, dirty: false, accountId });
   return data;
 }
 
@@ -84,8 +122,7 @@ export async function pushRemote(dataKey: Uint8Array, accountId: string, data: U
       body: JSON.stringify({ blob: encodeBlob(encBlob), version: base }),
     });
     if (res.ok) {
-      await idbSet("version", res.data.version ?? nextVersion);
-      await idbSet("dirty", false);
+      await writeRecord({ blob: encBlob, version: res.data.version ?? nextVersion, dirty: false, accountId });
       return;
     }
     if (res.status !== 409 || res.data.blob == null || res.data.version == null) {
@@ -96,8 +133,9 @@ export async function pushRemote(dataKey: Uint8Array, accountId: string, data: U
       version: res.data.version,
     })) as UserData;
     data = mergeUserData(data, remote);
-    await idbSet("data", data);
     base = res.data.version;
+    const mergedBlob = await compressAndEncrypt(dataKey, data, { accountId, version: base + 1 });
+    await writeRecord({ blob: mergedBlob, version: base + 1, dirty: true, accountId });
   }
   throw new Error("sync_conflict");
 }
@@ -110,10 +148,13 @@ export function startSyncLoop(getCtx: () => SyncContext, intervalMs = 3 * 60_000
     if (stopped || (typeof navigator !== "undefined" && !navigator.onLine)) return;
     const { key, accountId } = getCtx();
     if (!key || !accountId) return;
-    const dirty = await idbGet<boolean>("dirty");
-    const data = await loadLocalData();
-    if (dirty) await pushRemote(key, accountId, data);
-    else await pullRemote(key, accountId);
+    const rec = await readRecord();
+    if (rec?.dirty && rec.accountId === accountId) {
+      const data = await decryptAndDecompress(key, rec.blob, { accountId, version: rec.version }) as UserData;
+      await pushRemote(key, accountId, data);
+    } else {
+      await pullRemote(key, accountId);
+    }
   };
   const id = setInterval(() => void tick(), intervalMs);
   const onOnline = () => void tick();

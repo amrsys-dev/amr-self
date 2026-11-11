@@ -92,6 +92,8 @@ const t = {
     password_weak: "Этот пароль слишком простой. Выберите другой.",
     no_support_reset: "Поддержка не сбрасывает пароль. Нужен код восстановления.",
     new_recovery_issued: "Старый код больше не действует. Запишите новый.",
+    delete_my_data: "Удалить мои данные",
+    delete_my_data_confirm: "Удалить аккаунт и все данные безвозвратно? Ник останется занятым.",
     verify: "Подтвердить",
   },
   ar: {
@@ -180,6 +182,8 @@ const t = {
     password_weak: "كلمة السر هذه شائعة جداً. اختر غيرها.",
     no_support_reset: "الدعم لا يصفّر كلمة السر. تحتاج رمز الاسترداد.",
     new_recovery_issued: "الرمز القديم لم يعد يعمل. اكتب الرمز الجديد.",
+    delete_my_data: "حذف بياناتي",
+    delete_my_data_confirm: "حذف الحساب وكل البيانات نهائياً؟ سيبقى الاسم محجوزاً.",
     verify: "تأكيد",
   },
   uz: {
@@ -268,6 +272,8 @@ const t = {
     password_weak: "Bu parol juda oddiy. Boshqasini tanlang.",
     no_support_reset: "Yordam xizmati parolni tiklamaydi. Tiklash kodi kerak.",
     new_recovery_issued: "Eski kod endi ishlamaydi. Yangisini yozib oling.",
+    delete_my_data: "Ma’lumotlarimni o‘chirish",
+    delete_my_data_confirm: "Hisob va barcha ma’lumotlar butunlay o‘chirilsinmi? Nik band bo‘lib qoladi.",
     verify: "Tasdiqlash",
   },
   tj: {
@@ -356,6 +362,8 @@ const t = {
     password_weak: "Ин парол хеле содда аст. Дигарашро интихоб кунед.",
     no_support_reset: "Дастгирӣ паролро барқарор намекунад. Рамзи барқарорсозӣ лозим аст.",
     new_recovery_issued: "Рамзи кӯҳна дигар кор намекунад. Навро нависед.",
+    delete_my_data: "Маълумоти маро нест кунед",
+    delete_my_data_confirm: "Ҳисоб ва ҳамаи маълумот бебозгашт нест шавад? Ник банд мемонад.",
     verify: "Тасдиқ",
   },
   en: {
@@ -444,6 +452,8 @@ const t = {
     password_weak: "That password is too common. Please choose another.",
     no_support_reset: "Support cannot reset your password. You need the recovery code.",
     new_recovery_issued: "The old recovery code no longer works. Write the new one down.",
+    delete_my_data: "Delete my data",
+    delete_my_data_confirm: "Permanently delete your account and all data? The nick will stay reserved.",
     verify: "Confirm",
   },
 } as const;

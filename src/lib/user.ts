@@ -47,4 +47,16 @@ export function dataVersionBlobKey(nick: string, version: number): string {
   return `user/${nick.replace(/^@/, "")}/data/v/${version}`;
 }
 
+export function dataVersionKey(nick: string): string {
+  return `user/${nick.replace(/^@/, "")}/data-version`;
+}
+
+export function sessionsOfKey(nick: string): string {
+  return `sessions-of:${nick.toLowerCase()}`;
+}
+
+export function otpIndexKey(nick: string): string {
+  return `otps-of:${nick.toLowerCase()}`;
+}
+
 export const DATA_VERSIONS_KEPT = 5;
