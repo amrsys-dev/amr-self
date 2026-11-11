@@ -81,6 +81,7 @@ const recoverySchema = z.object({
   recoveryVerifyKeyNew: authKeySchema.optional(),
   wrapRecoveries: z.array(wrappedSchema).max(10).optional(),
   recoveryVerifyKeys: z.array(authKeySchema).max(10).optional(),
+  recoveryVerifyKeysNew: z.array(authKeySchema).max(10).optional(),
   kdfPassword: kdfSchema.optional(),
   kdfRecovery: kdfSchema.optional(),
   kdfRecoveries: z.array(kdfSchema).max(10).optional(),
@@ -212,6 +213,35 @@ function readVerifyKeys(body: { recoveryVerifyKey?: string; recoveryVerifyKeys?:
     keys.push(k);
   }
   return keys.length ? keys : null;
+}
+
+
+async function readReplacementSlots(data: {
+  recoveryVerifyKeysNew?: string[];
+  recoveryVerifyKeyNew?: string;
+  wrapRecoveries?: unknown[];
+  wrapRecovery?: unknown;
+  kdfRecoveries?: import("../crypto.ts").KdfParams[];
+  kdfRecovery?: import("../crypto.ts").KdfParams;
+}): Promise<{ hashes: string[]; wraps: WrappedKey[]; kdfs: import("../crypto.ts").KdfParams[] } | Response> {
+  const expected = recoveryCodesCount();
+  const keyRaws = data.recoveryVerifyKeysNew?.length
+    ? data.recoveryVerifyKeysNew
+    : data.recoveryVerifyKeyNew
+      ? [data.recoveryVerifyKeyNew]
+      : [];
+  const wraps = (data.wrapRecoveries?.length ? data.wrapRecoveries : data.wrapRecovery ? [data.wrapRecovery] : []) as WrappedKey[];
+  const kdfs = data.kdfRecoveries?.length ? data.kdfRecoveries : data.kdfRecovery ? [data.kdfRecovery] : [];
+  if (keyRaws.length !== expected || wraps.length !== expected || kdfs.length !== expected) {
+    return json({ error: "invalid", hint: "recovery_codes", recoveryCodes: expected }, 400);
+  }
+  const hashes: string[] = [];
+  for (const raw of keyRaws) {
+    const k = requireKey(raw);
+    if (!k) return json({ error: "invalid" }, 400);
+    hashes.push(await hashAuthKey(k));
+  }
+  return { hashes, wraps, kdfs };
 }
 
 async function dummyLoginWork(nick: string, authKey: Uint8Array | null): Promise<void> {
@@ -595,7 +625,7 @@ export async function handleRecovery(request: Request): Promise<Response> {
       wrapRecovery: matchedWrap,
       kdf: user.kdf,
       needsPassword: true,
-      newRecoveryRequired: false,
+      newRecoveryRequired: true,
       recoveryLeft: slots.hashes.length,
     });
   }
@@ -603,21 +633,25 @@ export async function handleRecovery(request: Request): Promise<Response> {
   if (!newAuth || !body.data.wrapPassword || !body.data.kdfPassword) {
     return json({ error: "invalid" }, 400);
   }
-  used.push({ hash: slots.hashes[matchIndex]!, until: now + USED_RECOVERY_TTL_MS });
+  const replacement = await readReplacementSlots(body.data);
+  if (replacement instanceof Response) return replacement;
+  // Invalidate every previous code (the spent one and the unused remainder).
+  const spent = new Set(used.map((u) => u.hash));
+  for (const hash of slots.hashes) {
+    if (!spent.has(hash)) {
+      used.push({ hash, until: now + USED_RECOVERY_TTL_MS });
+      spent.add(hash);
+    }
+  }
   user.usedRecoveryHashes = used;
-  applyRecoverySlots(
-    user,
-    slots.hashes.filter((_, i) => i !== matchIndex),
-    slots.wraps.filter((_, i) => i !== matchIndex),
-    slots.kdfs.filter((_, i) => i !== matchIndex),
-  );
+  applyRecoverySlots(user, replacement.hashes, replacement.wraps, replacement.kdfs);
   user.passwordHash = await hashAuthKey(newAuth);
   user.wrapPassword = body.data.wrapPassword as WrappedKey;
-  user.kdf = { password: body.data.kdfPassword, recovery: user.kdf.recovery };
+  user.kdf = { password: body.data.kdfPassword, recovery: replacement.kdfs[0] ?? user.kdf.recovery };
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
   await revokeAllSessions(user.nick);
   const { cookie } = await createSession(user.nick);
-  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: matchedWrap, recoveryBurned: true, sessionsRevoked: true, recoveryLeft: recoverySlots(user).hashes.length }, cookie);
+  return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: replacement.wraps[0] ?? matchedWrap, recoveryBurned: true, sessionsRevoked: true, recoveryLeft: recoverySlots(user).hashes.length, newRecoveryIssued: true }, cookie);
 }
 
 type PendingRebind = {
@@ -626,7 +660,8 @@ type PendingRebind = {
   otp: OtpRecord;
   dest: string;
   channel: OtpChannel;
-  matchIndex: number;
+  /** Verifier hash of the recovery code being spent — not a slot index. */
+  recoveryHash: string;
 };
 
 async function handleRebind(
@@ -660,7 +695,10 @@ async function handleRebind(
       lang: data.lang,
     });
     if (issued instanceof Response) return issued;
-    const pending: PendingRebind = { kind: "rebind", nick: user.nick, otp: issued.otp, dest, channel, matchIndex };
+    const slots = recoverySlots(user);
+    const recoveryHash = slots.hashes[matchIndex];
+    if (!recoveryHash) return json({ error: "invalid_credentials" }, 401);
+    const pending: PendingRebind = { kind: "rebind", nick: user.nick, otp: issued.otp, dest, channel, recoveryHash };
     await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
     const test = isTestMode() ? { testOtp: issued.code } : {};
     return json({ otpId: issued.otpId, channel, ...test });
@@ -680,17 +718,18 @@ async function handleRebind(
     return json({ error: "invalid_code" }, 401);
   }
   const slots = recoverySlots(user);
-  if (pending.matchIndex < 0 || pending.matchIndex >= slots.hashes.length) {
+  const used = (user.usedRecoveryHashes ?? []).filter((u) => u.until > now);
+  const burnAt = slots.hashes.indexOf(pending.recoveryHash);
+  if (burnAt < 0) {
     return json({ error: "recovery_replaced" }, 401);
   }
-  const used = (user.usedRecoveryHashes ?? []).filter((u) => u.until > now);
-  used.push({ hash: slots.hashes[pending.matchIndex]!, until: now + USED_RECOVERY_TTL_MS });
+  used.push({ hash: pending.recoveryHash, until: now + USED_RECOVERY_TTL_MS });
   user.usedRecoveryHashes = used;
   applyRecoverySlots(
     user,
-    slots.hashes.filter((_, i) => i !== pending.matchIndex),
-    slots.wraps.filter((_, i) => i !== pending.matchIndex),
-    slots.kdfs.filter((_, i) => i !== pending.matchIndex),
+    slots.hashes.filter((_, i) => i !== burnAt),
+    slots.wraps.filter((_, i) => i !== burnAt),
+    slots.kdfs.filter((_, i) => i !== burnAt),
   );
   if (pending.channel === "telegram") user.otp.telegram = telegramFromUserInput(pending.dest, true);
   else user.otp.email = { address: pending.dest, verified: true };

@@ -5,6 +5,7 @@
  * Create the stub with locationHint "weur". Rate-limit keys are never persisted.
  */
 import { AmrIdCoordinator, isDurableDoKey } from "../../src/lib/storage/do-core.ts";
+import { safeEqual } from "../../src/lib/secret-equal.ts";
 import type { DoRequest, DoResponse } from "../../src/lib/storage/durable-object.ts";
 
 type Env = {
@@ -140,7 +141,7 @@ export async function dispatchCoordinator(env: Env, body: DoRequest): Promise<Do
 export async function routeDo(request: Request, env: Env): Promise<Response> {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!env.CF_DO_SECRET || token !== env.CF_DO_SECRET) return unauthorized();
+  if (!env.CF_DO_SECRET || !safeEqual(token, env.CF_DO_SECRET)) return unauthorized();
   let body: DoRequest;
   try {
     body = (await request.json()) as DoRequest;

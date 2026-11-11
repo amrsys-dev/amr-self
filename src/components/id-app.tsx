@@ -15,6 +15,7 @@ import {
   wrapDataKey,
   type WrappedKey,
 } from "@/lib/crypto.ts";
+import { deriveRecoveryCandidates, encodedVerifyKeys, recoveryKdfList } from "@/lib/auth/recovery-client.ts";
 import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
 import { checkPassword, PASSWORD_MIN } from "@/lib/password-policy.ts";
 import { LANGS, detectLang, isRtl, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
@@ -877,8 +878,12 @@ export function IdApp() {
             <p className="sub">{t("your_id_name")}</p>
             <div className="gap" />
             <div className="field">
-              <label>{t("recovery_code")}</label>
-              <div className="recovery-code">{recovery}</div>
+              <label>{t("recovery_codes")}</label>
+              {(recoveryCodes.length ? recoveryCodes : recovery ? [recovery] : []).map((c, i) => (
+                <div className="recovery-code" key={`${i}-${c}`}>
+                  {c}
+                </div>
+              ))}
             </div>
             <p className="hint">{t("save_recovery")}</p>
             <div className="btns">
@@ -942,12 +947,14 @@ export function IdApp() {
               setPassword2={setPassword2}
               err={err}
               busy={busy}
-              onDone={(s, key, newCode) => {
+              recoveryCount={meta?.recoveryCodes ?? 10}
+              onDone={(s, key, newCodes) => {
                 dataKeyRef.current = key;
                 setSession(s);
                 setAppearance(s.appearance);
-                if (newCode) {
-                  setRecovery(newCode);
+                if (newCodes?.length) {
+                  setRecovery(newCodes[0] ?? "");
+                  setRecoveryCodes(newCodes);
                   setScreen("recovery-done");
                 } else {
                   setScreen("today");
@@ -967,8 +974,12 @@ export function IdApp() {
             <div className="kicker">{t("signup_done")}</div>
             <h1>{session.nick}</h1>
             <div className="field">
-              <label>{t("recovery_code")}</label>
-              <div className="recovery-code">{recovery}</div>
+              <label>{t("recovery_codes")}</label>
+              {(recoveryCodes.length ? recoveryCodes : recovery ? [recovery] : []).map((c, i) => (
+                <div className="recovery-code" key={`${i}-${c}`}>
+                  {c}
+                </div>
+              ))}
             </div>
             <p className="hint">{t("new_recovery_issued")}</p>
             <p className="hint">{t("save_recovery")}</p>
@@ -1439,6 +1450,7 @@ function RecoveryForm({
   setPassword2,
   err,
   busy,
+  recoveryCount,
   onDone,
   onError,
 }: {
@@ -1453,7 +1465,8 @@ function RecoveryForm({
   setPassword2: (s: string) => void;
   err: string;
   busy: boolean;
-  onDone: (s: SessionState, key: Uint8Array, newRecoveryCode?: string) => void;
+  recoveryCount: number;
+  onDone: (s: SessionState, key: Uint8Array, newRecoveryCodes?: string[]) => void;
   onError: (status: number, data: { error?: string }) => void;
 }) {
   const [localBusy, setLocalBusy] = useState(false);
@@ -1466,43 +1479,68 @@ function RecoveryForm({
     }
     setLocalBusy(true);
     try {
-      const kdfRes = await api<{ kdf: KdfParams }>("/api/auth/kdf", {
+      const kdfRes = await api<{ kdf: KdfParams; kdfs?: KdfParams[] }>("/api/auth/kdf", {
         method: "POST",
         body: JSON.stringify({ nick, purpose: "recovery" }),
       });
-      if (!kdfRes.ok || !kdfRes.data.kdf) {
+      if (!kdfRes.ok) {
         onError(kdfRes.status, kdfRes.data as { error?: string });
         return;
       }
-      const recOld = await deriveRecoveryKeys(recovery, keysFromParams(kdfRes.data.kdf).salt, keysFromParams(kdfRes.data.kdf).opts);
+      const kdfs = recoveryKdfList(kdfRes.data);
+      if (!kdfs.length) {
+        onError(kdfRes.status, { error: "invalid" });
+        return;
+      }
+      const candidates = await deriveRecoveryCandidates(recovery, kdfs);
+      const verifyKeys = encodedVerifyKeys(candidates);
       const first = await api<{ wrapRecovery: WrappedKey; needsPassword?: boolean; nick?: string; kdf?: { password: KdfParams; recovery: KdfParams } }>(
         "/api/auth/recovery",
         {
           method: "POST",
-          body: JSON.stringify({ nick, recoveryVerifyKey: encodeAuthKey(recOld.verifyKey), phase: "unlock" }),
+          body: JSON.stringify({ nick, recoveryVerifyKey: verifyKeys[0], recoveryVerifyKeys: verifyKeys, phase: "unlock" }),
         },
       );
       if (!first.ok || !first.data.wrapRecovery) {
         onError(first.status, first.data as { error?: string });
         return;
       }
-      const key = await unwrapDataKey(first.data.wrapRecovery, recOld.wrapKey);
-      const newCode = generateRecoveryCode();
+      let key: Uint8Array | null = null;
+      for (const c of candidates) {
+        try {
+          key = await unwrapDataKey(first.data.wrapRecovery, c.wrapKey);
+          break;
+        } catch {
+          /* try the next salt */
+        }
+      }
+      if (!key) {
+        onError(400, { error: "invalid" });
+        return;
+      }
+      const count = recoveryCount >= 1 && recoveryCount <= 10 ? recoveryCount : 10;
+      const newCodes = generateRecoveryCodes(count);
       const pwd = await derivePasswordKeys(password);
-      const recNew = await deriveRecoveryKeys(newCode);
+      const recNews = [];
+      for (const c of newCodes) recNews.push(await deriveRecoveryKeys(c));
       const wrapPassword = await wrapDataKey(key, pwd.wrapKey);
-      const wrapRecovery = await wrapDataKey(key, recNew.wrapKey);
+      const wrapRecoveries = [];
+      for (const k of recNews) wrapRecoveries.push(await wrapDataKey(key, k.wrapKey));
       const second = await api<SessionState>("/api/auth/recovery", {
         method: "POST",
         body: JSON.stringify({
           nick,
-          recoveryVerifyKey: encodeAuthKey(recOld.verifyKey),
+          recoveryVerifyKey: verifyKeys[0],
+          recoveryVerifyKeys: verifyKeys,
           authKey: encodeAuthKey(pwd.authKey),
           wrapPassword,
-          wrapRecovery,
-          recoveryVerifyKeyNew: encodeAuthKey(recNew.verifyKey),
+          wrapRecovery: wrapRecoveries[0],
+          wrapRecoveries,
+          recoveryVerifyKeyNew: encodeAuthKey(recNews[0]!.verifyKey),
+          recoveryVerifyKeysNew: recNews.map((k) => encodeAuthKey(k.verifyKey)),
           kdfPassword: pwd.params,
-          kdfRecovery: recNew.params,
+          kdfRecovery: recNews[0]!.params,
+          kdfRecoveries: recNews.map((k) => k.params),
           phase: "reset",
         }),
       });
@@ -1510,7 +1548,7 @@ function RecoveryForm({
         onError(second.status, second.data as { error?: string });
         return;
       }
-      onDone(second.data, key, newCode);
+      onDone(second.data, key, newCodes);
     } catch {
       onError(400, { error: "invalid" });
     } finally {
