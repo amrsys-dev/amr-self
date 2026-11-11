@@ -1,0 +1,8 @@
+name = "amr-id-otp-relay"
+main = "src/index.ts"
+compatibility_date = "2026-11-11"
+
+# Secrets (wrangler secret put):
+# OTP_RELAY_SECRET
+# TG_OTP_BOT_TOKEN
+# RESEND_API_KEY
