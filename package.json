@@ -1,0 +1,35 @@
+{
+  "name": "amr-id",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tanstack/react-router": "^1.170.0",
+    "@tanstack/react-start": "^1.168.60",
+    "@tanstack/router-plugin": "^1.168.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "hash-wasm": "^4.13.0",
+    "nitro": "3.0.260610-beta",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^5.7.0",
+    "uqr": "^0.1.2",
+    "vite": "^8.2.0",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

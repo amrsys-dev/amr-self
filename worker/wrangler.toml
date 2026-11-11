@@ -1,0 +1,29 @@
+name = "amr-id-do-preview"
+main = "src/do-worker.ts"
+compatibility_date = "2026-11-11"
+workers_dev = true
+
+# Preview worker: Durable Object + bound KV + EU R2. No Cloudflare API token
+# is needed on Vercel; the app authenticates with CF_DO_SECRET.
+# Production only after «выкатывай». Never deploy over amr-master.
+#
+# Secrets (wrangler secret put ...): CF_DO_SECRET, TG_OTP_BOT_TOKEN, TG_WEBHOOK_SECRET
+
+[[durable_objects.bindings]]
+name = "AMR_ID"
+class_name = "AmrIdDo"
+
+[[migrations]]
+tag = "v1-amr-id-do"
+new_sqlite_classes = ["AmrIdDo"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "7f99d9253db5445b86b96988b3e36f12"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "amr-id-preview"
+jurisdiction = "eu"
+
+# Location is set in code: env.AMR_ID.get(id, { locationHint: "weur" })

@@ -1,0 +1,17 @@
+node_modules
+dist
+.output
+.nitro
+.tanstack
+.data
+.env
+.env.*
+!.env.example
+.vercel
+*.log
+.DS_Store
+
+
+# Draft legal texts from IDENTITY/SECURITY — do not publish until approved.
+legal/
+

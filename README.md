@@ -1,29 +1,30 @@
 # AMR ID
 
-Persistent identity layer: one nick for WhatsApp, Telegram, Google — no SIM binding.
+Personal assistant and digital ID. Separate from Safar.
+
+Stage 1 is a preview skeleton: sign-up, password + one-time code, a public business card, and empty tabs. Nothing is in production, and no custom domain is attached.
 
 ## Stack
-- Cloudflare Python Workers + FastAPI
-- Cloudflare KV (no database)
-- PWA interface
 
-## Quick start
-1. Create KV namespace in Cloudflare Dashboard, paste ID into `wrangler.toml`
-2. `uv run pywrangler secret put TELEGRAM_BOT_TOKEN`
-3. `uv run pywrangler dev` — open http://localhost:8787
-4. `uv run pywrangler deploy`
+TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. The data-file key is random and wrapped twice (password and recovery code) with argon2id then HKDF; the server only ever sees a derived auth key. Blobs are XChaCha20-Poly1305 with AAD = account id + version. Test storage is a local file (or in-memory locally). Preview uses the Cloudflare worker (CF_DO_URL + CF_DO_SECRET) for Durable Object nick/CAS/rate limits, KV write-through, and encrypted R2 blobs. No Cloudflare API token is stored on Vercel. Public business cards are cached at the edge for 30 seconds (stale-while-revalidate 120) via Cache-Control and the Workers Cache API.
 
-## Routes
-- `/` — landing (AMR ID + AMR Talking links)
-- `/id` — create / sign in
-- `/talking` — AMR Talking (coming soon)
-- `/api/register`, `/api/login`, `/api/resolve/{nick}`
-- `/webhook/sms` — Telnyx/Twilio OTP webhook
-- `/otp/{number}` — fetch last OTP
-- `/api/bind-number` — map number → Telegram chat_id
+## Local
 
-## ID format
-160-bit entropy · Base58 (no 0/O/I/l) · 4-byte checksum · version byte
+```bash
+cp .env.example .env
+# set SESSION_SECRET to a long random string
+npm install
+npm test
+npm run typecheck
+npm run dev
+```
 
-## License
-Open standard. Spec TBD.
+With `OTP_MODE=test` locally (and no worker relay) a one-time code appears in a clearly marked test banner and in the server log. That never runs when `VERCEL_ENV=production`, and it is also off on preview once `CF_DO_URL` is set: login codes go only to the linked `@amr_id_bot` chat.
+
+## Nick
+
+Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`. Retired nicks are never reissued. A nick may be changed exactly once. Sign-up issues `AMR_RECOVERY_CODES` (default 10) one-time recovery codes, generated on the device and shown once — never sent to the server or Telegram. Support cannot reset a password. Login codes go only through the Telegram bot until a domain is approved (`AMR_OTP_EMAIL=false`). Logs are kept 30 days, reports 90 days; «delete everything» wipes immediately (provider backups may remain up to 30 days).
+
+## Preview only
+
+Deploy with `vercel deploy` (no `--prod`). Do not attach DNS or a custom domain until Murad writes «выкатывай» in the IT private chat.
