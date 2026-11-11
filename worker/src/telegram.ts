@@ -6,6 +6,7 @@ import { dispatchCoordinator } from "./do.ts";
 import { handleGateway, type GatewayEnv } from "./gateway.ts";
 import { hashLinkToken, telegramLinkKey, type TelegramLinkRecord } from "../../src/lib/auth/telegram-link.ts";
 import { isTelegramUserId, sanitizeTelegramRecord } from "../../src/lib/telegram.ts";
+import { safeEqual } from "../../src/lib/secret-equal.ts";
 import { nickKey, otpKey, type UserRecord } from "../../src/lib/user.ts";
 
 export type TelegramWorkerEnv = GatewayEnv & {
@@ -53,13 +54,6 @@ function pickLang(code: string | undefined): keyof typeof REPLIES {
   const c = (code ?? "en").slice(0, 2).toLowerCase();
   if (c in REPLIES) return c as keyof typeof REPLIES;
   return "en";
-}
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return d === 0;
 }
 
 async function sendTelegram(env: TelegramWorkerEnv, chatId: string, text: string): Promise<boolean> {
