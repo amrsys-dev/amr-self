@@ -1089,7 +1089,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
     if (lang) url.searchParams.set("lang", lang);
     const origin = publicCardOrigin(request);
     if (origin) url.searchParams.set("origin", origin);
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${doCfg.secret}` } });
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${doCfg.secret}` }, cache: "no-store" });
     const data = await res.json();
     const cache = res.headers.get("cache-control") ?? (res.status === 200 ? PUBLIC_CARD_CACHE : "private, no-store");
     const hit = res.headers.get("x-amr-cache");

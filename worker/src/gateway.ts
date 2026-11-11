@@ -86,7 +86,21 @@ async function kvListRaw(env: GatewayEnv, prefix: string): Promise<string[]> {
   return names.sort();
 }
 
+function tombstoneKey(key: string): string {
+  return `tombstone:${key}`;
+}
+
+async function hasTombstone(env: GatewayEnv, key: string): Promise<boolean> {
+  const tomb = await callDo(env, { op: "get", key: tombstoneKey(key) });
+  return tomb.value != null;
+}
+
+async function setTombstone(env: GatewayEnv, key: string): Promise<void> {
+  await callDo(env, { op: "put", key: tombstoneKey(key), value: "1", opts: { expirationTtl: 120 } });
+}
+
 async function hydrateCoordinated(env: GatewayEnv, key: string): Promise<string | null> {
+  if (await hasTombstone(env, key)) return null;
   const fromDo = await callDo(env, { op: "get", key });
   if (fromDo.value != null) {
     const fromKv = await kvGetRaw(env, key);
@@ -95,6 +109,7 @@ async function hydrateCoordinated(env: GatewayEnv, key: string): Promise<string 
   }
   const fromKv = await kvGetRaw(env, key);
   if (fromKv == null) return null;
+  if (await hasTombstone(env, key)) return null;
   await callDo(env, { op: "cas", key, expected: null, next: fromKv });
   return (await callDo(env, { op: "get", key })).value ?? fromKv;
 }
@@ -148,7 +163,10 @@ export async function handleGateway(body: DoRequest, env: GatewayEnv, ctx?: Exec
       return { ok: true };
     }
     case "delete": {
-      if (isCoordinatedKey(body.key)) await callDo(env, body);
+      if (isCoordinatedKey(body.key)) {
+        await setTombstone(env, body.key);
+        await callDo(env, body);
+      }
       await kvDeleteRaw(env, body.key);
       await maybePurgeCard(body.key, ctx);
       return { ok: true };
@@ -164,11 +182,13 @@ export async function handleGateway(body: DoRequest, env: GatewayEnv, ctx?: Exec
     }
     case "cas": {
       if (isCoordinatedKey(body.key)) {
-        await hydrateCoordinated(env, body.key);
+        const current = await hydrateCoordinated(env, body.key);
+        if (current !== body.expected) return { ok: true, cas: false };
         const result = await callDo(env, body);
         if (result.cas) {
-          const current = await kvGetRaw(env, body.key);
-          if (current !== body.next) await kvPutRaw(env, body.key, body.next, body.opts);
+          await callDo(env, { op: "delete", key: tombstoneKey(body.key) });
+          const fromKv = await kvGetRaw(env, body.key);
+          if (fromKv !== body.next) await kvPutRaw(env, body.key, body.next, body.opts);
           await maybePurgeCard(body.key, ctx);
         }
         return result;
@@ -253,6 +273,12 @@ async function buildPublicCard(env: GatewayEnv, nick: string, themeRaw: string |
   });
 }
 
+function toApp(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.set("cache-control", "private, no-store");
+  return new Response(res.body, { status: res.status, headers });
+}
+
 export async function handlePublicCardRequest(request: Request, env: GatewayEnv, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(request.url);
   const parts = url.pathname.split("/").filter(Boolean);
@@ -280,11 +306,13 @@ export async function handlePublicCardRequest(request: Request, env: GatewayEnv,
           }),
         );
       }
-      return new Response(cached.body, { status: cached.status, headers });
+      return toApp(new Response(cached.body, { status: cached.status, headers }));
     }
   }
   const fresh = await buildPublicCard(env, nick, themeRaw, langRaw, origin);
-  if (fresh.status === 200) ctx.waitUntil(caches.default.put(cacheReq, fresh.clone()));
-  return fresh;
+  if (fresh.status === 200) {
+    await caches.default.put(cacheReq, fresh.clone());
+  }
+  return toApp(fresh);
 }
 
