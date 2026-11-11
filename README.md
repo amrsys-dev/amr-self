@@ -6,7 +6,7 @@ Stage 1 is a preview skeleton: sign-up, password + one-time code, a public busin
 
 ## Stack
 
-TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. The data-file key is random and wrapped twice (password and recovery code) with argon2id then HKDF; the server only ever sees a derived auth key. Blobs are XChaCha20-Poly1305 with AAD = account id + version. Test storage is a local file (or in-memory on a preview). Preview can use Cloudflare KV plus a Durable Object for nick uniqueness and If-Match writes; R2 stays off until a bucket is enabled. Public business cards are cached at the edge for 30 seconds (stale-while-revalidate 120).
+TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. The data-file key is random and wrapped twice (password and recovery code) with argon2id then HKDF; the server only ever sees a derived auth key. Blobs are XChaCha20-Poly1305 with AAD = account id + version. Test storage is a local file (or in-memory locally). Preview uses the Cloudflare worker (CF_DO_URL + CF_DO_SECRET) for Durable Object nick/CAS/rate limits, KV write-through, and encrypted R2 blobs. No Cloudflare API token is stored on Vercel. Public business cards are cached at the edge for 30 seconds (stale-while-revalidate 120) via Cache-Control and the Workers Cache API.
 
 ## Local
 

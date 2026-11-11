@@ -1,7 +1,6 @@
 import { readDoConfig } from "../env.server.ts";
 import { createCloudflareStores, readCloudflareConfig } from "./cloudflare.ts";
-import { createCoordinatedKvStore } from "./coordinated.ts";
-import { createDoKvStore } from "./durable-object.ts";
+import { createDoBlobStore, createDoKvStore } from "./durable-object.ts";
 import { createFileStores, defaultFileStorePath } from "./file.ts";
 import { createMemoryStores } from "./memory.ts";
 import type { BlobStore, Stores } from "./types.ts";
@@ -37,26 +36,18 @@ export function getStores(): Stores {
     return cached;
   }
   const doCfg = readDoConfig();
-  const cf = readCloudflareConfig();
-  const cfStores = cf ? createCloudflareStores(cf) : null;
-  if (doCfg && cfStores) {
-    cached = {
-      kind: "durable-object",
-      kv: createCoordinatedKvStore(createDoKvStore(doCfg), cfStores.kv),
-      blobs: cfStores.blobs ?? localBlobs(),
-    };
-    return cached;
-  }
   if (doCfg) {
     cached = {
       kind: "durable-object",
       kv: createDoKvStore(doCfg),
-      blobs: localBlobs(),
+      blobs: createDoBlobStore(doCfg),
     };
     return cached;
   }
-  if (cfStores) {
-    cached = { kind: "cloudflare", kv: cfStores.kv, blobs: cfStores.blobs ?? localBlobs() };
+  const cf = readCloudflareConfig();
+  if (cf) {
+    const { kv, blobs } = createCloudflareStores(cf);
+    cached = { kind: "cloudflare", kv, blobs: blobs ?? localBlobs() };
     return cached;
   }
   if (!onVercel()) {

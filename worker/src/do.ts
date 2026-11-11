@@ -123,20 +123,29 @@ export function unauthorized(): Response {
 
 const localStore = new AmrIdCoordinator();
 
+export async function dispatchCoordinator(env: Env, body: DoRequest): Promise<DoResponse> {
+  if (!env.AMR_ID) return handleDoRequest(localStore, body);
+  const id = env.AMR_ID.idFromName("amr-id-v1");
+  const stub = env.AMR_ID.get(id, { locationHint: "weur" });
+  const res = await stub.fetch(
+    new Request("https://amr-id-do.internal/v1/do", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
+  return (await res.json()) as DoResponse;
+}
+
 export async function routeDo(request: Request, env: Env): Promise<Response> {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!env.CF_DO_SECRET || token !== env.CF_DO_SECRET) return unauthorized();
-  if (!env.AMR_ID) {
-    let body: DoRequest;
-    try {
-      body = (await request.json()) as DoRequest;
-    } catch {
-      return Response.json({ ok: false, error: "invalid" }, { status: 400 });
-    }
-    return Response.json(await handleDoRequest(localStore, body));
+  let body: DoRequest;
+  try {
+    body = (await request.json()) as DoRequest;
+  } catch {
+    return Response.json({ ok: false, error: "invalid" }, { status: 400 });
   }
-  const id = env.AMR_ID.idFromName("amr-id-v1");
-  const stub = env.AMR_ID.get(id, { locationHint: "weur" });
-  return stub.fetch(request);
+  return Response.json(await dispatchCoordinator(env, body));
 }
