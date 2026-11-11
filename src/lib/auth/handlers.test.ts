@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, it } from "node:test";
-import { derivePasswordKeys, deriveRecoveryKeys, encodeAuthKey, generateDataKey, generateRecoveryCode, wrapDataKey } from "../crypto.ts";
+import { derivePasswordKeys, deriveRecoveryKeys, encodeAuthKey, generateDataKey, generateRecoveryCode, generateRecoveryCodes, wrapDataKey } from "../crypto.ts";
 import { resetStoresForTests } from "../storage/index.ts";
 import { getStores } from "../storage/index.ts";
 import { reservedNickKey as reservedKey } from "../nick-reserve.ts";
@@ -159,7 +159,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(otp.status, 200);
   });
 
-  it("burns a used recovery code and rejects it afterwards, without requiring a replacement set", async () => {
+  it("rejects a password reset without a fresh recovery set, then replaces the spent set atomically", async () => {
     const acc = await signup("@AMR-200-200", "old-password-ok");
     const unlock = await json(
       await handleRecovery(
@@ -169,11 +169,11 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(unlock.status, 200, JSON.stringify(unlock.data));
-    assert.equal(unlock.data.newRecoveryRequired, false);
+    assert.equal(unlock.data.newRecoveryRequired, true);
 
     const newPwd = await derivePasswordKeys("new-password-ok");
     const wrapPassword = await wrapDataKey(acc.dataKey, newPwd.wrapKey);
-    const reset = await json(
+    const missing = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
           body: {
@@ -187,9 +187,31 @@ describe("auth-key-only login and recovery", () => {
         }),
       ),
     );
+    assert.equal(missing.status, 400, JSON.stringify(missing.data));
+    assert.equal(missing.data.hint, "recovery_codes");
+
+    const newRec = await deriveRecoveryKeys(generateRecoveryCode());
+    const reset = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: acc.nick,
+            recoveryVerifyKey: encodeAuthKey(acc.recKeys.verifyKey),
+            authKey: encodeAuthKey(newPwd.authKey),
+            wrapPassword,
+            wrapRecovery: await wrapDataKey(acc.dataKey, newRec.wrapKey),
+            recoveryVerifyKeyNew: encodeAuthKey(newRec.verifyKey),
+            kdfPassword: newPwd.params,
+            kdfRecovery: newRec.params,
+            phase: "reset",
+          },
+        }),
+      ),
+    );
     assert.equal(reset.status, 200, JSON.stringify(reset.data));
     assert.equal(reset.data.recoveryBurned, true);
-    assert.equal(reset.data.recoveryLeft, 0);
+    assert.equal(reset.data.newRecoveryIssued, true);
+    assert.equal(reset.data.recoveryLeft, 1);
 
     const oldAgain = await json(
       await handleRecovery(
@@ -200,6 +222,15 @@ describe("auth-key-only login and recovery", () => {
     );
     assert.equal(oldAgain.status, 401);
     assert.equal(oldAgain.data.error, "recovery_replaced");
+
+    const fresh = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: acc.nick, recoveryVerifyKey: encodeAuthKey(newRec.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(fresh.status, 200, JSON.stringify(fresh.data));
   });
 
   it("returns 409 and the current blob on a stale If-Match, then accepts a merge write", async () => {
@@ -710,33 +741,203 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(first.status, 200, JSON.stringify(first.data));
-    const newPwd = await derivePasswordKeys("new-password-ok");
-    const reset = await json(
-      await handleRecovery(
-        req("/api/auth/recovery", {
-          body: {
-            nick: otp.data.nick,
-            recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey),
-            authKey: encodeAuthKey(newPwd.authKey),
-            wrapPassword: await wrapDataKey(dataKey, newPwd.wrapKey),
-            kdfPassword: newPwd.params,
-            phase: "reset",
-          },
-        }),
-      ),
-    );
-    assert.equal(reset.status, 200, JSON.stringify(reset.data));
-    assert.equal(reset.data.recoveryLeft, 1);
-    const second = await json(
+    const withSecond = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
           body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
-    assert.equal(second.status, 200, JSON.stringify(second.data));
+    assert.equal(withSecond.status, 200, JSON.stringify(withSecond.data));
     process.env.AMR_RECOVERY_CODES = prev ?? "1";
   });
+
+  it("unlocks and resets with recovery code #2 after trying every KDF salt, and invalidates the old set", async () => {
+    const prev = process.env.AMR_RECOVERY_CODES;
+    process.env.AMR_RECOVERY_CODES = "2";
+    const password = "correct-battery-horse";
+    const dataKey = await generateDataKey();
+    const pwd = await derivePasswordKeys(password);
+    const recs = generateRecoveryCodes(2);
+    const recKeys = [await deriveRecoveryKeys(recs[0]!), await deriveRecoveryKeys(recs[1]!)];
+    const wraps = [await wrapDataKey(dataKey, recKeys[0]!.wrapKey), await wrapDataKey(dataKey, recKeys[1]!.wrapKey)];
+    const s = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-611-611",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
+            kdfPassword: pwd.params,
+            kdfRecoveries: recKeys.map((k) => k.params),
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecoveries: wraps,
+            channel: "telegram",
+            dest: "@omar.public",
+            ageConfirmed: true,
+          },
+        }),
+      ),
+    );
+    assert.equal(s.status, 200, JSON.stringify(s.data));
+    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
+    assert.equal(otp.status, 200, JSON.stringify(otp.data));
+    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: otp.data.nick, purpose: "recovery" } })));
+    const kdfs = kdf.data.kdfs as { salt: string }[];
+    assert.equal(kdfs.length, 2);
+    const unlock = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: otp.data.nick,
+            recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
+            recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
+            phase: "unlock",
+          },
+        }),
+      ),
+    );
+    assert.equal(unlock.status, 200, JSON.stringify(unlock.data));
+    const newPwd = await derivePasswordKeys("new-password-ok");
+    const fresh = [await deriveRecoveryKeys(generateRecoveryCode()), await deriveRecoveryKeys(generateRecoveryCode())];
+    const reset = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: otp.data.nick,
+            recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
+            authKey: encodeAuthKey(newPwd.authKey),
+            wrapPassword: await wrapDataKey(dataKey, newPwd.wrapKey),
+            wrapRecoveries: [await wrapDataKey(dataKey, fresh[0]!.wrapKey), await wrapDataKey(dataKey, fresh[1]!.wrapKey)],
+            recoveryVerifyKeysNew: fresh.map((k) => encodeAuthKey(k.verifyKey)),
+            kdfPassword: newPwd.params,
+            kdfRecoveries: fresh.map((k) => k.params),
+            phase: "reset",
+          },
+        }),
+      ),
+    );
+    assert.equal(reset.status, 200, JSON.stringify(reset.data));
+    assert.equal(reset.data.recoveryLeft, 2);
+    assert.equal(reset.data.newRecoveryIssued, true);
+    for (const k of recKeys) {
+      const old = await json(
+        await handleRecovery(
+          req("/api/auth/recovery", {
+            body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(k.verifyKey), phase: "unlock" },
+          }),
+        ),
+      );
+      assert.equal(old.status, 401);
+      assert.equal(old.data.error, "recovery_replaced");
+    }
+    const ok = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(fresh[1]!.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(ok.status, 200, JSON.stringify(ok.data));
+    process.env.AMR_RECOVERY_CODES = prev ?? "1";
+  });
+
+  it("rebind burns the recovery code by verifier hash, not by slot index", async () => {
+    const prev = process.env.AMR_RECOVERY_CODES;
+    process.env.AMR_RECOVERY_CODES = "3";
+    const password = "correct-battery-horse";
+    const dataKey = await generateDataKey();
+    const pwd = await derivePasswordKeys(password);
+    const recs = generateRecoveryCodes(3);
+    const recKeys = [await deriveRecoveryKeys(recs[0]!), await deriveRecoveryKeys(recs[1]!), await deriveRecoveryKeys(recs[2]!)];
+    const wraps = [
+      await wrapDataKey(dataKey, recKeys[0]!.wrapKey),
+      await wrapDataKey(dataKey, recKeys[1]!.wrapKey),
+      await wrapDataKey(dataKey, recKeys[2]!.wrapKey),
+    ];
+    const s = await json(
+      await handleSignup(
+        req("/api/auth/signup", {
+          body: {
+            nick: "@AMR-612-612",
+            authKey: encodeAuthKey(pwd.authKey),
+            recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
+            kdfPassword: pwd.params,
+            kdfRecoveries: recKeys.map((k) => k.params),
+            wrapPassword: await wrapDataKey(dataKey, pwd.wrapKey),
+            wrapRecoveries: wraps,
+            channel: "telegram",
+            dest: "@omar.public",
+            ageConfirmed: true,
+          },
+        }),
+      ),
+    );
+    assert.equal(s.status, 200, JSON.stringify(s.data));
+    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
+    assert.equal(otp.status, 200, JSON.stringify(otp.data));
+    const start = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: otp.data.nick,
+            recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
+            authKey: encodeAuthKey(pwd.authKey),
+            phase: "rebind-start",
+            channel: "telegram",
+            dest: "@new.otp",
+          },
+        }),
+      ),
+    );
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    // Drop code #1 so index 1 would now point at code #3. Burning must still spend code #2.
+    const raw = await getStores().kv.get(nickKey(otp.data.nick as string));
+    assert.ok(raw);
+    const user = JSON.parse(raw!) as { recoveryHashes: string[]; wrapRecoveries: unknown[]; recoveryKdfs: unknown[]; recoveryHash: string; wrapRecovery: unknown; kdf: { recovery: unknown } };
+    user.recoveryHashes = user.recoveryHashes.slice(1);
+    user.wrapRecoveries = user.wrapRecoveries.slice(1);
+    user.recoveryKdfs = user.recoveryKdfs.slice(1);
+    user.recoveryHash = user.recoveryHashes[0]!;
+    user.wrapRecovery = user.wrapRecoveries[0];
+    user.kdf = { ...user.kdf, recovery: user.recoveryKdfs[0] };
+    await getStores().kv.put(nickKey(otp.data.nick as string), JSON.stringify(user));
+    const confirm = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: {
+            nick: otp.data.nick,
+            recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
+            authKey: encodeAuthKey(pwd.authKey),
+            phase: "rebind-confirm",
+            otpId: start.data.otpId,
+            code: start.data.testOtp,
+          },
+        }),
+      ),
+    );
+    assert.equal(confirm.status, 200, JSON.stringify(confirm.data));
+    assert.equal(confirm.data.rebound, true);
+    const burned = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(burned.status, 401);
+    assert.equal(burned.data.error, "recovery_replaced");
+    const leftover = await json(
+      await handleRecovery(
+        req("/api/auth/recovery", {
+          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[2]!.verifyKey), phase: "unlock" },
+        }),
+      ),
+    );
+    assert.equal(leftover.status, 200, JSON.stringify(leftover.data));
+    process.env.AMR_RECOVERY_CODES = prev ?? "1";
+  });
+
 
 });
 

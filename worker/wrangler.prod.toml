@@ -1,0 +1,37 @@
+# Production worker config for `amr-id-do`.
+# Do NOT deploy this file until Murad writes «выкатывай» in the IT DM.
+# Never deploy over amr-id-do-preview or amr-master.
+# Use a distinct CF_DO_SECRET — do not reuse the preview secret, KV, or R2.
+#
+# When deploying (later only):
+#   wrangler secret put CF_DO_SECRET --config wrangler.prod.toml
+#   wrangler secret put TG_OTP_BOT_TOKEN --config wrangler.prod.toml
+#   wrangler secret put TG_WEBHOOK_SECRET --config wrangler.prod.toml
+#   wrangler deploy --config wrangler.prod.toml
+#
+# KV / R2 IDs below are filled when those resources are created.
+# R2 jurisdiction is EU.
+
+name = "amr-id-do"
+main = "src/do-worker.ts"
+compatibility_date = "2026-11-11"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "AMR_ID"
+class_name = "AmrIdDo"
+
+[[migrations]]
+tag = "v1-amr-id-do"
+new_sqlite_classes = ["AmrIdDo"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "5d5906d0378d4834b70b9ddfe7bf7747"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "amr-id-prod"
+jurisdiction = "eu"
+
+# Location is set in code: env.AMR_ID.get(id, { locationHint: "weur" })

@@ -9,6 +9,7 @@ import { dispatchCoordinator } from "./do.ts";
 import { CARD_THEMES, parseCardTheme, toPublicContacts, type Contact } from "../../src/lib/card/visibility.ts";
 import { nickKey } from "../../src/lib/user.ts";
 import { normalizeNick, parseNickFormat, publicCardPath } from "../../src/lib/nick.ts";
+import { safeEqual } from "../../src/lib/secret-equal.ts";
 
 export type GatewayEnv = {
   CF_DO_SECRET: string;
@@ -51,7 +52,7 @@ export function unauthorized(): Response {
 export function authorize(request: Request, env: GatewayEnv): boolean {
   const auth = request.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  return Boolean(env.CF_DO_SECRET) && token === env.CF_DO_SECRET;
+  return Boolean(env.CF_DO_SECRET) && safeEqual(token, env.CF_DO_SECRET);
 }
 
 async function callDo(env: GatewayEnv, body: DoRequest): Promise<DoResponse> {

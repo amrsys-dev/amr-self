@@ -40,3 +40,11 @@ in the Durable Object (5 / 15 min per chat).
 
 Create the Durable Object with `locationHint = "weur"` (SQLite-backed class).
 The R2 bucket uses `jurisdiction = "eu"`.
+
+
+## Production worker (not deployed)
+
+`wrangler.prod.toml` describes a separate worker named `amr-id-do`, with its
+own secret, KV namespace, and EU R2 bucket `amr-id-prod`. Do not deploy it
+and do not reuse `amr-id-do-preview` bindings or secrets, until Murad writes
+«выкатывай» in the IT DM.
