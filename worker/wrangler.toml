@@ -7,8 +7,7 @@ workers_dev = true
 # is needed on Vercel; the app authenticates with CF_DO_SECRET.
 # Production only after «выкатывай». Never deploy over amr-master.
 #
-# Secret (wrangler secret put CF_DO_SECRET):
-# CF_DO_SECRET
+# Secrets (wrangler secret put ...): CF_DO_SECRET, TG_OTP_BOT_TOKEN, TG_WEBHOOK_SECRET
 
 [[durable_objects.bindings]]
 name = "AMR_ID"

@@ -1,12 +1,13 @@
 /**
- * Preview worker for AMR ID: Durable Object coordinator plus bound KV and R2.
- * OTP relay is not part of this worker.
+ * Preview worker for AMR ID: Durable Object coordinator, bound KV/R2,
+ * and the Telegram OTP bot webhook/send path. The bot token stays here.
  */
 import { authorize, handleGateway, handlePublicCardRequest, unauthorized, type GatewayEnv } from "./gateway.ts";
+import { handleOtpSend, handleTelegramWebhook, type TelegramWorkerEnv } from "./telegram.ts";
 export { AmrIdDo } from "./do.ts";
 
 export default {
-  async fetch(request: Request, env: GatewayEnv, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: TelegramWorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/health") {
       return Response.json({
@@ -14,11 +15,18 @@ export default {
         service: "amr-id-do",
         kv: Boolean(env.KV),
         r2: Boolean(env.R2),
+        telegram: Boolean(env.TG_OTP_BOT_TOKEN),
       });
     }
-    if (!authorize(request, env)) return unauthorized();
+    if (url.pathname === "/v1/tg/webhook" && request.method === "POST") {
+      return handleTelegramWebhook(request, env);
+    }
+    if (!authorize(request, env as GatewayEnv)) return unauthorized();
     if (request.method === "GET" && url.pathname.startsWith("/v1/card/")) {
       return handlePublicCardRequest(request, env, ctx);
+    }
+    if (url.pathname === "/v1/otp/send" && request.method === "POST") {
+      return handleOtpSend(request, env);
     }
     if (url.pathname === "/v1/do" && request.method === "POST") {
       let body: unknown;

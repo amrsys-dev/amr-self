@@ -1,4 +1,4 @@
-import { isTestMode, env } from "../env.server.ts";
+import { isTestMode, env, readDoConfig } from "../env.server.ts";
 import type { OtpChannel } from "../user.ts";
 
 export type OtpSendInput = {
@@ -11,8 +11,9 @@ export type OtpSendInput = {
 export type OtpSendResult = {
   delivered: boolean;
   provider: "test" | "telegram" | "email" | "relay" | "none";
-  /** Present only in test mode — never set when VERCEL_ENV=production. */
+  /** Present only in test mode — never set when the Telegram worker is live or VERCEL_ENV=production. */
   testCode?: string;
+  retryAfterMs?: number;
 };
 
 const MSG = {
@@ -34,27 +35,27 @@ export async function sendOtp(input: OtpSendInput): Promise<OtpSendResult> {
     return { delivered: true, provider: "test", testCode: input.code };
   }
 
-  const relay = env("OTP_RELAY_URL");
-  const relaySecret = env("OTP_RELAY_SECRET");
-  if (relay && relaySecret) {
-    const res = await fetch(`${relay.replace(/\/$/, "")}/send`, {
+  const doCfg = readDoConfig();
+  const relay = env("OTP_RELAY_URL") ?? doCfg?.url;
+  const relaySecret = env("OTP_RELAY_SECRET") ?? doCfg?.secret;
+  if (input.channel === "telegram" && relay && relaySecret) {
+    const res = await fetch(`${relay.replace(/\/$/, "")}/v1/otp/send`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${relaySecret}` },
-      body: JSON.stringify({ ...input, text: text(input.lang, input.code) }),
+      body: JSON.stringify({ chatId: input.to, lang: input.lang, text: text(input.lang, input.code) }),
+      cache: "no-store",
     });
+    if (res.status === 429) {
+      const body = (await res.json().catch(() => ({}))) as { retryAfterMs?: number };
+      return { delivered: false, provider: "relay", retryAfterMs: body.retryAfterMs };
+    }
     if (!res.ok) return { delivered: false, provider: "relay" };
     return { delivered: true, provider: "relay" };
   }
 
   if (input.channel === "telegram") {
-    const token = env("TG_OTP_BOT_TOKEN");
-    if (!token) return { delivered: false, provider: "none" };
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: input.to, text: text(input.lang, input.code) }),
-    });
-    return { delivered: res.ok, provider: "telegram" };
+    // Direct Telegram from the app is disabled — the bot token stays on the worker.
+    return { delivered: false, provider: "none" };
   }
 
   const key = env("RESEND_API_KEY");

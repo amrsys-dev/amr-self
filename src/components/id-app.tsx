@@ -26,9 +26,11 @@ type Screen =
   | "signup-pass"
   | "signup-2fa"
   | "signup-code"
+  | "signup-tg-link"
   | "signup-done"
   | "login"
   | "login-2fa"
+  | "login-tg-link"
   | "recovery"
   | "recovery-done"
   | "today"
@@ -55,6 +57,7 @@ type Meta = {
   cardOrigin: string;
   emailOtp?: boolean;
   recoveryCodes?: number;
+  telegramBot?: string;
 };
 
 type SessionState = {
@@ -149,6 +152,8 @@ export function IdApp() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [testOtp, setTestOtp] = useState<string | undefined>();
+  const [deepLink, setDeepLink] = useState("");
+  const [linkToken, setLinkToken] = useState("");
 
   const [nick, setNick] = useState("");
   const [nickStatus, setNickStatus] = useState<"free" | "taken" | "format" | "">("");
@@ -258,7 +263,7 @@ export function IdApp() {
       const wrapRecoveries = [];
       for (const k of recKeys) wrapRecoveries.push(await wrapDataKey(dataKey, k.wrapKey));
       const useEmail = Boolean(meta?.emailOtp) && channel === "email";
-      const r = await api<{ otpId: string; nick: string; testOtp?: string }>("/api/auth/signup", {
+      const r = await api<{ otpId?: string; nick: string; testOtp?: string; deepLink?: string; linkToken?: string }>("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           nick,
@@ -279,10 +284,17 @@ export function IdApp() {
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       setNick(r.data.nick);
-      setOtpId(r.data.otpId);
-      setTestOtp(r.data.testOtp);
       setRecovery(codes[0] ?? "");
       setRecoveryCodes(codes);
+      if (r.data.deepLink && r.data.linkToken) {
+        setDeepLink(r.data.deepLink);
+        setLinkToken(r.data.linkToken);
+        setTestOtp(undefined);
+        setScreen("signup-tg-link");
+        return;
+      }
+      setOtpId(r.data.otpId ?? "");
+      setTestOtp(r.data.testOtp);
       setScreen("signup-code");
     } finally {
       setBusy(false);
@@ -328,11 +340,19 @@ export function IdApp() {
       if (!kdfRes.ok || !kdfRes.data.kdf) return fail(kdfRes.status, kdfRes.data as { error?: string });
       const { salt, opts } = keysFromParams(kdfRes.data.kdf);
       const pwd = await derivePasswordKeys(password, salt, opts);
-      const r = await api<{ otpId: string; testOtp?: string }>("/api/auth/login", {
+      const r = await api<{ otpId: string; testOtp?: string; error?: string; deepLink?: string; linkToken?: string }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ nick, authKey: encodeAuthKey(pwd.authKey), lang }),
       });
-      if (!r.ok) return fail(r.status, r.data as { error?: string });
+      if (!r.ok) {
+        if (r.status === 409 && r.data.error === "telegram_link_required" && r.data.deepLink && r.data.linkToken) {
+          setDeepLink(r.data.deepLink);
+          setLinkToken(r.data.linkToken);
+          setScreen("login-tg-link");
+          return;
+        }
+        return fail(r.status, r.data as { error?: string });
+      }
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
       setScreen("login-2fa");
@@ -340,6 +360,42 @@ export function IdApp() {
       setBusy(false);
     }
   }
+
+
+  useEffect(() => {
+    if ((screen !== "signup-tg-link" && screen !== "login-tg-link") || !linkToken) return;
+    let stop = false;
+    const poll = async () => {
+      const r = await api<SessionState & { status?: string }>("/api/auth/telegram-link?token=" + encodeURIComponent(linkToken));
+      if (stop) return;
+      if (r.status === 410 || r.data.status === "expired") {
+        setErr(t("link_expired"));
+        return;
+      }
+      if (!r.ok || r.data.status !== "linked") return;
+      if (screen === "signup-tg-link" && r.data.nick) {
+        setSession(r.data);
+        if (r.data.appearance) setAppearance(r.data.appearance);
+        setLinkToken("");
+        setDeepLink("");
+        setScreen("signup-done");
+        return;
+      }
+      if (screen === "login-tg-link") {
+        setLinkToken("");
+        setDeepLink("");
+        setErr("");
+        setScreen("login");
+        void submitLogin();
+      }
+    };
+    void poll();
+    const id = window.setInterval(() => void poll(), 2000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, [screen, linkToken]);
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -766,6 +822,22 @@ export function IdApp() {
               <button className={`btn p ${busy || dest.trim().length < 2 ? "off" : ""}`} type="button" onClick={() => void submitSignup()}>
                 {t("send_code")}
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {(screen === "signup-tg-link" || screen === "login-tg-link") && (
+        <>
+          <Header title={t("telegram")} onBack={() => setScreen(screen === "signup-tg-link" ? "signup-2fa" : "login")} />
+          <div className="page auth">
+            <p className="sub">{t("press_start")}</p>
+            <p className="hint">{t("waiting_bot")}</p>
+            {err ? <div className="err">{err}</div> : null}
+            <div className="btns">
+              <a className="btn p" href={deepLink} target="_blank" rel="noreferrer">
+                {t("open_bot")}
+              </a>
             </div>
           </div>
         </>

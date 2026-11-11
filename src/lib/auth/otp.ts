@@ -25,5 +25,5 @@ export function otpMatches(code: string, record: OtpRecord): boolean {
   return safeEqual(hashOtp(code), record.hash);
 }
 
-export const OTP_TTL_MS = 10 * 60_000;
+export const OTP_TTL_MS = 5 * 60_000;
 export const OTP_MAX_ATTEMPTS = 5;

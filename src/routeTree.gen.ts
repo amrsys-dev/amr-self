@@ -18,6 +18,7 @@ import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
 import { Route as ApiAuthRecoveryRouteImport } from './routes/api/auth/recovery'
 import { Route as ApiAuthSignupRouteImport } from './routes/api/auth/signup'
+import { Route as ApiAuthTelegramLinkRouteImport } from './routes/api/auth/telegram-link'
 import { Route as ApiCardNickRouteImport } from './routes/api/card.$nick'
 import { Route as ApiMeIndexRouteImport } from './routes/api/me/index'
 import { Route as ApiMeDataRouteImport } from './routes/api/me/data'
@@ -73,6 +74,11 @@ const ApiAuthRecoveryRoute = ApiAuthRecoveryRouteImport.update({
 const ApiAuthSignupRoute = ApiAuthSignupRouteImport.update({
   id: '/api/auth/signup',
   path: '/api/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthTelegramLinkRoute = ApiAuthTelegramLinkRouteImport.update({
+  id: '/api/auth/telegram-link',
+  path: '/api/auth/telegram-link',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCardNickRoute = ApiCardNickRouteImport.update({
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
+  '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
+  '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
+  '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
+    | '/api/auth/telegram-link'
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
+    | '/api/auth/telegram-link'
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
+    | '/api/auth/telegram-link'
     | '/api/card/$nick'
     | '/api/me/data'
     | '/api/me/delete'
@@ -277,6 +289,7 @@ export interface RootRouteChildren {
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
   ApiAuthRecoveryRoute: typeof ApiAuthRecoveryRoute
   ApiAuthSignupRoute: typeof ApiAuthSignupRoute
+  ApiAuthTelegramLinkRoute: typeof ApiAuthTelegramLinkRoute
   ApiCardNickRoute: typeof ApiCardNickRoute
   ApiMeDataRoute: typeof ApiMeDataRoute
   ApiMeDeleteRoute: typeof ApiMeDeleteRoute
@@ -353,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/signup'
       fullPath: '/api/auth/signup'
       preLoaderRoute: typeof ApiAuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/telegram-link': {
+      id: '/api/auth/telegram-link'
+      path: '/api/auth/telegram-link'
+      fullPath: '/api/auth/telegram-link'
+      preLoaderRoute: typeof ApiAuthTelegramLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/card/$nick': {
@@ -445,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthOtpRoute: ApiAuthOtpRoute,
   ApiAuthRecoveryRoute: ApiAuthRecoveryRoute,
   ApiAuthSignupRoute: ApiAuthSignupRoute,
+  ApiAuthTelegramLinkRoute: ApiAuthTelegramLinkRoute,
   ApiCardNickRoute: ApiCardNickRoute,
   ApiMeDataRoute: ApiMeDataRoute,
   ApiMeDeleteRoute: ApiMeDeleteRoute,

@@ -19,7 +19,7 @@ npm run typecheck
 npm run dev
 ```
 
-With `OTP_MODE=test` (the default outside production) a one-time code appears in a clearly marked test banner and in the server log. That never runs when `VERCEL_ENV=production`.
+With `OTP_MODE=test` locally (and no worker relay) a one-time code appears in a clearly marked test banner and in the server log. That never runs when `VERCEL_ENV=production`, and it is also off on preview once `CF_DO_URL` is set: login codes go only to the linked `@amr_id_bot` chat.
 
 ## Nick
 

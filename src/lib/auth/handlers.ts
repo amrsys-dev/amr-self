@@ -5,15 +5,25 @@ import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
-import { emailOtpEnabled, isTestMode, publicCardOrigin, readDoConfig, recoveryCodesCount, sessionSecret, vercelEnv } from "../env.server.ts";
+import { emailOtpEnabled, isTestMode, publicCardOrigin, readDoConfig, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
 import { getStores } from "../storage/index.ts";
-import { telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
+import { isTelegramUserId, telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
 import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, sessionKey, sessionsOfKey, type OtpChannel, type UserRecord } from "../user.ts";
 import { generateOtpDigits, hashOtp, otpMatches, OTP_MAX_ATTEMPTS, OTP_TTL_MS, type OtpRecord } from "./otp.ts";
 import { sendOtp } from "./otp-providers.ts";
+import {
+  hashLinkToken,
+  newLinkToken,
+  telegramBotUsername,
+  telegramDeepLink,
+  telegramLinkKey,
+  TELEGRAM_LINK_TTL_MS,
+  type TelegramLinkPurpose,
+  type TelegramLinkRecord,
+} from "./telegram-link.ts";
 import { dummyVerifyAuthKey, hashAuthKey, verifyAuthKey } from "./password.ts";
 import { createSession, destroySession, requireUser, revokeAllSessions } from "./session.ts";
 
@@ -90,7 +100,7 @@ const kdfRequestSchema = z.object({
 type PendingSignup = {
   kind: "signup";
   user: UserRecord;
-  otp: OtpRecord;
+  otp?: OtpRecord;
   dest: string;
 };
 
@@ -231,7 +241,11 @@ async function issueOtp(
     exp: Date.now() + OTP_TTL_MS,
     attempts: 0,
   };
-  await sendOtp({ channel: rec.channel, to: rec.dest, code, lang: rec.lang });
+  const sent = await sendOtp({ channel: rec.channel, to: rec.dest, code, lang: rec.lang });
+  if (!sent.delivered) {
+    if (sent.retryAfterMs != null) return json({ error: "rate_limited", retryAfterMs: sent.retryAfterMs }, 429);
+    return json({ error: "otp_undelivered" }, 502);
+  }
   const idxRaw = await getStores().kv.get(otpIndexKey(rec.nick));
   const ids = idxRaw ? (JSON.parse(idxRaw) as string[]) : [];
   ids.push(otpId);
@@ -260,13 +274,44 @@ async function clearOtpsForNick(nick: string): Promise<void> {
 
 function verifiedOtpDest(user: UserRecord): { channel: OtpChannel; dest: string } | null {
   if (user.otp.telegram?.verified) {
-    const dest = user.otp.telegram.chatId || user.otp.telegram.id || user.otp.telegram.username;
-    if (dest) return { channel: "telegram", dest };
+    const chatId = user.otp.telegram.chatId || user.otp.telegram.id;
+    if (chatId && isTelegramUserId(chatId)) return { channel: "telegram", dest: chatId };
+    // Local test mode has no bot chat_id; never use a username when the worker is live.
+    if (!telegramOtpLive() && user.otp.telegram.username) {
+      return { channel: "telegram", dest: user.otp.telegram.username };
+    }
   }
   if (emailOtpEnabled() && user.otp.email?.verified && user.otp.email.address) {
     return { channel: "email", dest: user.otp.email.address };
   }
   return null;
+}
+
+
+async function issueTelegramLink(opts: {
+  nick: string;
+  purpose: TelegramLinkPurpose;
+  pendingOtpId?: string;
+  lang?: string;
+}): Promise<{ token: string; bot: string; deepLink: string }> {
+  const token = newLinkToken();
+  const hash = await hashLinkToken(token);
+  const rec: TelegramLinkRecord = {
+    nick: opts.nick,
+    purpose: opts.purpose,
+    pendingOtpId: opts.pendingOtpId,
+    lang: opts.lang,
+    exp: Date.now() + TELEGRAM_LINK_TTL_MS,
+  };
+  await getStores().kv.put(telegramLinkKey(hash), JSON.stringify(rec), {
+    expirationTtl: Math.ceil(TELEGRAM_LINK_TTL_MS / 1000) + 60,
+  });
+  const bot = telegramBotUsername();
+  return { token, bot, deepLink: telegramDeepLink(token, bot) };
+}
+
+function linkPayload(link: { token: string; bot: string; deepLink: string }) {
+  return { linkToken: link.token, bot: `@${link.bot}`, deepLink: link.deepLink, linkExpiresSec: Math.ceil(TELEGRAM_LINK_TTL_MS / 1000) };
 }
 
 async function dummyNickProbe(nick: string): Promise<void> {
@@ -304,6 +349,7 @@ export async function handleMeta(request: Request): Promise<Response> {
     ageRequired: true,
     env: vercelEnv(),
     cardOrigin: publicCardOrigin(request),
+    telegramBot: telegramOtpLive() ? `@${telegramBotUsername()}` : undefined,
   });
 }
 
@@ -407,6 +453,15 @@ export async function handleSignup(request: Request): Promise<Response> {
     dataVersion: 0,
     ageConfirmedAt: now,
   };
+  if (channel === "telegram" && telegramOtpLive()) {
+    const pendingId = randomBytes(16).toString("base64url");
+    const pending: PendingSignup = { kind: "signup", user, dest };
+    await getStores().kv.put(otpKey(pendingId), JSON.stringify(pending), {
+      expirationTtl: Math.ceil(TELEGRAM_LINK_TTL_MS / 1000) + 60,
+    });
+    const link = await issueTelegramLink({ nick, purpose: "signup", pendingOtpId: pendingId, lang: body.data.lang });
+    return json({ nick, channel, ...linkPayload(link) });
+  }
   const issued = await issueOtp(request, {
     nick,
     purpose: "signup",
@@ -441,7 +496,13 @@ export async function handleLogin(request: Request): Promise<Response> {
   // Ignore any client-supplied channel/dest (2FA bypass). OTP goes only to the
   // account's stored, already-verified destination.
   const stored = verifiedOtpDest(user);
-  if (!stored) return json({ error: "no_otp_dest" }, 400);
+  if (!stored) {
+    if (telegramOtpLive()) {
+      const link = await issueTelegramLink({ nick, purpose: "login", lang: body.data.lang });
+      return json({ error: "telegram_link_required", nick, ...linkPayload(link) }, 409);
+    }
+    return json({ error: "no_otp_dest" }, 400);
+  }
   const issued = await issueOtp(request, {
     nick,
     purpose: "login",
@@ -462,6 +523,7 @@ export async function handleOtp(request: Request): Promise<Response> {
   const raw = await getStores().kv.get(otpKey(body.data.otpId));
   if (!raw) return json({ error: "invalid_code" }, 401);
   const pending = JSON.parse(raw) as PendingSignup | PendingLogin;
+  if (!pending.otp) return json({ error: "telegram_link_required" }, 409);
   if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
     await getStores().kv.delete(otpKey(body.data.otpId));
     return json({ error: "too_many_attempts" }, 429);
@@ -1114,3 +1176,40 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
 }
 
 export { nickAvailable };
+
+export async function handleTelegramLink(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const token = (url.searchParams.get("token") ?? "").trim();
+  if (!token) return json({ error: "invalid" }, 400);
+  const recRaw = await getStores().kv.get(telegramLinkKey(await hashLinkToken(token)));
+  if (!recRaw) return json({ status: "expired" }, 410);
+  const rec = JSON.parse(recRaw) as TelegramLinkRecord;
+  if (rec.exp <= Date.now()) {
+    await getStores().kv.delete(telegramLinkKey(await hashLinkToken(token)));
+    return json({ status: "expired" }, 410);
+  }
+  const bot = telegramBotUsername();
+  const deepLink = telegramDeepLink(token, bot);
+  if (!rec.linked) return json({ status: "pending", nick: rec.nick, bot: `@${bot}`, deepLink });
+  if (rec.purpose === "signup" && rec.pendingOtpId && !rec.claimed) {
+    const pendingRaw = await getStores().kv.get(otpKey(rec.pendingOtpId));
+    if (!pendingRaw) return json({ status: "expired" }, 410);
+    const pending = JSON.parse(pendingRaw) as PendingSignup;
+    const user = pending.user;
+    if (!user.otp.telegram?.verified || !user.otp.telegram.chatId) {
+      return json({ status: "pending", nick: rec.nick, bot: `@${bot}`, deepLink });
+    }
+    if (!(await claimNick(user.nick, JSON.stringify(user)))) {
+      await getStores().kv.delete(otpKey(rec.pendingOtpId));
+      return json({ error: "nick_taken" }, 409);
+    }
+    rec.claimed = true;
+    await getStores().kv.put(telegramLinkKey(await hashLinkToken(token)), JSON.stringify(rec), {
+      expirationTtl: Math.max(60, Math.ceil((rec.exp - Date.now()) / 1000)),
+    });
+    await getStores().kv.delete(otpKey(rec.pendingOtpId));
+    const { cookie } = await createSession(user.nick);
+    return jsonWithCookie({ status: "linked", ...sessionPayload(user) }, cookie);
+  }
+  return json({ status: "linked", nick: rec.nick });
+}
