@@ -1,4 +1,4 @@
-# AMR ID
+# Self
 
 Personal assistant and digital ID. Separate from Safar.
 
