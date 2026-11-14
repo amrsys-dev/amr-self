@@ -25,22 +25,33 @@ function mergeSalary(a: SalaryRecord | null, b: SalaryRecord | null): SalaryReco
 }
 
 export function mergeUserData(local: UserData, remote: UserData): UserData {
-  const l = local ?? emptyUserData();
-  const r = remote ?? emptyUserData();
+  const empty = emptyUserData();
+  const l = local ?? empty;
+  const r = remote ?? empty;
+  const lf = l.finance ?? empty.finance;
+  const rf = r.finance ?? empty.finance;
+  const lh = l.health ?? empty.health!;
+  const rh = r.health ?? empty.health!;
   return {
     v: 1,
     finance: {
-      salary: mergeSalary(l.finance.salary, r.finance.salary),
-      gigs: mergeRecordList(l.finance.gigs, r.finance.gigs),
-      income: mergeRecordList(l.finance.income, r.finance.income),
-      expense: mergeRecordList(l.finance.expense, r.finance.expense),
-      planned: mergeRecordList(l.finance.planned, r.finance.planned),
-      limits: mergeRecordList(l.finance.limits, r.finance.limits),
+      salary: mergeSalary(lf.salary ?? null, rf.salary ?? null),
+      gigs: mergeRecordList(lf.gigs ?? [], rf.gigs ?? []),
+      income: mergeRecordList(lf.income ?? [], rf.income ?? []),
+      expense: mergeRecordList(lf.expense ?? [], rf.expense ?? []),
+      planned: mergeRecordList(lf.planned ?? [], rf.planned ?? []),
+      limits: mergeRecordList(lf.limits ?? [], rf.limits ?? []),
     },
-    work: { tasks: mergeRecordList(l.work.tasks, r.work.tasks) },
-    visa: { entries: mergeRecordList(l.visa.entries, r.visa.entries) },
-    diary: { items: mergeRecordList(l.diary.items, r.diary.items) },
-    sport: { sessions: mergeRecordList(l.sport.sessions, r.sport.sessions) },
-    plans: { items: mergeRecordList(l.plans.items, r.plans.items) },
+    work: { tasks: mergeRecordList(l.work?.tasks ?? [], r.work?.tasks ?? []) },
+    visa: { entries: mergeRecordList(l.visa?.entries ?? [], r.visa?.entries ?? []) },
+    diary: { items: mergeRecordList(l.diary?.items ?? [], r.diary?.items ?? []) },
+    sport: { sessions: mergeRecordList(l.sport?.sessions ?? [], r.sport?.sessions ?? []) },
+    plans: { items: mergeRecordList(l.plans?.items ?? [], r.plans?.items ?? []) },
+    health: {
+      water: mergeRecordList(lh.water ?? [], rh.water ?? []),
+      weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
+      nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
+      workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
+    },
   };
 }
