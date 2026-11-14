@@ -8,6 +8,7 @@ describe("AMR human-readable nicknames", () => {
     assert.equal(normalizeNick("@Murad", fmt), "murad.amr");
     assert.equal(normalizeNick("murad.amr", fmt), "murad.amr");
     assert.equal(normalizeNick("@murad@amr", fmt), "murad.amr");
+    assert.equal(normalizeNick("murad@amr", fmt), "murad.amr");
     assert.equal(normalizeNick("Murad_Design", fmt), "murad_design.amr");
     assert.equal(normalizeNick("@murad-design", fmt), "murad-design.amr");
   });
