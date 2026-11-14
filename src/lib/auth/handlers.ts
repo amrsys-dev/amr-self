@@ -57,7 +57,6 @@ const signupSchema = z.object({
   channel: z.enum(["telegram", "email"]),
   dest: z.string().min(2).max(200),
   lang: z.string().optional(),
-  ageConfirmed: z.literal(true),
 });
 
 const loginSchema = z.object({
@@ -440,7 +439,6 @@ export async function handleSignup(request: Request): Promise<Response> {
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const body = signupSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
-  if (body.data.ageConfirmed !== true) return json({ error: "age_required" }, 400);
   const authKey = requireKey(body.data.authKey);
   const verifyRaw = body.data.recoveryVerifyKeys?.length ? body.data.recoveryVerifyKeys : body.data.recoveryVerifyKey ? [body.data.recoveryVerifyKey] : [];
   const wrapList = (body.data.wrapRecoveries?.length ? body.data.wrapRecoveries : body.data.wrapRecovery ? [body.data.wrapRecovery] : []) as WrappedKey[];
@@ -483,7 +481,6 @@ export async function handleSignup(request: Request): Promise<Response> {
     wrapRecoveries: wrapList,
     appearance: "dark",
     dataVersion: 0,
-    ageConfirmedAt: now,
   };
   if (channel === "telegram" && telegramOtpLive()) {
     const pendingId = randomBytes(16).toString("base64url");
