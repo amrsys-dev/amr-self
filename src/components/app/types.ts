@@ -43,6 +43,8 @@ export type Meta = {
 
 export type SessionState = {
   nick: string;
+  /** First nick of the account; encryption is bound to it. Absent from older servers. */
+  accountId?: string;
   theme: CardTheme;
   appearance: "dark" | "light";
   contacts: Contact[];
@@ -62,3 +64,8 @@ export const GLYPH: Record<ContactKind, string> = {
   email: "@",
   other: "+",
 };
+
+/** Id that encrypted data is bound to. Stays the same after a nick change. */
+export function accountIdOf(s: SessionState): string {
+  return s.accountId ?? s.nick;
+}

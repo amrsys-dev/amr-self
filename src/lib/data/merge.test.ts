@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mergeRecordList, mergeUserData } from "./merge.ts";
+import { live, mergeRecordList, mergeUserData } from "./merge.ts";
 import { emptyUserData, type DataRecord } from "./schema.ts";
 
 function rec(id: string, updatedAt: string, extra: Record<string, unknown> = {}): DataRecord {
@@ -19,9 +19,26 @@ describe("per-record merge on If-Match conflict", () => {
     assert.equal((merged.find((x) => x.id === "1") as unknown as { n: number }).n, 2);
   });
 
-  it("drops a record marked deleted when that write is newer", () => {
-    const kept = mergeRecordList([rec("1", "2026-01-01T00:00:00.000Z")], [rec("1", "2026-01-02T00:00:00.000Z", { deleted: true })]);
-    assert.equal(kept.length, 0);
+  it("keeps a newer deletion as a tombstone, hidden by live()", () => {
+    const now = Date.parse("2026-01-03T00:00:00.000Z");
+    const kept = mergeRecordList([rec("1", "2026-01-01T00:00:00.000Z")], [rec("1", "2026-01-02T00:00:00.000Z", { deleted: true })], now);
+    assert.equal(kept.length, 1);
+    assert.equal(kept[0]!.deleted, true);
+    assert.equal(live(kept).length, 0);
+  });
+
+  it("does not bring a deleted row back from a device that still has the old copy", () => {
+    const now = Date.parse("2026-01-05T00:00:00.000Z");
+    const phoneB = [rec("1", "2026-01-01T00:00:00.000Z")];
+    const afterDelete = mergeRecordList(phoneB, [rec("1", "2026-01-02T00:00:00.000Z", { deleted: true })], now);
+    const afterNextSync = mergeRecordList(afterDelete, phoneB, now);
+    assert.equal(live(afterNextSync).length, 0);
+  });
+
+  it("prunes tombstones after the retention period", () => {
+    const now = Date.parse("2026-12-01T00:00:00.000Z");
+    const out = mergeRecordList([rec("1", "2026-01-01T00:00:00.000Z", { deleted: true })], [], now);
+    assert.equal(out.length, 0);
   });
 
   it("merges UserData collections independently", () => {

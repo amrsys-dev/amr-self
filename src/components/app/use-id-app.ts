@@ -9,7 +9,7 @@ import { backupFileName, buildBackup, parseBackup } from "@/lib/data/backup.ts";
 import type { UserData } from "@/lib/data/schema.ts";
 import { checkPassword } from "@/lib/password-policy.ts";
 import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
-import type { Meta, Screen, SessionState } from "./types.ts";
+import { accountIdOf, type Meta, type Screen, type SessionState } from "./types.ts";
 
 const GUEST_FLAG = "amrself.guest";
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
@@ -72,7 +72,7 @@ export function useIdApp() {
       if (r.ok) {
         // The data key lives only in memory after login; get it back from the
         // device store so the user is not asked for the password on every launch.
-        dataKeyRef.current = await recallDataKey(r.data.nick);
+        dataKeyRef.current = await recallDataKey(accountIdOf(r.data));
         setSession(r.data);
         setAppearance(r.data.appearance);
         setScreen("today");
@@ -81,7 +81,7 @@ export function useIdApp() {
   }, []);
 
   useEffect(() => {
-    if (session && dataKeyRef.current) void rememberDataKey(session.nick, dataKeyRef.current);
+    if (session && dataKeyRef.current) void rememberDataKey(accountIdOf(session), dataKeyRef.current);
   }, [session]);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export function useIdApp() {
   }, []);
 
   useEffect(() => {
-    accountIdRef.current = session?.nick ?? null;
+    accountIdRef.current = session ? accountIdOf(session) : null;
   }, [session]);
 
   const origin = meta?.cardOrigin || (typeof window !== "undefined" ? window.location.origin : "");
@@ -559,7 +559,7 @@ export function useIdApp() {
   async function currentData(): Promise<UserData | null> {
     if (session) {
       const key = dataKeyRef.current;
-      return key ? loadLocalData(key, session.nick) : null;
+      return key ? loadLocalData(key, accountIdOf(session)) : null;
     }
     return loadGuestData();
   }
@@ -594,7 +594,7 @@ export function useIdApp() {
         return;
       }
       // Marked dirty, so the sync loop uploads it on the next tick.
-      await saveLocalData(key, session.nick, parsed.data);
+      await saveLocalData(key, accountIdOf(session), parsed.data);
     } else {
       await saveGuestData(parsed.data);
     }

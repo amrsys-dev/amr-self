@@ -352,6 +352,12 @@ async function dummyNickProbe(nick: string): Promise<void> {
 function sessionPayload(user: UserRecord) {
   return {
     nick: user.nick,
+    /**
+     * Stable id for client-side encryption (AAD) and device storage. Data blobs
+     * are bound to it, so it must not follow a nick change: it is the first nick
+     * the account had. A nick can change only once, so this never moves.
+     */
+    accountId: user.previousNick ?? user.nick,
     theme: user.theme,
     appearance: user.appearance,
     contacts: user.contacts,
