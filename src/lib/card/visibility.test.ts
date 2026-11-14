@@ -14,11 +14,12 @@ describe("public card visibility", () => {
       c({ id: "3", kind: "snapchat", value: "omar.example", visible: false }),
       c({ id: "4", kind: "email", value: "hello@example.com" }),
       c({ id: "5", kind: "discord", value: "omar" }),
+      c({ id: "6", kind: "youtube", value: "https://www.youtube.com/@omar" }),
     ];
     const pub = toPublicContacts(contacts, "указан владельцем");
     assert.deepEqual(
       pub.map((x) => x.kind),
-      ["telegram", "whatsapp", "email", "discord"],
+      ["telegram", "whatsapp", "email", "discord", "youtube"],
     );
     const wa = pub.find((x) => x.kind === "whatsapp")!;
     assert.equal(wa.display, "указан владельцем");
@@ -27,6 +28,8 @@ describe("public card visibility", () => {
     assert.equal(pub.find((x) => x.kind === "telegram")?.href, "https://t.me/omar.example");
     assert.equal(pub.find((x) => x.kind === "email")?.href, "mailto:hello@example.com");
     assert.equal(pub.find((x) => x.kind === "discord")?.action, "open");
+    assert.equal(pub.find((x) => x.kind === "youtube")?.href, "https://www.youtube.com/@omar");
+    assert.equal(pub.find((x) => x.kind === "youtube")?.display, "YouTube");
     assert.equal(pub.some((x) => x.kind === "snapchat"), false);
     assert.equal(wa.display.includes("966"), false);
     assert.equal(wa.display.includes("501112233"), false);
