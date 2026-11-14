@@ -772,7 +772,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
 }
 
 const addContactSchema = z.object({
-  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"]),
+  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
   value: z.string().min(1).max(200),
   visible: z.boolean().optional(),
   label: z.string().max(80).optional(),
