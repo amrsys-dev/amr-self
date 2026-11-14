@@ -1,6 +1,6 @@
 import { emptyUserData, type DataRecord, type SalaryRecord, type UserData } from "./schema.ts";
 
-function isRecord(x: unknown): x is DataRecord {
+function isRecord<T extends DataRecord>(x: unknown): x is T {
   if (!x || typeof x !== "object") return false;
   const r = x as DataRecord;
   return typeof r.id === "string" && typeof r.updatedAt === "string";
@@ -10,7 +10,7 @@ function isRecord(x: unknown): x is DataRecord {
 export function mergeRecordList<T extends DataRecord>(a: readonly T[], b: readonly T[]): T[] {
   const map = new Map<string, T>();
   for (const item of [...a, ...b]) {
-    if (!isRecord(item)) continue;
+    if (!isRecord<T>(item)) continue;
     const prev = map.get(item.id);
     if (!prev || item.updatedAt > prev.updatedAt) map.set(item.id, item);
   }
