@@ -84,6 +84,7 @@ export function defaultContactVisible(kind: ContactKind): boolean {
 
 export function displayContactValue(c: Contact, listedByOwner = ""): string {
   if (c.kind === "whatsapp") return listedByOwner;
+  if (c.kind === "youtube") return c.label || "YouTube";
   if (c.kind === "telegram" || c.kind === "signal") {
     return c.value.startsWith("@") ? c.value : `@${c.value}`;
   }
