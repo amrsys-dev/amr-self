@@ -235,7 +235,7 @@ export function IdApp() {
 
   async function checkNick(value: string) {
     setNick(value);
-    if (value.trim().replace(/^@/, "").replace(/(?:\\.amr|@amr)$/i, "").length < 3) {
+    if (value.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").length < 3) {
       setNickStatus("");
       return;
     }
@@ -436,7 +436,7 @@ export function IdApp() {
 
 
   async function checkNickStatus(value: string) {
-    if (value.trim().replace(/^@/, "").replace(/(?:\\.amr|@amr)$/i, "").length < 3) {
+    if (value.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").length < 3) {
       setNewNickStatus("");
       return;
     }
