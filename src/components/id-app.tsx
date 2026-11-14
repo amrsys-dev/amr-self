@@ -404,10 +404,11 @@ export function IdApp() {
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
-    await wipeLocalData();
+    // Stop future sync ticks before deleting the local encrypted store.
     dataKeyRef.current = null;
-    setKeyVersion((v) => v + 1);
     accountIdRef.current = null;
+    setKeyVersion((v) => v + 1);
+    await wipeLocalData();
     setSession(null);
     setPassword("");
     setRecovery("");
@@ -415,10 +416,11 @@ export function IdApp() {
   }
 
   async function afterWipe() {
-    await wipeLocalData();
+    // Prevent an in-flight sync loop from repopulating IndexedDB after a wipe.
     dataKeyRef.current = null;
-    setKeyVersion((v) => v + 1);
     accountIdRef.current = null;
+    setKeyVersion((v) => v + 1);
+    await wipeLocalData();
     setSession(null);
     setPassword("");
     setReauthPassword("");
