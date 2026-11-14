@@ -415,3 +415,5 @@ p{margin:0;line-height:1.4}
 .recovery-list .recovery-code{font-size:15px;padding:10px 12px}
 .center-copy{text-align:center}
 .center-copy h1{margin-top:4px}
+
+.password-toggle{flex:none;color:var(--cyan);font-size:12px;font-weight:650;padding:4px 0 4px 8px;white-space:nowrap}
