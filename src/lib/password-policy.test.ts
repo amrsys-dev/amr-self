@@ -13,7 +13,7 @@ describe("password policy", () => {
   });
 
   it("rejects a password that contains the nick", () => {
-    const nick = checkPassword("secretAMR417283x", "@AMR-417-283"); assert.equal(nick.ok, false); if (!nick.ok) assert.equal(nick.reason, "same_as_nick");
+    const nick = checkPassword("Secret@AMR417283x", "@AMR-417-283"); assert.equal(nick.ok, false); if (!nick.ok) assert.equal(nick.reason, "same_as_nick");
   });
 
   it("accepts a reasonably long unique password", () => {
