@@ -25,7 +25,7 @@ export function defaultNickFormatSpec(): string {
 }
 
 export function nickPattern(_fmt: NickFormat): RegExp {
-  return /^@?[a-z0-9](?:[a-z0-9._-]{1,22}[a-z0-9])?(?:\.amr|@amr)?$/i;
+  return /^@?[a-z0-9]+(?:[._-][a-z0-9]+)*(?:\.amr|@amr)?$/i;
 }
 
 export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat()): string | null {
@@ -40,7 +40,7 @@ export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat())
   if (!HANDLE_PATTERN.test(handle)) return null;
   const reserved = new Set(["admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u"]);
   if (reserved.has(handle.toLowerCase())) return null;
-  return `@${handle.toLowerCase()}.amr`;
+  return `${handle.toLowerCase()}.amr`;
 }
 
 export function generateNick(
@@ -53,7 +53,7 @@ export function generateNick(
 }
 
 export function nickWithoutAt(nick: string): string {
-  return nick.startsWith("@") ? nick.slice(1) : nick;
+  return nick.replace(/^@/, "");
 }
 
 export function publicCardPath(nick: string): string {
