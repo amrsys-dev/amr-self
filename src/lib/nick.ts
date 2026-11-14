@@ -29,7 +29,7 @@ export function nickPattern(_fmt: NickFormat): RegExp {
 }
 
 export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat()): string | null {
-  const trimmed = raw.trim().replace(/\s+/g, "");
+  const trimmed = raw.trim();
   if (!trimmed) return null;
 
   // Preserve the old machine-generated IDs so existing accounts can still log in.
