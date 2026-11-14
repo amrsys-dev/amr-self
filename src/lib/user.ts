@@ -8,6 +8,8 @@ export type UsedRecovery = { hash: string; until: number };
 
 export type UserRecord = {
   nick: string;
+  /** Stable encryption identity; unlike nick, this never changes. */
+  dataId?: string;
   createdAt: string;
   /** Hash of the client-derived auth key (never a raw password). */
   passwordHash: string;
