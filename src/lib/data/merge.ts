@@ -7,8 +7,8 @@ function isRecord(x: unknown): x is DataRecord {
 }
 
 /** Per-record merge: same id keeps the row with the later updatedAt. Deleted rows drop out. */
-export function mergeRecordList(a: unknown[], b: unknown[]): DataRecord[] {
-  const map = new Map<string, DataRecord>();
+export function mergeRecordList<T extends DataRecord>(a: readonly T[], b: readonly T[]): T[] {
+  const map = new Map<string, T>();
   for (const item of [...a, ...b]) {
     if (!isRecord(item)) continue;
     const prev = map.get(item.id);
