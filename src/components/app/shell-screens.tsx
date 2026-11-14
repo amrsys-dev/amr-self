@@ -1,8 +1,42 @@
+import type { ReactNode } from "react";
+import { UI_THEMES, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LangPicker } from "./ui.tsx";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf, GLYPH } from "./types.ts";
 import type { App } from "./use-id-app.ts";
+
+const NAV_PATHS: Record<"today" | "finance" | "work" | "more" | "profile", ReactNode> = {
+  today: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></>,
+  finance: <><rect x="3" y="6" width="18" height="14" rx="3" /><path d="M3 10.5h18" /><circle cx="16.5" cy="15" r="1.3" /></>,
+  work: <><rect x="3" y="7.5" width="18" height="12.5" rx="2.5" /><path d="M9 7.5V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5v2" /><path d="M3 13h18" /></>,
+  more: <><rect x="4" y="4" width="6.5" height="6.5" rx="1.8" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8" /></>,
+  profile: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
+};
+
+function NavIcon({ name }: { name: keyof typeof NAV_PATHS }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {NAV_PATHS[name]}
+    </svg>
+  );
+}
+
+/** One compact control instead of big tiles: graphite, light (wave header) or Saudi (green and matte gold). */
+function ThemeSelect({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
+  return (
+    <div className="group">
+      <label className="lab" htmlFor="ui-theme">{t("ui_theme")}</label>
+      <div className="select-wrap">
+        <select id="ui-theme" value={theme} onChange={(e) => chooseTheme(e.target.value as UiTheme)}>
+          {UI_THEMES.map((k) => (
+            <option key={k} value={k}>{t(`theme_${k}` as MsgKey)}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
 
 function Soon({ title, t, onBack }: { title: string; t: (k: MsgKey) => string; onBack: () => void }) {
   return (
@@ -20,7 +54,7 @@ function Soon({ title, t, onBack }: { title: string; t: (k: MsgKey) => string; o
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, appearance, setAppearance, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, saveProfile, toggleContact, inShell, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
   return (
     <>
     {inShell && (
@@ -83,19 +117,7 @@ export function ShellScreens({ app }: { app: App }) {
                   </button>
                 </div>
               </div>
-              <div className="group">
-                <div className="lab">{t("appearance")}</div>
-                <div className="themes">
-                  <button className={`sw ${appearance === "dark" ? "on" : ""}`} type="button" onClick={() => { setAppearance("dark"); void saveProfile({ appearance: "dark" }); }}>
-                    <div className="prev dark" />
-                    <span>{t("graphite")}</span>
-                  </button>
-                  <button className={`sw ${appearance === "light" ? "on" : ""}`} type="button" onClick={() => { setAppearance("light"); void saveProfile({ appearance: "light" }); }}>
-                    <div className="prev light" />
-                    <span>{t("light")}</span>
-                  </button>
-                </div>
-              </div>
+              <ThemeSelect theme={theme} chooseTheme={chooseTheme} t={t} />
               <div className="btns">
                 <button className="btn g" type="button" onClick={() => setScreen("card-themes")}>
                   {t("card_theme")}
@@ -139,13 +161,13 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               ) : null}
               <div className="btns">
-                <button className="btn t" type="button" onClick={() => void logout()}>
+                <button className="btn g" type="button" onClick={() => void logout()}>
                   {t("sign_out")}
                 </button>
               </div>
               <div className="btns">
                 <button
-                  className="btn t"
+                  className="btn danger"
                   type="button"
                   onClick={() => {
                     setReauthPassword("");
@@ -208,11 +230,12 @@ export function ShellScreens({ app }: { app: App }) {
                 </label>
               </div>
               {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : null}
+              {!session ? <ThemeSelect theme={theme} chooseTheme={chooseTheme} t={t} /> : null}
               {!session ? <LangPicker lang={lang} setLang={setLang} t={t} /> : null}
             </div>
           )}
         </div>
-        <nav className="nav">
+        <nav className="nav" aria-label={t("sections")}>
           {([
             ["today", t("today")],
             ["finance", t("finance")],
@@ -220,7 +243,8 @@ export function ShellScreens({ app }: { app: App }) {
             ["more", t("more")],
             ["profile", t("profile")],
           ] as const).map(([k, label]) => (
-            <button key={k} type="button" className={screen === k ? "on" : ""} onClick={() => setScreen(k)}>
+            <button key={k} type="button" className={screen === k ? "on" : ""} aria-current={screen === k ? "page" : undefined} onClick={() => setScreen(k)}>
+              <NavIcon name={k} />
               <span>{label}</span>
             </button>
           ))}

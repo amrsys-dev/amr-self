@@ -6,7 +6,7 @@ export function Brand() {
       <span className="monopl">
         <img className="mono" src="/amr-mono.png" alt="" />
       </span>
-      <span className="appname">AMR SELF</span>
+      <span className="appname">SELF</span>
     </div>
   );
 }

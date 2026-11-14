@@ -313,8 +313,8 @@ export function SelfWorkspace({
   if (locked || (!dataKey && !guestStore)) {
     return (
       <div className="self-lock">
-        <div className="self-lock-mark">S</div>
-        <div className="self-eyebrow">SELF · PERSONAL SPACE</div>
+        <img className="self-lock-mark" src="/self-mark.png" alt="" />
+        <div className="self-eyebrow">SELF</div>
         <h2>{t("lockedTitle")}</h2>
         <p>{t("lockedText")}</p>
         <div className="self-field">
@@ -346,7 +346,7 @@ export function SelfWorkspace({
 
       {section === "today" && !subPage && (
         <>
-          <div className="self-intro"><div><div className="self-eyebrow">SELF · PERSONAL SPACE</div><h1>{t("welcome")}</h1><p>{new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US", { weekday: "long", day: "numeric", month: "long" })}</p></div><div className="self-day-mark">S</div></div>
+          <div className="self-intro"><div><div className="self-eyebrow">SELF</div><h1>{t("welcome")}</h1><p>{new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US", { weekday: "long", day: "numeric", month: "long" })}</p></div><img className="self-day-mark" src="/self-mark.png" alt="" /></div>
           <div className="self-section-head"><h3>{t("overview")}</h3><span>{t("today")}</span></div>
           <div className="self-grid self-grid-2">
             <div className="self-metric"><span>{t("monthIncome")}</span><strong>{money(monthIncome)}</strong><small>{t("finance")}</small></div>

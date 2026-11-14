@@ -23,6 +23,9 @@ import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { accountIdOf, type Meta, type Screen, type SessionState } from "./types.ts";
 
 const GUEST_FLAG = "amrself.guest";
+const THEME_KEY = "self.theme";
+export const UI_THEMES = ["graphite", "light", "saudi"] as const;
+export type UiTheme = (typeof UI_THEMES)[number];
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
@@ -31,6 +34,7 @@ export function useIdApp() {
   const t = (k: MsgKey) => translate(lang, k);
   const [screen, setScreen] = useState<Screen>("welcome");
   const [appearance, setAppearance] = useState<"dark" | "light">("dark");
+  const [uiTheme, setUiTheme] = useState<UiTheme | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [err, setErr] = useState("");
@@ -73,6 +77,8 @@ export function useIdApp() {
 
   useEffect(() => {
     void requestPersistentStorage();
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme && (UI_THEMES as readonly string[]).includes(savedTheme)) setUiTheme(savedTheme as UiTheme);
     if (localStorage.getItem(GUEST_FLAG) === "1") {
       setGuest(true);
       setScreen("today");
@@ -566,7 +572,17 @@ export function useIdApp() {
   }
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
-  const cls = `app ${appearance === "light" ? "light" : "dark"} ${skin}`;
+  /** Device-level look of the app. The server only stores dark/light, so "saudi" lives here. */
+  const theme: UiTheme = uiTheme ?? (appearance === "light" ? "light" : "graphite");
+  const cls = `app ${theme === "light" ? "light" : "dark"} theme-${theme} ${skin}`;
+
+  function chooseTheme(next: UiTheme) {
+    localStorage.setItem(THEME_KEY, next);
+    setUiTheme(next);
+    const ap = next === "light" ? "light" : "dark";
+    setAppearance(ap);
+    if (session) void saveProfile({ appearance: ap });
+  }
   const inShell = Boolean(session || guest) && SHELL_SCREENS.includes(screen);
   /** Passed to the workspace in guest mode; stable so it does not reload on every render. */
   const guestStore = useMemo(() => ({ load: loadGuestData, save: saveGuestData }), []);
@@ -720,6 +736,8 @@ export function useIdApp() {
     skin,
     cls,
     inShell,
+    theme,
+    chooseTheme,
     guest,
     setGuest,
     backupMsg,

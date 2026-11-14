@@ -5,7 +5,7 @@
 .self-eyebrow{font-size:10px;font-weight:750;letter-spacing:.12em;color:var(--cyan);text-transform:uppercase;margin-bottom:7px}
 .self-intro h1{font-size:26px;line-height:1.12;margin:0 0 5px;letter-spacing:-.8px}
 .self-intro p{font-size:13px;color:var(--muted);text-transform:capitalize}
-.self-day-mark{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(145deg,var(--card2),var(--bg2));border:1px solid var(--line);font-size:25px;font-weight:800;color:var(--cyan);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.self-day-mark{width:58px;height:58px;flex:none;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
 .self-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:7px}
 .self-section-head h3{margin:0;color:var(--t);font-size:15px;font-weight:700}
 .self-section-head>span{font-size:11px;color:var(--muted)}
@@ -70,7 +70,7 @@
 .self-vault-note b{font-size:15px}
 .self-vault-note p{font-size:12px;line-height:1.55;color:var(--muted)}
 .self-lock{min-height:54vh;display:flex;flex-direction:column;justify-content:center;gap:13px;padding:12px 2px}
-.self-lock-mark{width:56px;height:56px;border:1px solid var(--line);border-radius:18px;display:grid;place-items:center;color:var(--cyan);font-size:27px;font-weight:800;background:var(--card)}
+.self-lock-mark{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
 .self-lock h2{font-size:23px}
 .self-lock p{font-size:13px;line-height:1.5;color:var(--muted)}
 .self-field{display:flex;flex-direction:column;gap:6px;margin-top:4px}

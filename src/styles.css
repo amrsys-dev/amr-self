@@ -419,3 +419,41 @@ p{margin:0;line-height:1.4}
 .password-toggle{flex:none;color:var(--cyan);font-size:12px;font-weight:650;padding:4px 0 4px 8px;white-space:nowrap}
 
 .contact-icon{width:18px;height:18px;display:inline-block;flex:0 0 18px;vertical-align:middle}
+
+/* ===================== SELF look: shared controls ===================== */
+.btn{min-height:48px;border-radius:14px}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--t);flex:1}
+.btn.danger{background:transparent;border:1px solid color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad);flex:1}
+.select-wrap{position:relative}
+.select-wrap select{appearance:none;-webkit-appearance:none;width:100%;min-height:48px;padding:0 44px 0 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--t);font-size:15px;font-weight:600}
+.select-wrap::after{content:"";position:absolute;inset-inline-end:16px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.select-wrap select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* Bottom bar: icon + label, a clear pill on the active tab, 48px+ touch targets */
+.nav{height:86px;padding:8px 8px 20px;gap:4px;background:color-mix(in srgb,var(--tab) 94%,transparent);box-shadow:0 -8px 24px rgba(0,0,0,.18)}
+.nav button{gap:4px;font-size:11.5px;font-weight:650;border-radius:16px;padding:6px 0;min-height:52px;transition:background .2s,color .2s}
+.nav button svg{width:24px;height:24px}
+.nav button.on{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
+.page.withnav{padding-bottom:100px}
+
+/* ===================== Theme: light, with a wave header ===================== */
+.app.theme-light{--bg:#EEF1F6;--bg2:#E6EAF1;--card:#FFFFFF;--card2:#F7F9FC;--line:#DDE3EC;--tab:#FFFFFF;--sb:#1D2A44}
+.app.theme-light::before{content:"";position:absolute;inset:0 0 auto 0;height:124px;z-index:0;pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 430 124' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231B2741'/%3E%3Cstop offset='.6' stop-color='%23283A5E'/%3E%3Cstop offset='1' stop-color='%23005F6B'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 0H430V84C372 118 318 70 232 92S82 124 0 100Z' fill='url(%23g)'/%3E%3C/svg%3E") top/100% 100% no-repeat}
+.app.theme-light .hd{background:transparent;color:#fff;margin-bottom:30px}
+.app.theme-light .hd .back,.app.theme-light .hd .tool{color:#8FE7F0}
+.app.theme-light .page{position:relative;z-index:1}
+.app.theme-light .card,.app.theme-light .self-card,.app.theme-light .self-metric{border-color:#E3E8F0;box-shadow:0 10px 26px rgba(29,42,68,.08)}
+.app.theme-light .nav{border-top:0;box-shadow:0 -10px 30px rgba(29,42,68,.10)}
+
+/* ===================== Theme: Saudi — deep green, matte gold frames ===================== */
+.app.theme-saudi{--bg:#03130C;--bg2:#062016;--card:#0A2A1C;--card2:#0E3323;--t:#F4EEDC;--muted:#BDB596;--line:#6B5A28;--cyan:#D3B05A;--cyan2:#A8842F;--tint:#163A24;--on:#1A1405;--ok:#3FAE6A;--steel:#CFC6A6;--sb:#03130C;--tab:#04170F;--hair:rgba(211,176,90,.14);
+  background:radial-gradient(120% 60% at 50% -10%,#0D3B26 0%,var(--bg) 60%)}
+.app.theme-saudi .hd{background:transparent;border-bottom:1px solid rgba(211,176,90,.28)}
+.app.theme-saudi .card,.app.theme-saudi .self-card,.app.theme-saudi .self-metric{border:1px solid #8A7330;background:linear-gradient(160deg,#0F3524,#0A2719);box-shadow:inset 0 1px 0 rgba(255,231,160,.10),0 8px 22px rgba(0,0,0,.35)}
+.app.theme-saudi .btn.p{background:linear-gradient(180deg,#DCBB66,#B08A35);border:1px solid #EBD291;color:#1A1405;box-shadow:inset 0 1px 0 rgba(255,245,210,.45),0 6px 16px rgba(0,0,0,.35)}
+.app.theme-saudi .btn.g,.app.theme-saudi .btn.ghost,.app.theme-saudi .select-wrap select{border-color:#8A7330;background:linear-gradient(180deg,#0E3323,#0A2A1C)}
+.app.theme-saudi .nav{border-top:1px solid #6B5A28}
+.app.theme-saudi .nav button.on{background:linear-gradient(180deg,rgba(211,176,90,.22),rgba(211,176,90,.08));box-shadow:inset 0 0 0 1px rgba(211,176,90,.45)}
+.app.theme-saudi .self-progress i{background:linear-gradient(90deg,#A8842F,#E2C677)}
+.app.theme-saudi .self-check{border-color:#BFA45A}

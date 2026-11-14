@@ -41,7 +41,7 @@ export function AuthScreens({ app }: { app: App }) {
             </button>
           </div>
           <div className="btns">
-            <button className="link-quiet" type="button" onClick={startGuest}>
+            <button className="btn g ghost" type="button" onClick={startGuest}>
               {t("start_without_account")}
             </button>
           </div>
