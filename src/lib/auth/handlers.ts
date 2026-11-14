@@ -733,7 +733,7 @@ const patchSchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"]),
+        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
         value: z.string().max(200),
         visible: z.boolean(),
         label: z.string().max(80).optional(),
@@ -784,7 +784,7 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (user instanceof Response) return user;
   const body = addContactSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
-  if (body.data.kind === "other" && !isHttpsUrl(body.data.value)) return json({ error: "invalid", hint: "https_only" }, 400);
+  if ((body.data.kind === "other" || body.data.kind === "youtube") && !isHttpsUrl(body.data.value) && body.data.kind === "other") return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
   const needsOtp = false;
   const contact: Contact = {
