@@ -8,7 +8,7 @@ export type NickFormat = {
 
 const PREFIX = "AMR";
 const DIGITS = "0123456789";
-const LEGACY_PATTERN = /^@?AMR-\\d{3,8}(?:-\\d{3,8})+$/i;
+const LEGACY_PATTERN = /^@?AMR-\d{3,8}(?:-\d{3,8})+$/i;
 const HANDLE_PATTERN = /^(?=.{3,24}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/i;
 
 export function parseNickFormat(spec?: string): NickFormat {
@@ -25,18 +25,18 @@ export function defaultNickFormatSpec(): string {
 }
 
 export function nickPattern(_fmt: NickFormat): RegExp {
-  return /^@?[a-z0-9](?:[a-z0-9._-]{1,22}[a-z0-9])?(?:\\.amr|@amr)?$/i;
+  return /^@?[a-z0-9](?:[a-z0-9._-]{1,22}[a-z0-9])?(?:\.amr|@amr)?$/i;
 }
 
-export function normalizeNick(raw: string, fmt: NickFormat = parseNickFormat()): string | null {
-  const trimmed = raw.trim().replace(/\\s+/g, "");
+export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat()): string | null {
+  const trimmed = raw.trim().replace(/\s+/g, "");
   if (!trimmed) return null;
 
   // Preserve the old machine-generated IDs so existing accounts can still log in.
   if (LEGACY_PATTERN.test(trimmed)) return `@${trimmed.replace(/^@/, "").toUpperCase()}`;
 
   let handle = trimmed.replace(/^@/, "");
-  handle = handle.replace(/(?:\\.amr|@amr)$/i, "");
+  handle = handle.replace(/(?:\.amr|@amr)$/i, "");
   if (!HANDLE_PATTERN.test(handle)) return null;
   const reserved = new Set(["admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u"]);
   if (reserved.has(handle.toLowerCase())) return null;
