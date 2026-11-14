@@ -64,6 +64,7 @@ type Meta = {
 
 type SessionState = {
   nick: string;
+  dataId?: string;
   theme: CardTheme;
   appearance: "dark" | "light";
   contacts: Contact[];
@@ -203,7 +204,7 @@ export function IdApp() {
   }, []);
 
   useEffect(() => {
-    accountIdRef.current = session?.nick ?? null;
+    accountIdRef.current = session ? (session.dataId ?? session.nick) : null;
   }, [session]);
 
   const origin = meta?.cardOrigin || (typeof window !== "undefined" ? window.location.origin : "");
@@ -1005,7 +1006,7 @@ export function IdApp() {
             {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && session && (
               <SelfWorkspace
                 section={screen}
-                accountId={session.nick}
+                accountId={session.dataId ?? session.nick}
                 wrapPassword={session.wrapPassword}
                 passwordKdf={session.kdf?.password}
                 dataKey={dataKeyRef.current}
