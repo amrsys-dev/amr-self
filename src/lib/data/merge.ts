@@ -6,7 +6,7 @@ function isRecord<T extends DataRecord>(x: unknown): x is T {
   return typeof r.id === "string" && typeof r.updatedAt === "string";
 }
 
-/** Per-record merge: same id keeps the row with the later updatedAt. Deleted rows drop out. */
+/** Keep deletion tombstones during merges so a stale replica cannot resurrect deleted rows. */
 export function mergeRecordList<T extends DataRecord>(a: readonly T[], b: readonly T[]): T[] {
   const map = new Map<string, T>();
   for (const item of [...a, ...b]) {
@@ -14,7 +14,7 @@ export function mergeRecordList<T extends DataRecord>(a: readonly T[], b: readon
     const prev = map.get(item.id);
     if (!prev || item.updatedAt > prev.updatedAt) map.set(item.id, item);
   }
-  return [...map.values()].filter((r) => !r.deleted);
+  return [...map.values()];
 }
 
 function mergeSalary(a: SalaryRecord | null, b: SalaryRecord | null): SalaryRecord | null {
