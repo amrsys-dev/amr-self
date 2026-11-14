@@ -390,28 +390,15 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(alive.status, 200);
   });
 
-  it("limits contact-verification code attempts", async () => {
-    process.env.AMR_OTP_EMAIL = "true";
+  it("does not send verification OTP when adding external contact links", async () => {
     const acc = await signup("@AMR-530-530", "correct-battery-horse");
     const added = await json(
       await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
     );
     assert.equal(added.status, 200, JSON.stringify(added.data));
-    const contact = added.data.contact as { id: string };
-    let last = { status: 0, data: {} as Record<string, unknown> };
-    for (let i = 0; i < OTP_MAX_ATTEMPTS; i++) {
-      last = await json(
-        await handleVerifyContact(
-          req("/api/me/contacts/verify", {
-            cookie: acc.cookie,
-            body: { otpId: added.data.otpId, contactId: contact.id, code: "000000" },
-          }),
-        ),
-      );
-    }
-    assert.equal(last.status, 429);
-    assert.equal(last.data.error, "too_many_attempts");
-    process.env.AMR_OTP_EMAIL = "false";
+    assert.equal(added.data.otpId, undefined);
+    assert.equal(added.data.testOtp, undefined);
+    assert.equal((added.data.contact as { verified: boolean }).verified, false);
   });
 
   it("ignores verified:true from a client PATCH of contacts", async () => {
@@ -733,9 +720,7 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(s.status, 200, JSON.stringify(s.data));
-    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
-    assert.equal(otp.status, 200, JSON.stringify(otp.data));
-    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: otp.data.nick, purpose: "recovery" } })));
+    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: s.data.nick, purpose: "recovery" } })));
     assert.equal(kdf.status, 200);
     const kdfs = kdf.data.kdfs as { salt: string }[];
     assert.equal(kdfs.length, 2);
@@ -743,7 +728,7 @@ describe("auth-key-only login and recovery", () => {
     const first = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
-          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey), phase: "unlock" },
+          body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[0]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
@@ -751,7 +736,7 @@ describe("auth-key-only login and recovery", () => {
     const withSecond = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
-          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
+          body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
@@ -787,16 +772,14 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(s.status, 200, JSON.stringify(s.data));
-    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
-    assert.equal(otp.status, 200, JSON.stringify(otp.data));
-    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: otp.data.nick, purpose: "recovery" } })));
+    const kdf = await json(await handleKdf(req("/api/auth/kdf", { body: { nick: s.data.nick, purpose: "recovery" } })));
     const kdfs = kdf.data.kdfs as { salt: string }[];
     assert.equal(kdfs.length, 2);
     const unlock = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
           body: {
-            nick: otp.data.nick,
+            nick: s.data.nick,
             recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
             recoveryVerifyKeys: recKeys.map((k) => encodeAuthKey(k.verifyKey)),
             phase: "unlock",
@@ -811,7 +794,7 @@ describe("auth-key-only login and recovery", () => {
       await handleRecovery(
         req("/api/auth/recovery", {
           body: {
-            nick: otp.data.nick,
+            nick: s.data.nick,
             recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
             authKey: encodeAuthKey(newPwd.authKey),
             wrapPassword: await wrapDataKey(dataKey, newPwd.wrapKey),
@@ -831,7 +814,7 @@ describe("auth-key-only login and recovery", () => {
       const old = await json(
         await handleRecovery(
           req("/api/auth/recovery", {
-            body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(k.verifyKey), phase: "unlock" },
+            body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(k.verifyKey), phase: "unlock" },
           }),
         ),
       );
@@ -841,7 +824,7 @@ describe("auth-key-only login and recovery", () => {
     const ok = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
-          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(fresh[1]!.verifyKey), phase: "unlock" },
+          body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(fresh[1]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
@@ -881,13 +864,11 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(s.status, 200, JSON.stringify(s.data));
-    const otp = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: s.data.otpId, code: s.data.testOtp } })));
-    assert.equal(otp.status, 200, JSON.stringify(otp.data));
     const start = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
           body: {
-            nick: otp.data.nick,
+            nick: s.data.nick,
             recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
             authKey: encodeAuthKey(pwd.authKey),
             phase: "rebind-start",
@@ -899,7 +880,7 @@ describe("auth-key-only login and recovery", () => {
     );
     assert.equal(start.status, 200, JSON.stringify(start.data));
     // Drop code #1 so index 1 would now point at code #3. Burning must still spend code #2.
-    const raw = await getStores().kv.get(nickKey(otp.data.nick as string));
+    const raw = await getStores().kv.get(nickKey(s.data.nick as string));
     assert.ok(raw);
     const user = JSON.parse(raw!) as { recoveryHashes: string[]; wrapRecoveries: unknown[]; recoveryKdfs: unknown[]; recoveryHash: string; wrapRecovery: unknown; kdf: { recovery: unknown } };
     user.recoveryHashes = user.recoveryHashes.slice(1);
@@ -908,12 +889,12 @@ describe("auth-key-only login and recovery", () => {
     user.recoveryHash = user.recoveryHashes[0]!;
     user.wrapRecovery = user.wrapRecoveries[0];
     user.kdf = { ...user.kdf, recovery: user.recoveryKdfs[0] };
-    await getStores().kv.put(nickKey(otp.data.nick as string), JSON.stringify(user));
+    await getStores().kv.put(nickKey(s.data.nick as string), JSON.stringify(user));
     const confirm = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
           body: {
-            nick: otp.data.nick,
+            nick: s.data.nick,
             recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey),
             authKey: encodeAuthKey(pwd.authKey),
             phase: "rebind-confirm",
@@ -928,7 +909,7 @@ describe("auth-key-only login and recovery", () => {
     const burned = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
-          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
+          body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[1]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
@@ -937,7 +918,7 @@ describe("auth-key-only login and recovery", () => {
     const leftover = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
-          body: { nick: otp.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[2]!.verifyKey), phase: "unlock" },
+          body: { nick: s.data.nick, recoveryVerifyKey: encodeAuthKey(recKeys[2]!.verifyKey), phase: "unlock" },
         }),
       ),
     );
