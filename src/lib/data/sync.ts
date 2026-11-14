@@ -126,8 +126,21 @@ export async function pullRemote(dataKey: Uint8Array, accountId: string): Promis
     if (local?.accountId === accountId && local.dirty) {
       return (await decryptAndDecompress(dataKey, local.blob, { accountId, version: local.version })) as UserData;
     }
-    const res = await api<{ blob: string | null; version: number }>("/api/me/data");
-    if (!res.ok) throw new Error("sync_read_failed");
+    const useCleanLocalCopy = async () => {
+      if (!local || local.accountId !== accountId) throw new Error("sync_read_failed");
+      return (await decryptAndDecompress(dataKey, local.blob, { accountId, version: local.version })) as UserData;
+    };
+    let res: Awaited<ReturnType<typeof api<{ blob: string | null; version: number }>>>;
+    try {
+      res = await api<{ blob: string | null; version: number }>("/api/me/data");
+    } catch {
+      // A previously synchronized encrypted copy remains usable while offline.
+      return useCleanLocalCopy();
+    }
+    if (!res.ok) {
+      if (res.status >= 500) return useCleanLocalCopy();
+      throw new Error("sync_read_failed");
+    }
     if (!res.data.blob) return loadLocalData(dataKey, accountId);
     const parsed = decodeBlob(res.data.blob);
     const data = (await decryptAndDecompress(dataKey, parsed, { accountId, version: res.data.version })) as UserData;
