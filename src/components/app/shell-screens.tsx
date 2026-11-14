@@ -71,6 +71,7 @@ export function ShellScreens({ app }: { app: App }) {
               onUnlock={() => undefined}
               onOpenCard={() => setScreen("profile")}
               guestStore={guestStore}
+              onNavigate={(next) => setScreen(next)}
             />
           )}
           {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && session && (
@@ -87,6 +88,7 @@ export function ShellScreens({ app }: { app: App }) {
                 setKeyVersion((v) => v + 1);
               }}
               onOpenCard={() => setScreen("card")}
+              onNavigate={(next) => setScreen(next)}
             />
           )}
           {screen === "profile" && session && (

@@ -56,6 +56,7 @@ export function parseBackup(text: string): ParseResult {
     sport: { ...base.sport, ...(d.sport ?? {}) },
     plans: { ...base.plans, ...(d.plans ?? {}) },
     health: { ...base.health!, ...(d.health ?? {}) },
+    car: { ...base.car!, ...(d.car ?? {}) },
   };
   for (const section of Object.values(merged) as unknown[]) {
     if (section && typeof section === "object") {

@@ -72,3 +72,21 @@ describe("extended SELF personal records", () => {
     assert.deepEqual(merged.health, { water: [], weight: [], nutrition: [], workouts: [] });
   });
 });
+
+describe("car data across devices", () => {
+  it("keeps the newer odometer reading and items from both phones", () => {
+    const a = emptyUserData();
+    const b = emptyUserData();
+    a.car = { vehicles: [{ id: "v", updatedAt: "2026-11-10T00:00:00.000Z", name: "Camry", odometer: 55000, odometerDate: "2026-11-10" }], items: [{ id: "oil", updatedAt: "2026-11-01T00:00:00.000Z", kind: "engine_oil", intervalKm: 10000, lastKm: 50000 }], log: [] };
+    b.car = { vehicles: [{ id: "v", updatedAt: "2026-11-14T00:00:00.000Z", name: "Camry", odometer: 56000, odometerDate: "2026-11-14" }], items: [{ id: "gear", updatedAt: "2026-11-02T00:00:00.000Z", kind: "gear_oil", intervalKm: 60000, lastKm: 40000 }], log: [] };
+    const out = mergeUserData(a, b);
+    assert.equal(out.car!.vehicles[0]!.odometer, 56000);
+    assert.deepEqual(out.car!.items.map((i) => i.id).sort(), ["gear", "oil"]);
+  });
+
+  it("reads data saved before the car section existed", () => {
+    const old = emptyUserData();
+    delete old.car;
+    assert.deepEqual(mergeUserData(old, old).car, { vehicles: [], items: [], log: [] });
+  });
+});

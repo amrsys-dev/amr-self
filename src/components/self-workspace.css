@@ -91,3 +91,39 @@
 .self-modal-actions{display:flex;gap:8px;margin-top:4px}
 .self-modal-actions button{flex:1}
 @media(min-width:700px){.self-workspace{gap:16px}.self-grid-2{gap:12px}.self-module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.self-module{min-height:160px}.self-modal-backdrop{align-items:center}.self-modal{border-radius:20px}}
+
+/* ---- categories, bills, car ---- */
+.self-cats{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.self-cats legend{font-size:11px;color:var(--muted);padding:0;margin-bottom:6px}
+.self-cats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.self-cats-grid button{min-height:64px;padding:8px 4px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--t);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11px;font-weight:600;line-height:1.2;text-align:center}
+.self-cats-grid button svg{color:var(--cyan)}
+.self-cats-grid button.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--card));box-shadow:0 0 0 2px color-mix(in srgb,var(--cyan) 30%,transparent)}
+.self-list-mark svg{display:block}
+.self-pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:650;white-space:nowrap;background:var(--tint);color:var(--cyan)}
+.self-pill.ok,.self-pill.paid{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok)}
+.self-pill.soon{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.self-pill.overdue{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.self-pill.later{background:var(--bg2);color:var(--muted)}
+.self-bill-actions{display:flex;align-items:center;gap:6px;flex:none}
+.self-pay{min-height:36px;padding:0 12px;border-radius:10px;background:var(--cyan);color:var(--on);font-size:12px;font-weight:700}
+.self-catbars{padding:6px 12px}
+.self-catbar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--hair)}
+.self-catbar:last-child{border-bottom:0}
+.self-catbar-icon{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:var(--tint);color:var(--cyan);flex:none}
+.self-catbar-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.self-catbar-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.self-catbar-top b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.self-odo{flex-direction:row;align-items:center;justify-content:space-between;gap:12px}
+.self-odo strong small{font-size:14px;color:var(--muted);font-weight:600}
+.self-odo>div>small{font-size:11px;color:var(--muted)}
+.self-maint{padding:12px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--hair)}
+.self-maint:last-child{border-bottom:0}
+.self-maint-top,.self-maint-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.self-maint-top b{font-size:14px}
+.self-maint-foot small{font-size:11px;color:var(--muted)}
+.self-maint.soon .self-progress i{background:var(--warn)}
+.self-maint.overdue .self-progress i{background:var(--bad)}
+.self-inline-link{display:flex;flex-direction:column;gap:5px;text-align:start;color:inherit;min-height:44px}
+.self-inline-link span{font-size:11px;color:var(--muted)}
+.self-inline-link b{font-size:14px}

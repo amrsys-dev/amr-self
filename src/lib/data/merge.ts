@@ -32,6 +32,8 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
   const rf = r.finance ?? empty.finance;
   const lh = l.health ?? empty.health!;
   const rh = r.health ?? empty.health!;
+  const lc = l.car ?? empty.car!;
+  const rc = r.car ?? empty.car!;
   return {
     v: 1,
     finance: {
@@ -52,6 +54,11 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
       weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
       nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
       workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
+    },
+    car: {
+      vehicles: mergeRecordList(lc.vehicles ?? [], rc.vehicles ?? []),
+      items: mergeRecordList(lc.items ?? [], rc.items ?? []),
+      log: mergeRecordList(lc.log ?? [], rc.log ?? []),
     },
   };
 }

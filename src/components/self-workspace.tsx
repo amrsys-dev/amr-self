@@ -9,10 +9,17 @@ import {
 import { emptyUserData, type FinanceRecord, type HealthEntry, type TaskRecord, type UserData } from "@/lib/data/schema.ts";
 import { loadUserData, saveLocalData } from "@/lib/data/sync.ts";
 import type { Lang } from "@/lib/i18n.ts";
+import type { ReactNode } from "react";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, expenseByCategory } from "@/lib/finance/categories.ts";
+import { nextDue } from "@/lib/car/maintenance.ts";
+import { categoryLabel, formatKm, tx } from "./self/extra-copy.ts";
+import { CategoryIcon, CategoryPicker } from "./self/parts.tsx";
+import { BillsCard, dueBillsTotal } from "./self/bills-card.tsx";
+import { CarPage, carOf, itemName } from "./self/car-page.tsx";
 import "./self-workspace.css";
 
 type Section = "today" | "finance" | "work" | "more";
-type SubPage = "health" | "nutrition" | "activity" | "vault" | null;
+type SubPage = "health" | "nutrition" | "activity" | "vault" | "car" | null;
 type ModalKind = "income" | "expense" | "task" | "weight" | "meal" | "workout" | null;
 
 type Props = {
@@ -25,6 +32,8 @@ type Props = {
   lang: Lang;
   onUnlock: (key: Uint8Array) => void;
   onOpenCard: () => void;
+  /** Switch the bottom-bar section (e.g. Today -> Finance). */
+  onNavigate?: (section: Section) => void;
   /** Guest mode: data lives only on this device, no account key or lock screen. */
   guestStore?: { load: () => Promise<UserData>; save: (data: UserData) => Promise<void> };
 };
@@ -175,7 +184,7 @@ const money = (n: number) => new Intl.NumberFormat("en-SA", { style: "currency",
 const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateString() : "";
 
 export function SelfWorkspace({
-  section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore,
+  section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore, onNavigate,
 }: Props) {
   const t = (key: CopyKey) => COPY[lang][key] ?? COPY.en[key];
   const [data, setData] = useState<UserData>(emptyUserData);
@@ -212,6 +221,9 @@ export function SelfWorkspace({
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [accountId, dataKey, keyVersion, guestStore]);
+
+  // A sub-page belongs to the tab it was opened from.
+  useEffect(() => { setSubPage(null); }, [section]);
 
   const health = data.health ?? emptyUserData().health!;
   const today = todayKey();
@@ -260,7 +272,7 @@ export function SelfWorkspace({
   function openModal(kind: ModalKind) {
     setTitle("");
     setAmount("");
-    setCategory("other");
+    setCategory(kind === "income" ? "salary" : "food");
     setNote("");
     setDate(today);
     setPriority("medium");
@@ -305,6 +317,12 @@ export function SelfWorkspace({
     await persist({ ...data, work: { ...data.work, tasks: data.work.tasks.map((r) => r.id === task.id ? nextTask : r) } });
   }
 
+  async function removeEntry(entry: FinanceRecord & { kind: "income" | "expense" }) {
+    const field = entry.kind;
+    const now = new Date().toISOString();
+    await persist({ ...data, finance: { ...data.finance, [field]: data.finance[field].map((r) => (r.id === entry.id ? { ...r, deleted: true, updatedAt: now } : r)) } });
+  }
+
   async function removeTask(task: TaskRecord) {
     const nextTask = { ...task, deleted: true, updatedAt: new Date().toISOString() };
     await persist({ ...data, work: { ...data.work, tasks: data.work.tasks.map((r) => r.id === task.id ? nextTask : r) } });
@@ -331,8 +349,14 @@ export function SelfWorkspace({
   if (loading) return <div className="self-loading">{t("loading")}</div>;
   if (loadError) return <div className="self-lock"><h2>{t("noData")}</h2><p>Could not read local or synchronized data. Your encrypted records have not been deleted.</p></div>;
 
+  const bills = dueBillsTotal(data);
+  const carInfo = carOf(data);
+  const carNext = carInfo.vehicle ? nextDue(carInfo.items, carInfo.vehicle.odometer) : null;
+  const categories = expenseByCategory(data.finance.expense, month);
+  const topCategory = categories[0]?.amount ?? 0;
   const progress = active(data.work.tasks).length ? Math.round(doneTasks.length / active(data.work.tasks).length * 100) : 0;
-  const quickModules: { key: Exclude<SubPage, null> | "identity"; title: string; subtitle: string; mark: string; status: string }[] = [
+  const quickModules: { key: Exclude<SubPage, null> | "identity"; title: string; subtitle: string; mark: ReactNode; status: string }[] = [
+    { key: "car", title: tx(lang, "car"), subtitle: tx(lang, "carSubtitle"), mark: <CategoryIcon c="car" />, status: t("moduleReady") },
     { key: "health", title: t("health"), subtitle: t("healthSnapshot"), mark: "＋", status: t("moduleReady") },
     { key: "nutrition", title: t("nutrition"), subtitle: t("calories") + " · " + t("water"), mark: "◌", status: t("moduleReady") },
     { key: "activity", title: t("activity"), subtitle: t("workout") + " · " + t("weight"), mark: "↗", status: t("moduleReady") },
@@ -360,6 +384,12 @@ export function SelfWorkspace({
           </div>
           <div className="self-section-head"><h3>{t("financeSnapshot")}</h3><button type="button" onClick={() => openModal("income")}>+ {t("add")}</button></div>
           <div className="self-card self-balance"><div><span>{t("balance")}</span><strong>{money(monthIncome - monthExpense)}</strong></div><div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div></div>
+          {(bills.count > 0 || carNext) && (
+            <div className="self-card self-inline-metrics">
+              <button type="button" className="self-inline-link" onClick={() => onNavigate?.("finance")}><span>{tx(lang, "billsDue")}</span><b>{bills.count ? money(bills.amount) : "—"}</b></button>
+              <button type="button" className="self-inline-link" onClick={() => setSubPage("car")}><span>{tx(lang, "nextService")}</span><b>{carNext ? `${itemName(lang, carNext.item)} · ${formatKm(Math.max(0, carNext.state.leftKm))} ${tx(lang, "km")}` : "—"}</b></button>
+            </div>
+          )}
           <div className="self-section-head"><h3>{t("healthSnapshot")}</h3><button type="button" onClick={() => setSubPage("health")}>{t("viewAll")}</button></div>
           <div className="self-card self-inline-metrics"><div><span>{t("water")}</span><b>{waterToday} ml</b></div><div><span>{t("lastWeight")}</span><b>{lastWeight ? Number(lastWeight.amount).toFixed(1) + " kg" : "—"}</b></div></div>
         </>
@@ -370,9 +400,26 @@ export function SelfWorkspace({
           <div className="self-eyebrow">{t("thisMonth")}</div><h2 className="self-page-title">{t("finance")}</h2>
           <div className="self-card self-balance"><span>{t("balance")}</span><strong>{money(monthIncome - monthExpense)}</strong><div className="self-finance-split"><div><small>{t("income")}</small><b>{money(monthIncome)}</b></div><div><small>{t("expense")}</small><b>{money(monthExpense)}</b></div></div></div>
           <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("addIncome")}</button><button type="button" onClick={() => openModal("expense")}>+ {t("addExpense")}</button></div>
+          {categories.length > 0 && (
+            <>
+              <div className="self-section-head"><h3>{tx(lang, "byCategory")}</h3></div>
+              <div className="self-card self-catbars">
+                {categories.map((c) => (
+                  <div className="self-catbar" key={c.category}>
+                    <span className="self-catbar-icon"><CategoryIcon c={c.category} size={18} /></span>
+                    <div className="self-catbar-body">
+                      <div className="self-catbar-top"><b>{categoryLabel(lang, c.category)}</b><strong>{money(c.amount)}</strong></div>
+                      <div className="self-progress"><i style={{ width: Math.max(4, Math.round((c.amount / topCategory) * 100)) + "%" }} /></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          <BillsCard data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), amount: t("amount"), delete: t("delete") }} />
           <div className="self-section-head"><h3>{t("recent")}</h3></div>
           <div className="self-filter"><button className={transactionFilter === "all" ? "on" : ""} type="button" onClick={() => setTransactionFilter("all")}>{t("filterAll")}</button><button className={transactionFilter === "income" ? "on" : ""} type="button" onClick={() => setTransactionFilter("income")}>{t("income")}</button><button className={transactionFilter === "expense" ? "on" : ""} type="button" onClick={() => setTransactionFilter("expense")}>{t("expense")}</button></div>
-          <div className="self-card">{visibleEntries.length === 0 ? <div className="self-empty">{t("noTransactions")}</div> : visibleEntries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}>{entry.kind === "income" ? "+" : "−"}</div><div className="self-list-copy"><b>{entry.title || entry.category || t("other")}</b><small>{entry.category ? t(entry.category as CopyKey) || entry.category : ""} · {localDate(entry.date)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong></div>)}</div>
+          <div className="self-card">{visibleEntries.length === 0 ? <div className="self-empty">{t("noTransactions")}</div> : visibleEntries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)} · {localDate(entry.date)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}</div>
         </>
       )}
 
@@ -421,6 +468,10 @@ export function SelfWorkspace({
         </>
       )}
 
+      {subPage === "car" && (
+        <CarPage data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), delete: t("delete"), back: section === "today" ? t("today") : t("more") }} onBack={() => setSubPage(null)} />
+      )}
+
       {section === "more" && subPage === "vault" && (
         <>
           <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {t("more")}</button><h2 className="self-page-title">{t("vault")}</h2>
@@ -434,7 +485,7 @@ export function SelfWorkspace({
             <div className="self-modal-head"><h3>{modal === "task" ? t("addTask") : modal === "income" ? t("addIncome") : modal === "expense" ? t("addExpense") : modal === "weight" ? t("addWeight") : modal === "meal" ? t("addMeal") : t("addWorkout")}</h3><button type="button" onClick={() => setModal(null)}>×</button></div>
             {(modal === "income" || modal === "expense" || modal === "task" || modal === "meal" || modal === "workout") && <label>{modal === "task" ? t("taskTitle") : modal === "meal" || modal === "workout" ? t("title") : t("title")}<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("title")} /></label>}
             {modal !== "task" && <label>{modal === "weight" ? t("weight") + " (kg)" : modal === "meal" ? t("calories") + " (kcal)" : modal === "workout" ? t("minutes") : t("amount") + " (SAR)"}<input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" /></label>}
-            {(modal === "income" || modal === "expense") && <label>{t("category")}<select value={category} onChange={(e) => setCategory(e.target.value)}><option value="salary">{t("salary")}</option><option value="freelance">{t("freelance")}</option><option value="food">{t("food")}</option><option value="transport">{t("transport")}</option><option value="housing">{t("housing")}</option><option value="workTools">{t("workTools")}</option><option value="other">{t("other")}</option></select></label>}
+            {(modal === "income" || modal === "expense") && <CategoryPicker options={modal === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES} value={category} onChange={setCategory} lang={lang} label={t("category")} />}
             {modal === "task" && <label>{t("priority")}<select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}><option value="low">{t("low")}</option><option value="medium">{t("medium")}</option><option value="high">{t("high")}</option></select></label>}
             <label>{modal === "task" ? t("dueDate") : t("date")}<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
             {(modal === "income" || modal === "expense" || modal === "meal") && <label>{t("note")}<textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></label>}

@@ -1,4 +1,6 @@
 /** Personal data model. Sensitive user data is encrypted before it leaves the device. */
+import type { CarProfile, MaintenanceItem, ServiceEntry } from "../car/maintenance.ts";
+import type { BillRecord } from "../finance/categories.ts";
 
 export type DataRecord = {
   id: string;
@@ -42,7 +44,8 @@ export type UserData = {
     gigs: DataRecord[];
     income: FinanceRecord[];
     expense: FinanceRecord[];
-    planned: DataRecord[];
+    /** Monthly bills: rent, electricity, phone. */
+    planned: BillRecord[];
     limits: DataRecord[];
   };
   work: { tasks: TaskRecord[] };
@@ -56,6 +59,12 @@ export type UserData = {
     nutrition: HealthEntry[];
     workouts: HealthEntry[];
   };
+  /** Car upkeep by odometer. Optional: older data has none. */
+  car?: {
+    vehicles: CarProfile[];
+    items: MaintenanceItem[];
+    log: ServiceEntry[];
+  };
 };
 
 export function emptyUserData(): UserData {
@@ -68,5 +77,6 @@ export function emptyUserData(): UserData {
     sport: { sessions: [] },
     plans: { items: [] },
     health: { water: [], weight: [], nutrition: [], workouts: [] },
+    car: { vehicles: [], items: [], log: [] },
   };
 }
