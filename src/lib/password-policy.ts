@@ -1,4 +1,4 @@
-/** Password rules from SECURITY review: at least 10 characters, reject weak/common ones. */
+/** Password rules from SECURITY review: at least 8 characters, reject weak/common ones. */
 
 const COMMON = new Set(
   [
@@ -17,8 +17,9 @@ const COMMON = new Set(
 export type PasswordPolicyResult = { ok: true } | { ok: false; reason: "short" | "weak" | "same_as_nick" };
 
 export function checkPassword(password: string, nick?: string): PasswordPolicyResult {
-  if (password.length < 10) return { ok: false, reason: "short" };
+  if (password.length < 8) return { ok: false, reason: "short" };
   const lower = password.toLowerCase();
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) return { ok: false, reason: "weak" };
   if (COMMON.has(lower)) return { ok: false, reason: "weak" };
   if (/^(.)\1+$/.test(password)) return { ok: false, reason: "weak" };
   if (/^\d+$/.test(password) && /^(0123|1234|2345|3456|4567|5678|6789|9876|0000|1111|2222)/.test(password)) {
@@ -31,4 +32,4 @@ export function checkPassword(password: string, nick?: string): PasswordPolicyRe
   return { ok: true };
 }
 
-export const PASSWORD_MIN = 10;
+export const PASSWORD_MIN = 8;
