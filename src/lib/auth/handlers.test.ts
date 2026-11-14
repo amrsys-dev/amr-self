@@ -76,17 +76,14 @@ async function signup(nick: string, password: string, ip?: string) {
           kdfRecoveries: [recKeys.params],
           wrapRecoveries: [wrapRecovery],
           recoveryVerifyKeys: [encodeAuthKey(recKeys.verifyKey)],
-          channel: "telegram",
-          dest: "@omar.public",
-          ageConfirmed: true,
         },
       }),
     ),
   );
   assert.equal(s.status, 200, JSON.stringify(s.data));
-  const otp = await json(await handleOtp(req("/api/auth/otp", { ip, body: { otpId: s.data.otpId, code: s.data.testOtp } })));
-  assert.equal(otp.status, 200, JSON.stringify(otp.data));
-  return { ...s.data, ...otp, dataKey, pwd, rec, recKeys, nick: (otp.data.nick as string) ?? (s.data.nick as string), cookie: otp.cookie! };
+  assert.equal(s.data.nick, nick.startsWith("@") ? nick : nick.toLowerCase());
+  return { ...s.data, dataKey, pwd, rec, recKeys, nick: s.data.nick as string, cookie: s.cookie! };
+
 }
 
 describe("auth-key-only login and recovery", () => {
@@ -579,7 +576,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(((after.data.otp as { telegram: { username?: string } }).telegram.username), "new.channel");
   });
 
-  it("allows signup without an age gate and rejects email OTP while the flag is off", async () => {
+  it("creates an AMR ID without Telegram or email OTP", async () => {
     const pwd = await derivePasswordKeys("correct-battery-horse");
     const rec = await deriveRecoveryKeys(generateRecoveryCode());
     const dataKey = await generateDataKey();
@@ -619,8 +616,7 @@ describe("auth-key-only login and recovery", () => {
         }),
       ),
     );
-    assert.equal(email.status, 400);
-    assert.equal(email.data.error, "email_otp_disabled");
+    assert.equal(email.status, 200, JSON.stringify(email.data));
   });
 
   it("allows a nick change exactly once, only with the password, and never reissues the old nick", async () => {
