@@ -576,7 +576,7 @@ describe("auth-key-only login and recovery", () => {
       await handleSignup(
         req("/api/auth/signup", {
           body: {
-            nick: "@AMR-580-580",
+            nick: "Murad",
             authKey: encodeAuthKey(pwd.authKey),
             recoveryVerifyKey: encodeAuthKey(rec.verifyKey),
             kdfPassword: pwd.params,
@@ -590,7 +590,7 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(noAge.status, 200, JSON.stringify(noAge.data));
-    assert.equal(noAge.data.nick, "@AMR-580-580");
+    assert.equal(noAge.data.nick, "murad.amr");
     assert.ok(noAge.cookie);
     const directLogin = await json(await handleLogin(req("/api/auth/login", { body: { nick: noAge.data.nick, authKey: encodeAuthKey(pwd.authKey) } })));
     assert.equal(directLogin.status, 200, JSON.stringify(directLogin.data));
