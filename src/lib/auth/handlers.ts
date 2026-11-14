@@ -54,8 +54,6 @@ const signupSchema = z.object({
   wrapRecovery: wrappedSchema.optional(),
   wrapRecoveries: z.array(wrappedSchema).min(1).max(10).optional(),
   recoveryVerifyKeys: z.array(authKeySchema).min(1).max(10).optional(),
-  channel: z.enum(["telegram", "email"]),
-  dest: z.string().min(2).max(200),
   lang: z.string().optional(),
 });
 
@@ -372,11 +370,11 @@ export async function handleMeta(request: Request): Promise<Response> {
     storeKind: stores.kind,
     nickFormat: process.env.AMR_NICK_FORMAT ?? "xxx-xxx",
     nickReissue: false,
-    passwordMin: 10,
+    passwordMin: 8,
     passwordReset: "recovery_code_only",
     recoveryCodes: recoveryCodesCount(),
     emailOtp: emailOtpEnabled(),
-    ageRequired: true,
+    ageRequired: false,
     env: vercelEnv(),
     cardOrigin: publicCardOrigin(request),
     telegramBot: telegramOtpLive() ? `@${telegramBotUsername()}` : undefined,
@@ -456,9 +454,6 @@ export async function handleSignup(request: Request): Promise<Response> {
   const nick = await uniqueNick(body.data.nick);
   if (!nick) return json({ error: "nick_taken" }, 409);
   const now = new Date().toISOString();
-  const channel = body.data.channel as OtpChannel;
-  if (channel === "email" && !emailOtpEnabled()) return json({ error: "email_otp_disabled" }, 400);
-  const dest = body.data.dest.trim();
   const recoveryHashes: string[] = [];
   for (const k of verifyKeys) recoveryHashes.push(await hashAuthKey(k));
   const user: UserRecord = {
@@ -470,10 +465,9 @@ export async function handleSignup(request: Request): Promise<Response> {
     recoveryHashes,
     recoveryKdfs: kdfList,
     kdf: { password: body.data.kdfPassword, recovery: kdfList[0]! },
-    otp:
-      channel === "telegram"
-        ? { telegram: telegramFromUserInput(dest, false) }
-        : { email: { address: dest, verified: false } },
+    // AMR ID registration is independent of Telegram, WhatsApp, and email.
+    // External platforms are optional profile links, not account prerequisites.
+    otp: {},
     contacts: [],
     theme: "graphite",
     wrapPassword: body.data.wrapPassword as WrappedKey,
@@ -482,27 +476,9 @@ export async function handleSignup(request: Request): Promise<Response> {
     appearance: "dark",
     dataVersion: 0,
   };
-  if (channel === "telegram" && telegramOtpLive()) {
-    const pendingId = randomBytes(16).toString("base64url");
-    const pending: PendingSignup = { kind: "signup", user, dest };
-    await getStores().kv.put(otpKey(pendingId), JSON.stringify(pending), {
-      expirationTtl: Math.ceil(TELEGRAM_LINK_TTL_MS / 1000) + 60,
-    });
-    const link = await issueTelegramLink({ nick, purpose: "signup", pendingOtpId: pendingId, lang: body.data.lang });
-    return json({ nick, channel, ...linkPayload(link) });
-  }
-  const issued = await issueOtp(request, {
-    nick,
-    purpose: "signup",
-    channel,
-    dest,
-    lang: body.data.lang,
-  });
-  if (issued instanceof Response) return issued;
-  const pending: PendingSignup = { kind: "signup", user, otp: issued.otp, dest };
-  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
-  const test = isTestMode() ? { testOtp: issued.code } : {};
-  return json({ otpId: issued.otpId, nick, channel, ...test });
+  if (!(await claimNick(nick, JSON.stringify(user)))) return json({ error: "nick_taken" }, 409);
+  const { cookie } = await createSession(nick);
+  return jsonWithCookie(sessionPayload(user), cookie);
 }
 
 export async function handleLogin(request: Request): Promise<Response> {
@@ -526,11 +502,8 @@ export async function handleLogin(request: Request): Promise<Response> {
   // account's stored, already-verified destination.
   const stored = verifiedOtpDest(user);
   if (!stored) {
-    if (telegramOtpLive()) {
-      const link = await issueTelegramLink({ nick, purpose: "login", lang: body.data.lang });
-      return json({ error: "telegram_link_required", nick, ...linkPayload(link) }, 409);
-    }
-    return json({ error: "no_otp_dest" }, 400);
+    const { cookie } = await createSession(user.nick);
+    return jsonWithCookie(sessionPayload(user), cookie);
   }
   const issued = await issueOtp(request, {
     nick,
@@ -813,14 +786,13 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   if (body.data.kind === "other" && !isHttpsUrl(body.data.value)) return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
-  const needsOtp =
-    body.data.kind === "telegram" || (body.data.kind === "email" && emailOtpEnabled());
+  const needsOtp = false;
   const contact: Contact = {
     id,
     kind: body.data.kind,
     value: body.data.value.trim(),
     visible: body.data.visible ?? defaultContactVisible(body.data.kind),
-    verified: body.data.kind === "telegram" || body.data.kind === "email" ? false : !needsOtp,
+    verified: false,
     label: body.data.label,
   };
   user.contacts.push(contact);
