@@ -1162,7 +1162,7 @@ export function IdApp() {
                 </div>
               ) : null}
             </div>
-            <div className="ex-row"><span className="ex">{t("example")}</span></div>
+            <p className="hint">{t("nick_suffix_hint")}</p>
             <div className="note">{t("nick_change_hint")}</div>
             <div className="field">
               <label>{t("password")}</label>
