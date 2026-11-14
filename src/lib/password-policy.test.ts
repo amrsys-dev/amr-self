@@ -5,7 +5,7 @@ import { checkPassword } from "./password-policy.ts";
 describe("password policy", () => {
   it("rejects short and common passwords", () => {
     assert.equal(checkPassword("short").ok, false);
-    const short = checkPassword("123456789"); assert.equal(short.ok, false); if (!short.ok) assert.equal(short.reason, "short");
+    const short = checkPassword("Aa1!abc"); assert.equal(short.ok, false); if (!short.ok) assert.equal(short.reason, "short");
     const weak1 = checkPassword("password123"); assert.equal(weak1.ok, false); if (!weak1.ok) assert.equal(weak1.reason, "weak");
     const weak2 = checkPassword("1234567890"); assert.equal(weak2.ok, false); if (!weak2.ok) assert.equal(weak2.reason, "weak");
     const weak3 = checkPassword("aaaaaaaaaa"); assert.equal(weak3.ok, false); if (!weak3.ok) assert.equal(weak3.reason, "weak");
@@ -17,6 +17,7 @@ describe("password policy", () => {
   });
 
   it("accepts a reasonably long unique password", () => {
-    assert.deepEqual(checkPassword("correct-battery-horse"), { ok: true });
+    assert.deepEqual(checkPassword("Correct-battery-7!"), { ok: true });
+    assert.deepEqual(checkPassword("Aa1!bcde"), { ok: true });
   });
 });
