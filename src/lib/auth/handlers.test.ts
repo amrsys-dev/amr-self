@@ -82,6 +82,12 @@ async function signup(nick: string, password: string, ip?: string) {
   );
   assert.equal(s.status, 200, JSON.stringify(s.data));
   assert.equal(s.data.nick, nick.startsWith("@") ? nick : nick.toLowerCase());
+  // Legacy-flow tests seed a verified Telegram destination to exercise existing 2FA behavior.
+  const storedRaw = await getStores().kv.get(nickKey(s.data.nick as string));
+  assert.ok(storedRaw);
+  const storedUser = JSON.parse(storedRaw!) as { otp: Record<string, unknown> };
+  storedUser.otp.telegram = { username: "omar.public", verified: true };
+  await getStores().kv.put(nickKey(s.data.nick as string), JSON.stringify(storedUser));
   return { ...s.data, dataKey, pwd, rec, recKeys, nick: s.data.nick as string, cookie: s.cookie! };
 
 }
