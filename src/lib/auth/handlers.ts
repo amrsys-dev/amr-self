@@ -44,7 +44,7 @@ const wrappedSchema = z.object({
 const authKeySchema = z.string().min(16).max(128);
 
 const signupSchema = z.object({
-  nick: z.string().optional(),
+  nick: z.string().min(3).max(40),
   authKey: authKeySchema,
   recoveryVerifyKey: authKeySchema.optional(),
   kdfPassword: kdfSchema,
