@@ -332,7 +332,7 @@ export function IdApp() {
       if (!kdfRes.ok || !kdfRes.data.kdf) return fail(kdfRes.status, kdfRes.data as { error?: string });
       const { salt, opts } = keysFromParams(kdfRes.data.kdf);
       const pwd = await derivePasswordKeys(password, salt, opts);
-      const r = await api<{ otpId: string; testOtp?: string; error?: string; deepLink?: string; linkToken?: string }>("/api/auth/login", {
+      const r = await api<SessionState & { otpId?: string; testOtp?: string; error?: string; deepLink?: string; linkToken?: string }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ nick, authKey: encodeAuthKey(pwd.authKey), lang }),
       });
@@ -345,6 +345,15 @@ export function IdApp() {
         }
         return fail(r.status, r.data as { error?: string });
       }
+      if (r.data.cardPath) {
+        setSession(r.data);
+        setAppearance(r.data.appearance);
+        setTestOtp(undefined);
+        setKeyVersion((v) => v + 1);
+        setScreen("today");
+        return;
+      }
+      if (!r.data.otpId) return fail(400, { error: "invalid" });
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
       setScreen("login-2fa");
@@ -1133,7 +1142,6 @@ export function IdApp() {
             <div className="field">
               <label>{t("new_nick_label")}</label>
               <div className="box">
-                <span className="pre">@</span>
                 <input
                   placeholder="murad"
                   value={newNick.replace(/^@/, "")}
@@ -1164,7 +1172,7 @@ export function IdApp() {
             <div className="btns">
               <button className="btn g" type="button" onClick={() => setScreen("profile")}>{t("cancel")}</button>
               <button
-                className={`btn p ${busy || newNickStatus !== "free" || reauthPassword.length < 10 ? "off" : ""}`}
+                className={`btn p ${busy || newNickStatus !== "free" || reauthPassword.length < 8 ? "off" : ""}`}
                 type="button"
                 onClick={() => void submitNickChange()}
               >
