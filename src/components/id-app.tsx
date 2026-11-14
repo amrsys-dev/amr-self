@@ -1145,6 +1145,7 @@ export function IdApp() {
               <div className="box">
                 <span className="pre">@</span>
                 <input
+                  placeholder="murad"
                   value={newNick.replace(/^@/, "")}
                   onChange={(e) => {
                     const v = e.target.value;
