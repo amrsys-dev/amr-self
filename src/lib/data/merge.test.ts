@@ -46,10 +46,10 @@ describe("per-record merge on If-Match conflict", () => {
     const remote = emptyUserData();
     local.work.tasks = [rec("t-local", "2026-03-01T00:00:00.000Z")];
     remote.work.tasks = [rec("t-remote", "2026-03-02T00:00:00.000Z")];
-    local.finance.gigs = [rec("g1", "2026-04-01T00:00:00.000Z", { title: "old" })];
-    remote.finance.gigs = [rec("g1", "2026-05-01T00:00:00.000Z", { title: "new" })];
+    local.finance.plannedIncome = [rec("g1", "2026-04-01T00:00:00.000Z", { title: "old" }) as never];
+    remote.finance.plannedIncome = [rec("g1", "2026-05-01T00:00:00.000Z", { title: "new" }) as never];
     const out = mergeUserData(local, remote);
     assert.equal(out.work.tasks.length, 2);
-    assert.equal((out.finance.gigs[0] as unknown as { title: string }).title, "new");
+    assert.equal((out.finance.plannedIncome[0] as unknown as { title: string }).title, "new");
   });
 });

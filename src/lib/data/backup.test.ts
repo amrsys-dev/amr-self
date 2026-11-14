@@ -6,7 +6,7 @@ import { emptyUserData } from "./schema.ts";
 describe("backup file", () => {
   it("round-trips user data", () => {
     const data = emptyUserData();
-    data.finance.income.push({ id: "a1", updatedAt: "2026-11-14T10:00:00.000Z" });
+    data.finance.income.push({ id: "a1", updatedAt: "2026-11-14T10:00:00.000Z", date: "2026-11-14", amount: 30000, category: "gig", kind: "advance" });
     const r = parseBackup(buildBackup(data, new Date("2026-11-14T10:00:00Z")));
     assert.equal(r.ok, true);
     if (r.ok) {

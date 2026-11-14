@@ -17,12 +17,13 @@ export const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
  * sync. Tombstones older than TOMBSTONE_TTL_MS are pruned. Screens show rows
  * through live().
  */
-export function mergeRecordList(a: unknown[], b: unknown[], now: number = Date.now()): DataRecord[] {
-  const map = new Map<string, DataRecord>();
+export function mergeRecordList<T extends DataRecord = DataRecord>(a: readonly unknown[], b: readonly unknown[], now: number = Date.now()): T[] {
+  const map = new Map<string, T>();
   for (const item of [...a, ...b]) {
     if (!isRecord(item)) continue;
+    const row = item as T;
     const prev = map.get(item.id);
-    if (!prev || item.updatedAt > prev.updatedAt) map.set(item.id, item);
+    if (!prev || row.updatedAt > prev.updatedAt) map.set(row.id, row);
   }
   return [...map.values()].filter((r) => !r.deleted || now - Date.parse(r.updatedAt) < TOMBSTONE_TTL_MS);
 }
@@ -46,10 +47,10 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
     v: 1,
     finance: {
       salary: mergeSalary(l.finance.salary, r.finance.salary),
-      gigs: mergeRecordList(l.finance.gigs, r.finance.gigs),
+      plannedIncome: mergeRecordList(l.finance.plannedIncome, r.finance.plannedIncome),
       income: mergeRecordList(l.finance.income, r.finance.income),
       expense: mergeRecordList(l.finance.expense, r.finance.expense),
-      planned: mergeRecordList(l.finance.planned, r.finance.planned),
+      plannedExpense: mergeRecordList(l.finance.plannedExpense, r.finance.plannedExpense),
       limits: mergeRecordList(l.finance.limits, r.finance.limits),
     },
     work: { tasks: mergeRecordList(l.work.tasks, r.work.tasks) },
