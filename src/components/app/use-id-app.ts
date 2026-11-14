@@ -3,10 +3,16 @@ import type { Contact, ContactKind, PublicContact } from "@/lib/card/visibility.
 import { toPublicContacts } from "@/lib/card/visibility.ts";
 import { api } from "@/lib/client.ts";
 import { derivePasswordKeys, deriveRecoveryKeys, encodeAuthKey, generateDataKey, generateRecoveryCodes, keysFromParams, type KdfParams, unwrapDataKey, wrapDataKey, type WrappedKey } from "@/lib/crypto.ts";
-import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
+import { loadLocalData, saveLocalData, startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
+import { loadGuestData, recallDataKey, rememberDataKey, requestPersistentStorage, saveGuestData, wipeDeviceStore } from "@/lib/data/device-store.ts";
+import { backupFileName, buildBackup, parseBackup } from "@/lib/data/backup.ts";
+import type { UserData } from "@/lib/data/schema.ts";
 import { checkPassword } from "@/lib/password-policy.ts";
 import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import type { Meta, Screen, SessionState } from "./types.ts";
+
+const GUEST_FLAG = "amrself.guest";
+const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
 export function useIdApp() {
@@ -44,23 +50,39 @@ export function useIdApp() {
   const [sheet, setSheet] = useState<"kind" | "value" | null>(null);
   const [newKind, setNewKind] = useState<ContactKind>("telegram");
   const [newValue, setNewValue] = useState("");
+  /** Using the assistant on this device without an account. */
+  const [guest, setGuest] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<MsgKey | "">("");
 
   useEffect(() => {
     localStorage.setItem("amrid.lang", lang);
   }, [lang]);
 
   useEffect(() => {
+    void requestPersistentStorage();
+    const wasGuest = localStorage.getItem(GUEST_FLAG) === "1";
+    if (wasGuest) {
+      setGuest(true);
+      setScreen("today");
+    }
     void api<Meta>("/api/meta").then((r) => {
       if (r.ok) setMeta(r.data);
     });
-    void api<SessionState>("/api/me").then((r) => {
+    void api<SessionState>("/api/me").then(async (r) => {
       if (r.ok) {
+        // The data key lives only in memory after login; get it back from the
+        // device store so the user is not asked for the password on every launch.
+        dataKeyRef.current = await recallDataKey(r.data.nick);
         setSession(r.data);
         setAppearance(r.data.appearance);
         setScreen("today");
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (session && dataKeyRef.current) void rememberDataKey(session.nick, dataKeyRef.current);
+  }, [session]);
 
   useEffect(() => {
     return startSyncLoop(() => ({ key: dataKeyRef.current, accountId: accountIdRef.current }));
@@ -267,6 +289,8 @@ export function useIdApp() {
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
     await wipeLocalData();
+    await wipeDeviceStore();
+    endGuest();
     dataKeyRef.current = null;
     accountIdRef.current = null;
     setSession(null);
@@ -277,6 +301,8 @@ export function useIdApp() {
 
   async function afterWipe() {
     await wipeLocalData();
+    await wipeDeviceStore();
+    endGuest();
     dataKeyRef.current = null;
     accountIdRef.current = null;
     setSession(null);
@@ -516,7 +542,64 @@ export function useIdApp() {
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
   const cls = `app ${appearance === "light" ? "light" : "dark"} ${skin}`;
-  const inShell = session && ["today", "finance", "work", "more", "profile"].includes(screen);
+  const inShell = Boolean(session || guest) && SHELL_SCREENS.includes(screen);
+
+  function startGuest() {
+    localStorage.setItem(GUEST_FLAG, "1");
+    setGuest(true);
+    setScreen("today");
+  }
+
+  function endGuest() {
+    localStorage.removeItem(GUEST_FLAG);
+    setGuest(false);
+  }
+
+  /** Current data, from the account store when signed in, else from the guest store. */
+  async function currentData(): Promise<UserData | null> {
+    if (session) {
+      const key = dataKeyRef.current;
+      return key ? loadLocalData(key, session.nick) : null;
+    }
+    return loadGuestData();
+  }
+
+  async function exportBackup() {
+    setBackupMsg("");
+    const data = await currentData();
+    if (!data) {
+      setBackupMsg("backup_need_password");
+      return;
+    }
+    const blob = new Blob([buildBackup(data)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = backupFileName();
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    setBackupMsg("backup_saved");
+  }
+
+  async function importBackup(file: File) {
+    setBackupMsg("");
+    const parsed = parseBackup(await file.text());
+    if (!parsed.ok) {
+      setBackupMsg(parsed.reason === "newer_version" ? "backup_newer" : "backup_bad_file");
+      return;
+    }
+    if (session) {
+      const key = dataKeyRef.current;
+      if (!key) {
+        setBackupMsg("backup_need_password");
+        return;
+      }
+      // Marked dirty, so the sync loop uploads it on the next tick.
+      await saveLocalData(key, session.nick, parsed.data);
+    } else {
+      await saveGuestData(parsed.data);
+    }
+    setBackupMsg("backup_restored");
+  }
 
   return {
     lang,
@@ -605,6 +688,14 @@ export function useIdApp() {
     skin,
     cls,
     inShell,
+    guest,
+    setGuest,
+    backupMsg,
+    setBackupMsg,
+    startGuest,
+    endGuest,
+    exportBackup,
+    importBackup,
   };
 }
 

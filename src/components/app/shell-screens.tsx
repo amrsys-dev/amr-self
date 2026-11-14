@@ -19,11 +19,11 @@ function Soon({ title, t, onBack }: { title: string; t: (k: MsgKey) => string; o
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, appearance, setAppearance, meta, session, setErr, setTestOtp, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, setSheet, logout, saveProfile, toggleContact, inShell } = app;
+  const { lang, setLang, t, screen, setScreen, appearance, setAppearance, meta, session, setErr, setTestOtp, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, setSheet, logout, saveProfile, toggleContact, inShell, guest, backupMsg, exportBackup, importBackup, suggestNick } = app;
   return (
     <>
 
-    {inShell && session && (
+    {inShell && (
       <>
         <Header title={screen === "today" ? t("today") : screen === "finance" ? t("finance") : screen === "work" ? t("work") : screen === "more" ? t("more") : t("profile")} />
         <div className="page withnav">
@@ -48,13 +48,13 @@ export function ShellScreens({ app }: { app: App }) {
           {screen === "more" && (
             <div className="tiles">
               {(["visa", "diary", "sport", "plans", "card"] as const).map((k) => (
-                <button key={k} className="tile" type="button" onClick={() => setScreen(k)}>
+                <button key={k} className="tile" type="button" onClick={() => setScreen(k === "card" && !session ? "profile" : k)}>
                   <b>{t(k)}</b>
                 </button>
               ))}
             </div>
           )}
-          {screen === "profile" && (
+          {screen === "profile" && session && (
             <>
               <div className="card hero" style={{ textAlign: "center" }}>
                 <div className="nick" style={{ fontSize: 28 }}>
@@ -165,6 +165,50 @@ export function ShellScreens({ app }: { app: App }) {
               ) : null}
             </>
           )}
+          {screen === "profile" && !session && (
+            <div className="card hero" style={{ textAlign: "center" }}>
+              <h2>{t("guest_title")}</h2>
+              <p className="sub">{t("guest_sub")}</p>
+              <div className="btns">
+                <button className="btn p" type="button" onClick={() => { void suggestNick(); setScreen("signup-nick"); }}>
+                  {t("create_id")}
+                </button>
+              </div>
+              <div className="btns">
+                <button className="btn g" type="button" onClick={() => setScreen("login")}>
+                  {t("have_id")}
+                </button>
+              </div>
+            </div>
+          )}
+          {screen === "profile" && (
+            <div className="group">
+              <div className="lab">{t("backup")}</div>
+              <p className="hint">{t("backup_hint_file")}</p>
+              <div className="btns">
+                <button className="btn g" type="button" onClick={() => void exportBackup()}>
+                  {t("backup_export")}
+                </button>
+              </div>
+              <div className="btns">
+                <label className="btn g">
+                  {t("backup_import")}
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void importBackup(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : null}
+              {!session ? <LangPicker lang={lang} setLang={setLang} t={t} /> : null}
+            </div>
+          )}
         </div>
         <nav className="nav">
           {([
@@ -182,10 +226,10 @@ export function ShellScreens({ app }: { app: App }) {
       </>
     )}
 
-    {session && screen === "visa" && <Soon title={t("visa")} t={t} onBack={() => setScreen("more")} />}
-    {session && screen === "diary" && <Soon title={t("diary")} t={t} onBack={() => setScreen("more")} />}
-    {session && screen === "sport" && <Soon title={t("sport")} t={t} onBack={() => setScreen("more")} />}
-    {session && screen === "plans" && <Soon title={t("plans")} t={t} onBack={() => setScreen("more")} />}
+    {(session || guest) && screen === "visa" && <Soon title={t("visa")} t={t} onBack={() => setScreen("more")} />}
+    {(session || guest) && screen === "diary" && <Soon title={t("diary")} t={t} onBack={() => setScreen("more")} />}
+    {(session || guest) && screen === "sport" && <Soon title={t("sport")} t={t} onBack={() => setScreen("more")} />}
+    {(session || guest) && screen === "plans" && <Soon title={t("plans")} t={t} onBack={() => setScreen("more")} />}
 
     </>
   );
