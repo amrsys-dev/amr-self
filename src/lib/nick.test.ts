@@ -20,7 +20,7 @@ describe("AMR human-readable nicknames", () => {
     assert.equal(normalizeNick("@admin", fmt), null);
     assert.equal(normalizeNick("@bad name", fmt), null);
     assert.equal(normalizeNick("@bad/name", fmt), null);
-    assert.equal(normalizeNick("@murad..x", fmt), "@murad..x.amr");
+    assert.equal(normalizeNick("@murad..x", fmt), null);
   });
   it("uses the canonical handle in public card paths", () => {
     assert.equal(publicCardPath("@murad.amr"), "/u/murad.amr");
