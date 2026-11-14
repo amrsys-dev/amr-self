@@ -166,3 +166,15 @@ export function startSyncLoop(getCtx: () => SyncContext, intervalMs = 3 * 60_000
     if (typeof window !== "undefined") window.removeEventListener("online", onOnline);
   };
 }
+
+/**
+ * Hydrate the workspace without overwriting pending offline edits.
+ * A dirty IndexedDB record is the source of truth until its next sync.
+ */
+export async function loadUserData(dataKey: Uint8Array, accountId: string): Promise<UserData> {
+  const rec = await readRecord();
+  if (rec?.accountId === accountId && rec.dirty) {
+    return (await decryptAndDecompress(dataKey, rec.blob, { accountId, version: rec.version })) as UserData;
+  }
+  return pullRemote(dataKey, accountId);
+}
