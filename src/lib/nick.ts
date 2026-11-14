@@ -49,7 +49,7 @@ export function generateNick(
 ): string {
   const bytes = rnd(new Uint8Array(5));
   const suffix = Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
-  return `@member-${suffix}.amr`;
+  return `member-${suffix}.amr`;
 }
 
 export function nickWithoutAt(nick: string): string {
