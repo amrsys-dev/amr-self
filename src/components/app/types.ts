@@ -64,3 +64,8 @@ export const GLYPH: Record<ContactKind, string> = {
   email: "@",
   other: "+",
 };
+
+/** Id that encrypted data is bound to. Stays the same after a nick change. */
+export function accountIdOf(s: SessionState): string {
+  return s.dataId ?? s.nick;
+}

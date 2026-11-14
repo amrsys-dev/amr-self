@@ -25,6 +25,8 @@ type Props = {
   lang: Lang;
   onUnlock: (key: Uint8Array) => void;
   onOpenCard: () => void;
+  /** Guest mode: data lives only on this device, no account key or lock screen. */
+  guestStore?: { load: () => Promise<UserData>; save: (data: UserData) => Promise<void> };
 };
 
 const COPY = {
@@ -173,12 +175,12 @@ const money = (n: number) => new Intl.NumberFormat("en-SA", { style: "currency",
 const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateString() : "";
 
 export function SelfWorkspace({
-  section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard,
+  section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore,
 }: Props) {
   const t = (key: CopyKey) => COPY[lang][key] ?? COPY.en[key];
   const [data, setData] = useState<UserData>(emptyUserData);
   const [loading, setLoading] = useState(false);
-  const [locked, setLocked] = useState(!dataKey);
+  const [locked, setLocked] = useState(!dataKey && !guestStore);
   const [loadError, setLoadError] = useState(false);
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState(false);
@@ -196,7 +198,7 @@ export function SelfWorkspace({
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
 
   useEffect(() => {
-    if (!dataKey) {
+    if (!dataKey && !guestStore) {
       setLocked(true);
       return;
     }
@@ -204,12 +206,12 @@ export function SelfWorkspace({
     setLoading(true);
     setLocked(false);
     setLoadError(false);
-    void loadUserData(dataKey, accountId)
+    void (guestStore ? guestStore.load() : loadUserData(dataKey!, accountId))
       .then((next) => { if (alive) setData(next); })
       .catch(() => { if (alive) setLoadError(true); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [accountId, dataKey, keyVersion]);
+  }, [accountId, dataKey, keyVersion, guestStore]);
 
   const health = data.health ?? emptyUserData().health!;
   const today = todayKey();
@@ -231,8 +233,10 @@ export function SelfWorkspace({
   async function persist(next: UserData) {
     setData(next);
     setSaveError(false);
-    if (!dataKey) return;
-    try { await saveLocalData(dataKey, accountId, next); }
+    try {
+      if (guestStore) await guestStore.save(next);
+      else if (dataKey) await saveLocalData(dataKey, accountId, next);
+    }
     catch { setSaveError(true); }
   }
 
@@ -306,7 +310,7 @@ export function SelfWorkspace({
     await persist({ ...data, work: { ...data.work, tasks: data.work.tasks.map((r) => r.id === task.id ? nextTask : r) } });
   }
 
-  if (locked || !dataKey) {
+  if (locked || (!dataKey && !guestStore)) {
     return (
       <div className="self-lock">
         <div className="self-lock-mark">S</div>

@@ -14,10 +14,16 @@ import {
   wrapDataKey,
   type WrappedKey,
 } from "@/lib/crypto.ts";
-import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
+import { loadLocalData, saveLocalData, startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
+import { loadGuestData, recallDataKey, rememberDataKey, requestPersistentStorage, saveGuestData, wipeDeviceStore } from "@/lib/data/device-store.ts";
+import { backupFileName, buildBackup, parseBackup } from "@/lib/data/backup.ts";
+import type { UserData } from "@/lib/data/schema.ts";
 import { checkPassword } from "@/lib/password-policy.ts";
 import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
-import type { Meta, Screen, SessionState } from "./types.ts";
+import { accountIdOf, type Meta, type Screen, type SessionState } from "./types.ts";
+
+const GUEST_FLAG = "amrself.guest";
+const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
 export function useIdApp() {
@@ -33,6 +39,9 @@ export function useIdApp() {
   const [deepLink, setDeepLink] = useState("");
   const [linkToken, setLinkToken] = useState("");
   const [keyVersion, setKeyVersion] = useState(0);
+  /** Using the assistant on this device without an account. */
+  const [guest, setGuest] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<MsgKey | "">("");
 
   const [nick, setNick] = useState("");
   const [nickStatus, setNickStatus] = useState<"free" | "taken" | "format" | "">("");
@@ -63,11 +72,23 @@ export function useIdApp() {
   }, [lang]);
 
   useEffect(() => {
+    void requestPersistentStorage();
+    if (localStorage.getItem(GUEST_FLAG) === "1") {
+      setGuest(true);
+      setScreen("today");
+    }
     void api<Meta>("/api/meta").then((r) => {
       if (r.ok) setMeta(r.data);
     });
-    void api<SessionState>("/api/me").then((r) => {
+    void api<SessionState>("/api/me").then(async (r) => {
       if (r.ok) {
+        // The data key is only in memory after login. Get it back from the
+        // device store so the password is not asked on every launch.
+        const key = await recallDataKey(accountIdOf(r.data));
+        if (key) {
+          dataKeyRef.current = key;
+          setKeyVersion((v) => v + 1);
+        }
         setSession(r.data);
         setAppearance(r.data.appearance);
         setScreen("today");
@@ -76,11 +97,15 @@ export function useIdApp() {
   }, []);
 
   useEffect(() => {
+    if (session && dataKeyRef.current) void rememberDataKey(accountIdOf(session), dataKeyRef.current);
+  }, [session, keyVersion]);
+
+  useEffect(() => {
     return startSyncLoop(() => ({ key: dataKeyRef.current, accountId: accountIdRef.current }));
   }, []);
 
   useEffect(() => {
-    accountIdRef.current = session ? (session.dataId ?? session.nick) : null;
+    accountIdRef.current = session ? accountIdOf(session) : null;
   }, [session]);
 
   const origin = meta?.cardOrigin || (typeof window !== "undefined" ? window.location.origin : "");
@@ -280,6 +305,8 @@ export function useIdApp() {
     accountIdRef.current = null;
     setKeyVersion((v) => v + 1);
     await wipeLocalData();
+    await wipeDeviceStore();
+    endGuest();
     setSession(null);
     setPassword("");
     setRecovery("");
@@ -292,6 +319,8 @@ export function useIdApp() {
     accountIdRef.current = null;
     setKeyVersion((v) => v + 1);
     await wipeLocalData();
+    await wipeDeviceStore();
+    endGuest();
     setSession(null);
     setPassword("");
     setReauthPassword("");
@@ -529,7 +558,67 @@ export function useIdApp() {
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
   const cls = `app ${appearance === "light" ? "light" : "dark"} ${skin}`;
-  const inShell = session && ["today", "finance", "work", "more", "profile"].includes(screen);
+  const inShell = Boolean(session || guest) && SHELL_SCREENS.includes(screen);
+  /** Passed to the workspace in guest mode; stable so it does not reload on every render. */
+  const guestStore = useMemo(() => ({ load: loadGuestData, save: saveGuestData }), []);
+
+  function startGuest() {
+    localStorage.setItem(GUEST_FLAG, "1");
+    setGuest(true);
+    setScreen("today");
+  }
+
+  function endGuest() {
+    localStorage.removeItem(GUEST_FLAG);
+    setGuest(false);
+  }
+
+  /** Current data: the account store when signed in, else the guest store. */
+  async function currentData(): Promise<UserData | null> {
+    if (session) {
+      const key = dataKeyRef.current;
+      return key ? loadLocalData(key, accountIdOf(session)) : null;
+    }
+    return loadGuestData();
+  }
+
+  async function exportBackup() {
+    setBackupMsg("");
+    const data = await currentData();
+    if (!data) {
+      setBackupMsg("backup_need_password");
+      return;
+    }
+    const blob = new Blob([buildBackup(data)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = backupFileName();
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+    setBackupMsg("backup_saved");
+  }
+
+  async function importBackup(file: File) {
+    setBackupMsg("");
+    const parsed = parseBackup(await file.text());
+    if (!parsed.ok) {
+      setBackupMsg(parsed.reason === "newer_version" ? "backup_newer" : "backup_bad_file");
+      return;
+    }
+    if (session) {
+      const key = dataKeyRef.current;
+      if (!key) {
+        setBackupMsg("backup_need_password");
+        return;
+      }
+      // Marked dirty, so the sync loop uploads it on the next tick.
+      await saveLocalData(key, accountIdOf(session), parsed.data);
+    } else {
+      await saveGuestData(parsed.data);
+    }
+    setKeyVersion((v) => v + 1); // reload the workspace with the restored data
+    setBackupMsg("backup_restored");
+  }
 
   return {
     lang,
@@ -622,6 +711,15 @@ export function useIdApp() {
     skin,
     cls,
     inShell,
+    guest,
+    setGuest,
+    backupMsg,
+    setBackupMsg,
+    guestStore,
+    startGuest,
+    endGuest,
+    exportBackup,
+    importBackup,
   };
 }
 

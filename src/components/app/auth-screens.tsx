@@ -5,7 +5,7 @@ import type { App } from "./use-id-app.ts";
 
 /** Welcome, sign-up, login, recovery. */
 export function AuthScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin } = app;
+  const { lang, setLang, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin, startGuest } = app;
   return (
     <>
     {screen === "welcome" && (
@@ -38,6 +38,11 @@ export function AuthScreens({ app }: { app: App }) {
           <div className="btns">
             <button className="btn g" type="button" onClick={() => setScreen("login")}>
               {t("have_id")}
+            </button>
+          </div>
+          <div className="btns">
+            <button className="link-quiet" type="button" onClick={startGuest}>
+              {t("start_without_account")}
             </button>
           </div>
           <LangPicker lang={lang} setLang={setLang} t={t} />
