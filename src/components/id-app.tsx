@@ -17,7 +17,7 @@ import {
 } from "@/lib/crypto.ts";
 import { deriveRecoveryCandidates, encodedVerifyKeys, recoveryKdfList } from "@/lib/auth/recovery-client.ts";
 import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
-import { checkPassword, PASSWORD_MIN } from "@/lib/password-policy.ts";
+import { checkPassword } from "@/lib/password-policy.ts";
 import { LANGS, detectLang, isRtl, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { CardHero } from "./qr-card.tsx";
 import { SelfWorkspace } from "./self-workspace.tsx";
