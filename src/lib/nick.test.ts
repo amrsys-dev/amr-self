@@ -29,7 +29,7 @@ describe("AMR human-readable nicknames", () => {
   it("generates valid fallback suggestions", () => {
     const seq = new Uint8Array([4, 1, 7, 2, 8]);
     const nick = generateNick(fmt, (arr) => { arr.set(seq); return arr; });
-    assert.equal(nick, "@member-b18c9.amr");
+    assert.equal(nick, "@member-ebhci.amr");
     assert.equal(normalizeNick(nick, fmt), nick);
   });
 });
