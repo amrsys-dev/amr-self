@@ -1,4 +1,4 @@
-/** Human-chosen AMR handles. New handles are canonicalized to @name.amr. */
+/** Human-chosen AMR handles. New handles are canonicalized to name.amr. */
 
 export type NickFormat = {
   prefix: string;
