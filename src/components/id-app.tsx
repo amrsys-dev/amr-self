@@ -90,7 +90,7 @@ function Brand() {
       <span className="monopl">
         <img className="mono" src="/amr-mono.png" alt="" />
       </span>
-      <span className="appname">AMR ID</span>
+      <span className="appname">SELF</span>
     </div>
   );
 }
