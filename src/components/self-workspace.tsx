@@ -217,7 +217,7 @@ export function SelfWorkspace({
   const monthIncome = useMemo(() => sum(data.finance.income.filter((r) => (r.date ?? "").startsWith(month))), [data.finance.income, month]);
   const monthExpense = useMemo(() => sum(data.finance.expense.filter((r) => (r.date ?? "").startsWith(month))), [data.finance.expense, month]);
   const todayTasks = active(data.work.tasks).filter((r) => !r.completed && (!r.dueDate || r.dueDate <= today));
-  const doneTasks = active(data.work.tasks).filter((r) => r.completed && r.updatedAt.slice(0, 10) === today);
+  const doneTasks = active(data.work.tasks).filter((r) => r.completed);
   const waterToday = active(health.water).filter((r) => r.date === today).reduce((n, r) => n + Number(r.amount ?? 0), 0);
   const lastWeight = active(health.weight).slice().sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))[0];
   const entries = useMemo(() => [
@@ -338,7 +338,7 @@ export function SelfWorkspace({
 
   return (
     <div className="self-workspace" dir={lang === "ar" ? "rtl" : "ltr"}>
-      <div className="self-status"><span className="self-status-dot" />{t("saved")} <span>·</span> {t("syncing")}</div>
+      <div className="self-status"><span className="self-status-dot" />{t("saved")}</div>
 
       {section === "today" && !subPage && (
         <>
