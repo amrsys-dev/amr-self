@@ -36,3 +36,37 @@ describe("per-record merge on If-Match conflict", () => {
     assert.equal((out.finance.gigs[0] as unknown as { title: string }).title, "new");
   });
 });
+
+
+describe("extended SELF personal records", () => {
+  it("preserves typed finance, task and health fields across a merge", () => {
+    const local = emptyUserData();
+    const remote = emptyUserData();
+    local.finance.income.push({
+      id: "inc-1", updatedAt: "2026-11-14T08:00:00.000Z",
+      title: "Furniture order", amount: 450, currency: "SAR", category: "freelance", date: "2026-11-14",
+    });
+    remote.work.tasks.push({
+      id: "task-1", updatedAt: "2026-11-14T09:00:00.000Z",
+      title: "Prepare estimate", dueDate: "2026-11-14", priority: "high", completed: true,
+    });
+    local.health!.water.push({
+      id: "water-1", updatedAt: "2026-11-14T10:00:00.000Z",
+      kind: "water", title: "Water", date: "2026-11-14", amount: 250, unit: "ml",
+    });
+
+    const merged = mergeUserData(local, remote);
+    assert.equal(merged.finance.income[0]?.amount, 450);
+    assert.equal(merged.finance.income[0]?.currency, "SAR");
+    assert.equal(merged.work.tasks[0]?.priority, "high");
+    assert.equal(merged.work.tasks[0]?.completed, true);
+    assert.equal(merged.health?.water[0]?.amount, 250);
+  });
+
+  it("upgrades legacy records without a health property to an empty health model", () => {
+    const legacy = emptyUserData();
+    delete (legacy as { health?: typeof legacy.health }).health;
+    const merged = mergeUserData(legacy, emptyUserData());
+    assert.deepEqual(merged.health, { water: [], weight: [], nutrition: [], workouts: [] });
+  });
+});
