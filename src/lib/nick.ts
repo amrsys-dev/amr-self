@@ -9,7 +9,7 @@ export type NickFormat = {
 const PREFIX = "AMR";
 const DIGITS = "0123456789";
 const LEGACY_PATTERN = /^@?AMR-\\d{3,8}(?:-\\d{3,8})+$/i;
-const HANDLE_PATTERN = /^[a-z0-9](?:[a-z0-9._-]{1,22}[a-z0-9])?$/i;
+const HANDLE_PATTERN = /^(?=.{3,24}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/i;
 
 export function parseNickFormat(spec?: string): NickFormat {
   const raw = (spec ?? defaultNickFormatSpec()).trim().toLowerCase();
