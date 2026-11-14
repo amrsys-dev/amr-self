@@ -19,9 +19,11 @@ describe("per-record merge on If-Match conflict", () => {
     assert.equal((merged.find((x) => x.id === "1") as unknown as { n: number }).n, 2);
   });
 
-  it("drops a record marked deleted when that write is newer", () => {
-    const kept = mergeRecordList([rec("1", "2026-01-01T00:00:00.000Z")], [rec("1", "2026-01-02T00:00:00.000Z", { deleted: true })]);
-    assert.equal(kept.length, 0);
+  it("retains a newer deletion tombstone to prevent stale replicas resurrecting a row", () => {
+    const deleted = rec("1", "2026-01-02T00:00:00.000Z", { deleted: true });
+    const merged = mergeRecordList([rec("1", "2026-01-01T00:00:00.000Z")], [deleted]);
+    assert.deepEqual(merged, [deleted]);
+    assert.deepEqual(mergeRecordList(merged, [rec("1", "2026-01-01T00:00:00.000Z")]), [deleted]);
   });
 
   it("merges UserData collections independently", () => {
