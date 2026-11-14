@@ -263,8 +263,7 @@ export function IdApp() {
       const wrapPassword = await wrapDataKey(dataKey, pwd.wrapKey);
       const wrapRecoveries = [];
       for (const k of recKeys) wrapRecoveries.push(await wrapDataKey(dataKey, k.wrapKey));
-      const useEmail = Boolean(meta?.emailOtp) && channel === "email";
-      const r = await api<{ otpId?: string; nick: string; testOtp?: string; deepLink?: string; linkToken?: string }>("/api/auth/signup", {
+      const r = await api<SessionState>("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           nick,
@@ -277,25 +276,17 @@ export function IdApp() {
           wrapPassword,
           wrapRecovery: wrapRecoveries[0],
           wrapRecoveries,
-          channel: useEmail ? "email" : "telegram",
-          dest,
-          lang,
         }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       setNick(r.data.nick);
+      setSession(r.data);
+      setAppearance(r.data.appearance);
       setRecovery(codes[0] ?? "");
       setRecoveryCodes(codes);
-      if (r.data.deepLink && r.data.linkToken) {
-        setDeepLink(r.data.deepLink);
-        setLinkToken(r.data.linkToken);
-        setTestOtp(undefined);
-        setScreen("signup-tg-link");
-        return;
-      }
-      setOtpId(r.data.otpId ?? "");
-      setTestOtp(r.data.testOtp);
-      setScreen("signup-code");
+      setTestOtp(undefined);
+      setKeyVersion((v) => v + 1);
+      setScreen("signup-done");
     } finally {
       setBusy(false);
     }
@@ -683,7 +674,7 @@ export function IdApp() {
             <div className="card hero" style={{ textAlign: "center" }}>
               <div className="tiny">{t("example_nick")}</div>
               <div className="nick" style={{ fontSize: 28 }}>
-                @murad.amr
+                murad.amr
               </div>
             </div>
             <div className="btns">
@@ -776,7 +767,7 @@ export function IdApp() {
                     return;
                   }
                   setErr("");
-                  setScreen("signup-2fa");
+                  void submitSignup();
                 }}
               >
                 {t("next")}
@@ -1019,8 +1010,7 @@ export function IdApp() {
                         <span className="glyph ico">{GLYPH[c.kind]}</span>
                         <div className="txt">
                           <b>{c.kind === "whatsapp" ? t("listed_by_owner") : c.value}</b>
-                          <span>{c.verified ? "" : t("verify")}</span>
-                        </div>
+                                </div>
                         <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")}>
                           <i />
                         </button>
