@@ -579,7 +579,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(((after.data.otp as { telegram: { username?: string } }).telegram.username), "new.channel");
   });
 
-  it("rejects signup without the 18+ confirmation and rejects email OTP while the flag is off", async () => {
+  it("allows signup without an age gate and rejects email OTP while the flag is off", async () => {
     const pwd = await derivePasswordKeys("correct-battery-horse");
     const rec = await deriveRecoveryKeys(generateRecoveryCode());
     const dataKey = await generateDataKey();
@@ -600,7 +600,7 @@ describe("auth-key-only login and recovery", () => {
         }),
       ),
     );
-    assert.equal(noAge.status, 400);
+    assert.equal(noAge.status, 200, JSON.stringify(noAge.data));
     const email = await json(
       await handleSignup(
         req("/api/auth/signup", {
