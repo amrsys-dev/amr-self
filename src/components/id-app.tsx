@@ -436,7 +436,7 @@ export function IdApp() {
 
 
   async function checkNickStatus(value: string) {
-    if (value.trim().length < 5) {
+    if (value.trim().replace(/^@/, "").replace(/(?:\\.amr|@amr)$/i, "").length < 3) {
       setNewNickStatus("");
       return;
     }
@@ -892,13 +892,14 @@ export function IdApp() {
             <div className="field">
               <label>{t("nick")}</label>
               <div className="box">
-                <input value={nick} onChange={(e) => setNick(e.target.value)} autoCapitalize="off" />
+                <input value={nick} placeholder="yourname.amr" onChange={(e) => setNick(e.target.value)} autoCapitalize="off" />
               </div>
             </div>
             <div className="field">
               <label>{t("password")}</label>
               <div className="box">
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t("hide_password") : t("show_password")}>{showPassword ? t("hide_password") : t("show_password")}</button>
               </div>
             </div>
             {err ? <div className="err">{err}</div> : null}
