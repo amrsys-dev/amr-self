@@ -52,7 +52,7 @@ export function contactHref(c: Contact): string | null {
       if (/^https:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i.test(v)) return v;
       return `https://t.me/${v.replace(/^@/, "")}`;
     case "whatsapp":
-      if (/^https:\/\/(?:wa\.me|api\.whatsapp\.com)\//i.test(v)) return v;
+      if (/^https:\/\/(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(v)) return v;
       // The number is used only in the link; it is not printed on the card.
       return `https://wa.me/${v.replace(/[^\d]/g, "")}`;
     case "youtube":
