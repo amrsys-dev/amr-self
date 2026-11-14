@@ -1068,24 +1068,26 @@ export function IdApp() {
                     {session.nickChanged ? t("nick_change_used") : t("change_nick")}
                   </button>
                 </div>
-                <div className="btns">
-                  <button
-                    className="btn g"
-                    type="button"
-                    onClick={() => {
-                      const next = session.contacts.find((c) => c.verified && c.kind === "telegram");
-                      setPendingContactId(next?.id ?? "");
-                      setReauthPassword("");
-                      setCode("");
-                      setOtpId("");
-                      setTestOtp(undefined);
-                      setErr("");
-                      setScreen("sec-2fa-change");
-                    }}
-                  >
-                    {t("change_channel")}
-                  </button>
-                </div>
+                {session.contacts.some((c) => c.verified && c.kind === "telegram") ? (
+                  <div className="btns">
+                    <button
+                      className="btn g"
+                      type="button"
+                      onClick={() => {
+                        const next = session.contacts.find((c) => c.verified && c.kind === "telegram");
+                        setPendingContactId(next?.id ?? "");
+                        setReauthPassword("");
+                        setCode("");
+                        setOtpId("");
+                        setTestOtp(undefined);
+                        setErr("");
+                        setScreen("sec-2fa-change");
+                      }}
+                    >
+                      {t("change_channel")}
+                    </button>
+                  </div>
+                ) : null}
                 <div className="btns">
                   <button className="btn t" type="button" onClick={() => void logout()}>
                     {t("sign_out")}
