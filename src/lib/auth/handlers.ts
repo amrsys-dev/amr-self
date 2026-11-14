@@ -786,7 +786,6 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   if ((body.data.kind === "other" || body.data.kind === "youtube") && !isHttpsUrl(body.data.value) && body.data.kind === "other") return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
-  const needsOtp = false;
   const contact: Contact = {
     id,
     kind: body.data.kind,
@@ -797,23 +796,8 @@ export async function handleAddContact(request: Request): Promise<Response> {
   };
   user.contacts.push(contact);
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
-  if (!needsOtp) return json({ contact });
-  const channel = body.data.kind === "telegram" ? "telegram" : "email";
-  const issued = await issueOtp(request, {
-    nick: user.nick,
-    purpose: "contact",
-    channel,
-    dest: contact.value,
-    lang: body.data.lang,
-  });
-  if (issued instanceof Response) return issued;
-  await getStores().kv.put(
-    otpKey(issued.otpId),
-    JSON.stringify({ kind: "contact", nick: user.nick, contactId: id, otp: issued.otp }),
-    otpPutTtl(),
-  );
-  const test = isTestMode() ? { testOtp: issued.code } : {};
-  return json({ contact, otpId: issued.otpId, ...test });
+  // Contacts are public links, not authentication factors. No OTP is sent here.
+  return json({ contact });
 }
 
 export async function handleVerifyContact(request: Request): Promise<Response> {
