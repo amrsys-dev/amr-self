@@ -352,6 +352,7 @@ async function dummyNickProbe(nick: string): Promise<void> {
 function sessionPayload(user: UserRecord) {
   return {
     nick: user.nick,
+    dataId: user.dataId ?? user.nick,
     theme: user.theme,
     appearance: user.appearance,
     contacts: user.contacts,
@@ -464,6 +465,7 @@ export async function handleSignup(request: Request): Promise<Response> {
   for (const k of verifyKeys) recoveryHashes.push(await hashAuthKey(k));
   const user: UserRecord = {
     nick,
+    dataId: b64url(randomBytes(16)),
     createdAt: now,
     passwordHash: await hashAuthKey(authKey),
     recoveryHash: recoveryHashes[0]!,
@@ -1082,6 +1084,9 @@ export async function handleChangeNick(request: Request): Promise<Response> {
   if (next.toLowerCase() === user.nick.toLowerCase()) return json({ error: "invalid" }, 400);
   const stores = getStores();
   const oldNick = user.nick;
+  // Legacy accounts used nick as the encryption AAD. Freeze that value before
+  // moving storage keys so a nick change does not make existing blobs undecryptable.
+  user.dataId ??= oldNick;
   user.previousNick = oldNick;
   user.nickChanged = true;
   user.nick = next;
