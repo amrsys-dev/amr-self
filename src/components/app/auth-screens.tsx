@@ -108,7 +108,8 @@ export function AuthScreens({ app }: { app: App }) {
           {err ? <div className="err">{err}</div> : null}
           <div className="btns">
             <button
-              className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
+              className={`btn p ${busy || checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
+              disabled={busy}
               type="button"
               onClick={() => {
                 const policy = checkPassword(password, nick);
@@ -123,6 +124,7 @@ export function AuthScreens({ app }: { app: App }) {
               {t("next")}
             </button>
           </div>
+          {busy ? <p className="hint" role="status">{t("creating_keys")}</p> : null}
         </div>
       </>
     )}

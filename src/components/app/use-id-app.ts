@@ -187,6 +187,9 @@ export function useIdApp() {
       setTestOtp(undefined);
       setKeyVersion((v) => v + 1);
       setScreen("signup-done");
+    } catch {
+      // e.g. WebAssembly blocked or out of memory while deriving keys: say so instead of doing nothing
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }
@@ -216,6 +219,9 @@ export function useIdApp() {
       setTestOtp(undefined);
       setKeyVersion((v) => v + 1);
       setScreen(kind === "signup" ? "signup-done" : "today");
+    } catch {
+      // e.g. WebAssembly blocked or out of memory while deriving keys: say so instead of doing nothing
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }
@@ -257,6 +263,9 @@ export function useIdApp() {
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
       setScreen("login-2fa");
+    } catch {
+      // e.g. WebAssembly blocked or out of memory while deriving keys: say so instead of doing nothing
+      setErr(t("error"));
     } finally {
       setBusy(false);
     }

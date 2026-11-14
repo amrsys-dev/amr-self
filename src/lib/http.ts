@@ -74,7 +74,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
   // TanStack Start emits inline hydration bootstrap (per-request, so hashes are unstable).
   // A per-request nonce would be tighter once CSP is no longer a static Vercel header.
   "Content-Security-Policy":
-    "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests",
+    "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests",
 };
 
 export function json(data: unknown, status = 200, headers?: HeadersInit): Response {

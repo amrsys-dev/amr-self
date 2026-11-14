@@ -271,8 +271,8 @@ p{margin:0;line-height:1.4}
 .skin-mini-graphite{background:#0B0E11;color:#EEF2F3;box-shadow:inset 0 0 0 1px #3FB4C0}
 .skin-mini-graphite b{color:#EEF2F3}
 
-.monopl{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:2px 8px;border-radius:8px;background:color-mix(in srgb,var(--card) 80%,#fff 10%);box-shadow:0 0 0 1px var(--line);flex:none}
-.monopl .mono{height:22px;max-width:56px;filter:none}
+.monopl{display:inline-flex;align-items:center;justify-content:center;height:32px;flex:none}
+.monopl .mono{height:26px;max-width:84px;filter:none}
 .pubhd{background:transparent}
 
 /* theme tokens: remap cyan/steel so existing chrome follows the skin */
