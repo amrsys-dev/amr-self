@@ -508,20 +508,20 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(login.data.error, "invalid_credentials");
   });
 
-  it("clears verified when a contact value or kind is patched", async () => {
-    process.env.AMR_OTP_EMAIL = "true";
+  it("adds external contact links without sending OTP and clears verification after edits", async () => {
     const acc = await signup("@AMR-541-541", "correct-battery-horse");
     const added = await json(
       await handleAddContact(req("/api/me/contacts", { cookie: acc.cookie, body: { kind: "email", value: "a@b.example" } })),
     );
+    assert.equal(added.status, 200, JSON.stringify(added.data));
+    assert.equal(added.data.otpId, undefined);
     const contact = added.data.contact as { id: string; verified: boolean; kind: string; value: string; visible: boolean };
-    const verify = await json(
-      await handleVerifyContact(
-        req("/api/me/contacts/verify", { cookie: acc.cookie, body: { otpId: added.data.otpId, contactId: contact.id, code: added.data.testOtp } }),
-      ),
-    );
-    assert.equal(verify.status, 200, JSON.stringify(verify.data));
-    assert.equal((verify.data.contact as { verified: boolean }).verified, true);
+    assert.equal(contact.verified, false);
+    const raw = await getStores().kv.get(nickKey(acc.nick));
+    assert.ok(raw);
+    const user = JSON.parse(raw!) as { contacts: { id: string; verified: boolean }[] };
+    user.contacts.find((c) => c.id === contact.id)!.verified = true;
+    await getStores().kv.put(nickKey(acc.nick), JSON.stringify(user));
     const patched = await json(
       await handleMePatch(
         req("/api/me", {
@@ -534,7 +534,6 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(patched.status, 200, JSON.stringify(patched.data));
     assert.equal((patched.data.contacts as { verified: boolean; value: string }[])[0]?.verified, false);
     assert.equal((patched.data.contacts as { value: string }[])[0]?.value, "new@b.example");
-    process.env.AMR_OTP_EMAIL = "false";
   });
 
   it("does not switch the 2FA channel on contact verify; change needs password and a code from the old channel", async () => {
@@ -544,12 +543,12 @@ describe("auth-key-only login and recovery", () => {
     );
     assert.equal(added.status, 200, JSON.stringify(added.data));
     const contact = added.data.contact as { id: string };
-    const verified = await json(
-      await handleVerifyContact(
-        req("/api/me/contacts/verify", { cookie: acc.cookie, body: { otpId: added.data.otpId, contactId: contact.id, code: added.data.testOtp } }),
-      ),
-    );
-    assert.equal(verified.status, 200, JSON.stringify(verified.data));
+    assert.equal(added.data.otpId, undefined);
+    const rawUser = await getStores().kv.get(nickKey(acc.nick));
+    assert.ok(rawUser);
+    const userRecord = JSON.parse(rawUser!) as { contacts: { id: string; verified: boolean }[] };
+    userRecord.contacts.find((c) => c.id === contact.id)!.verified = true;
+    await getStores().kv.put(nickKey(acc.nick), JSON.stringify(userRecord));
     const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: acc.cookie })));
     assert.equal(((me.data.otp as { telegram: { username?: string } }).telegram.username), "omar.public");
     const noPwd = await json(
@@ -604,6 +603,12 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(noAge.status, 200, JSON.stringify(noAge.data));
+    assert.equal(noAge.data.nick, "@AMR-580-580");
+    assert.ok(noAge.cookie);
+    const directLogin = await json(await handleLogin(req("/api/auth/login", { body: { nick: noAge.data.nick, authKey: encodeAuthKey(pwd.authKey) } })));
+    assert.equal(directLogin.status, 200, JSON.stringify(directLogin.data));
+    assert.ok(directLogin.cookie);
+    assert.equal(directLogin.data.otpId, undefined);
     const email = await json(
       await handleSignup(
         req("/api/auth/signup", {
