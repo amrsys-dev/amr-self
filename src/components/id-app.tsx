@@ -81,6 +81,7 @@ const GLYPH: Record<ContactKind, string> = {
   discord: "DC",
   steam: "ST",
   snapchat: "SN",
+  youtube: "YT",
   email: "@",
   other: "+",
 };
@@ -1360,7 +1361,7 @@ export function IdApp() {
               <>
                 <h2>{t("which_contact")}</h2>
                 <div className="svc-grid">
-                  {(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"] as const).map((k) => (
+                  {(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"] as const).map((k) => (
                     <button
                       key={k}
                       className="svc"
@@ -1372,7 +1373,7 @@ export function IdApp() {
                     >
                       <span className="glyph">{GLYPH[k]}</span>
                       <span>
-                        {k === "telegram" ? t("telegram") : k === "email" ? t("email") : k === "whatsapp" ? t("wa") : k === "other" ? t("other_service") : t(k as MsgKey)}
+                        {k === "telegram" ? t("telegram") : k === "email" ? t("email") : k === "whatsapp" ? t("wa") : k === "other" ? t("other_service") : k === "youtube" ? "YouTube" : t(k as MsgKey)}
                       </span>
                     </button>
                   ))}
