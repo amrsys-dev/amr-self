@@ -14,7 +14,7 @@ export const Route = createFileRoute("/u/$nick")({
   notFoundComponent: () => (
     <div className="app dark">
       <div className="page auth">
-        <h1>AMR ID</h1>
+        <h1>SELF</h1>
       </div>
     </div>
   ),
@@ -37,7 +37,7 @@ function PublicCardPage() {
           <span className="monopl">
             <img className="mono" src="/amr-mono.png" alt="" />
           </span>
-          <span className="appname">AMR ID</span>
+          <span className="appname">SELF</span>
         </div>
       </div>
       <div className="page">
