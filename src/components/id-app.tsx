@@ -20,6 +20,7 @@ import { startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
 import { checkPassword, PASSWORD_MIN } from "@/lib/password-policy.ts";
 import { LANGS, detectLang, isRtl, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { CardHero } from "./qr-card.tsx";
+import { SelfWorkspace } from "./self-workspace.tsx";
 
 type Screen =
   | "welcome"
@@ -155,6 +156,7 @@ export function IdApp() {
   const [testOtp, setTestOtp] = useState<string | undefined>();
   const [deepLink, setDeepLink] = useState("");
   const [linkToken, setLinkToken] = useState("");
+  const [keyVersion, setKeyVersion] = useState(0);
 
   const [nick, setNick] = useState("");
   const [nickStatus, setNickStatus] = useState<"free" | "taken" | "format" | "">("");
@@ -324,6 +326,7 @@ export function IdApp() {
       setSession(r.data);
       setAppearance(r.data.appearance);
       setTestOtp(undefined);
+      setKeyVersion((v) => v + 1);
       setScreen(kind === "signup" ? "signup-done" : "today");
     } finally {
       setBusy(false);
@@ -402,6 +405,7 @@ export function IdApp() {
     await api("/api/auth/logout", { method: "POST" });
     await wipeLocalData();
     dataKeyRef.current = null;
+    setKeyVersion((v) => v + 1);
     accountIdRef.current = null;
     setSession(null);
     setPassword("");
@@ -412,6 +416,7 @@ export function IdApp() {
   async function afterWipe() {
     await wipeLocalData();
     dataKeyRef.current = null;
+    setKeyVersion((v) => v + 1);
     accountIdRef.current = null;
     setSession(null);
     setPassword("");
@@ -950,6 +955,7 @@ export function IdApp() {
               recoveryCount={meta?.recoveryCodes ?? 10}
               onDone={(s, key, newCodes) => {
                 dataKeyRef.current = key;
+                setKeyVersion((v) => v + 1);
                 setSession(s);
                 setAppearance(s.appearance);
                 if (newCodes?.length) {
@@ -996,32 +1002,21 @@ export function IdApp() {
         <>
           <Header title={screen === "today" ? t("today") : screen === "finance" ? t("finance") : screen === "work" ? t("work") : screen === "more" ? t("more") : t("profile")} />
           <div className="page withnav">
-            {screen === "today" && (
-              <div className="soon">
-                <h2>{t("today")}</h2>
-                <p>{t("today_empty")}</p>
-              </div>
-            )}
-            {screen === "finance" && (
-              <div className="soon">
-                <h2>{t("finance")}</h2>
-                <p>{t("soon_sub")}</p>
-              </div>
-            )}
-            {screen === "work" && (
-              <div className="soon">
-                <h2>{t("work")}</h2>
-                <p>{t("soon_sub")}</p>
-              </div>
-            )}
-            {screen === "more" && (
-              <div className="tiles">
-                {(["visa", "diary", "sport", "plans", "card"] as const).map((k) => (
-                  <button key={k} className="tile" type="button" onClick={() => setScreen(k)}>
-                    <b>{t(k)}</b>
-                  </button>
-                ))}
-              </div>
+            {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && session && (
+              <SelfWorkspace
+                section={screen}
+                accountId={session.nick}
+                wrapPassword={session.wrapPassword}
+                passwordKdf={session.kdf?.password}
+                dataKey={dataKeyRef.current}
+                keyVersion={keyVersion}
+                lang={lang}
+                onUnlock={(key) => {
+                  dataKeyRef.current = key;
+                  setKeyVersion((v) => v + 1);
+                }}
+                onOpenCard={() => setScreen("card")}
+              />
             )}
             {screen === "profile" && (
               <>
