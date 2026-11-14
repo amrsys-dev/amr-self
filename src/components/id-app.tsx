@@ -169,7 +169,8 @@ export function IdApp() {
   const [code, setCode] = useState("");
   const [recovery, setRecovery] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
   const [reauthPassword, setReauthPassword] = useState("");
   const [newNick, setNewNick] = useState("");
   const [newNickStatus, setNewNickStatus] = useState<"free" | "taken" | "format" | "">("");
@@ -234,7 +235,7 @@ export function IdApp() {
 
   async function checkNick(value: string) {
     setNick(value);
-    if (value.trim().length < 5) {
+    if (value.trim().replace(/^@/, "").replace(/(?:\\.amr|@amr)$/i, "").length < 3) {
       setNickStatus("");
       return;
     }
@@ -250,10 +251,6 @@ export function IdApp() {
       const policy = checkPassword(password, nick);
       if (!policy.ok) {
         setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
-        return;
-      }
-      if (!ageConfirmed) {
-        setErr(t("age_hint"));
         return;
       }
       const count = meta?.recoveryCodes ?? 10;
@@ -283,7 +280,6 @@ export function IdApp() {
           channel: useEmail ? "email" : "telegram",
           dest,
           lang,
-          ageConfirmed: true,
         }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
@@ -687,7 +683,7 @@ export function IdApp() {
             <div className="card hero" style={{ textAlign: "center" }}>
               <div className="tiny">{t("example_nick")}</div>
               <div className="nick" style={{ fontSize: 28 }}>
-                @AMR-417-283
+                @murad.amr
               </div>
             </div>
             <div className="btns">
@@ -695,7 +691,8 @@ export function IdApp() {
                 className="btn p"
                 type="button"
                 onClick={() => {
-                  void suggestNick();
+                  setNick("");
+                  setNickStatus("");
                   setScreen("signup-nick");
                 }}
               >
@@ -720,7 +717,7 @@ export function IdApp() {
             <div className="field">
               <label>{t("nick")}</label>
               <div className="box">
-                <input value={nick} onChange={(e) => void checkNick(e.target.value)} autoCapitalize="off" autoCorrect="off" />
+                <input value={nick} placeholder="murad" onChange={(e) => void checkNick(e.target.value)} autoCapitalize="off" autoCorrect="off" autoComplete="username" />
               </div>
             </div>
             {nickStatus === "free" && (
@@ -736,11 +733,7 @@ export function IdApp() {
                 <p className="hint">{t("nick_taken_hint")}</p>
               </>
             )}
-            <div className="btns">
-              <button className="btn t" type="button" onClick={() => void suggestNick()}>
-                {t("new_nick")}
-              </button>
-            </div>
+            <p className="hint">{t("nick_suffix_hint")}</p>
             <div className="btns">
               <button className={`btn p ${nickStatus !== "free" ? "off" : ""}`} type="button" onClick={() => setScreen("signup-pass")}>
                 {t("next")}
@@ -759,38 +752,27 @@ export function IdApp() {
             <div className="field">
               <label>{t("password")}</label>
               <div className="box">
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t("hide_password") : t("show_password")}>{showPassword ? t("hide_password") : t("show_password")}</button>
               </div>
             </div>
             <div className="field">
               <label>{t("password_again")}</label>
               <div className="box">
-                <input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} />
+                <input type={showPassword2 ? "text" : "password"} value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword2((v) => !v)} aria-label={showPassword2 ? t("hide_password") : t("show_password")}>{showPassword2 ? t("hide_password") : t("show_password")}</button>
               </div>
             </div>
-            <button
-              type="button"
-              className={`check-row ${ageConfirmed ? "on" : ""}`}
-              onClick={() => setAgeConfirmed((v) => !v)}
-            >
-              <span className="check">✓</span>
-              {t("age_confirm")}
-            </button>
-            <p className="hint">{t("age_hint")}</p>
             {password && password2 && password !== password2 ? <div className="err">{t("mismatch")}</div> : null}
             {err ? <div className="err">{err}</div> : null}
             <div className="btns">
               <button
-                className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 || !ageConfirmed ? "off" : ""}`}
+                className={`btn p ${checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
                 type="button"
                 onClick={() => {
                   const policy = checkPassword(password, nick);
                   if (!policy.ok) {
                     setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
-                    return;
-                  }
-                  if (!ageConfirmed) {
-                    setErr(t("age_hint"));
                     return;
                   }
                   setErr("");
