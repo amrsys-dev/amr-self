@@ -15,6 +15,9 @@ import { categoryLabel, formatKm, tx } from "./self/extra-copy.ts";
 import { CategoryIcon, CategoryPicker } from "./self/parts.tsx";
 import { BillsCard, dueBillsTotal } from "./self/bills-card.tsx";
 import { CarPage, carOf, itemName } from "./self/car-page.tsx";
+import { groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
+import { groupTasks } from "@/lib/tasks/groups.ts";
+import { weekStreak, weekSummary } from "@/lib/health/week.ts";
 import "./self-workspace.css";
 
 type Section = "today" | "finance" | "work" | "more";
@@ -178,7 +181,6 @@ const todayKey = () => {
 const makeId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 const active = <T extends { deleted?: boolean }>(rows: T[]) => rows.filter((r) => !r.deleted);
 const amountOf = (r: FinanceRecord) => Number.isFinite(r.amount) ? Number(r.amount) : 0;
-const sum = (rows: FinanceRecord[]) => active(rows).reduce((n, r) => n + amountOf(r), 0);
 const money = (n: number) => new Intl.NumberFormat("en-SA", { style: "currency", currency: "SAR", maximumFractionDigits: 2 }).format(n);
 const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateString() : "";
 
@@ -196,7 +198,8 @@ export function SelfWorkspace({
   const [saveError, setSaveError] = useState(false);
   const [subPage, setSubPage] = useState<SubPage>(null);
   const [modal, setModal] = useState<ModalKind>(null);
-  const [filter, setFilter] = useState<"all" | "open" | "completed">("all");
+  const [showDone, setShowDone] = useState(false);
+  const [financeMonth, setFinanceMonth] = useState(() => todayKey().slice(0, 7));
   const [transactionFilter, setTransactionFilter] = useState<"all" | "income" | "expense">("all");
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -227,8 +230,6 @@ export function SelfWorkspace({
   const health = data.health ?? emptyUserData().health!;
   const today = todayKey();
   const month = today.slice(0, 7);
-  const monthIncome = useMemo(() => sum(data.finance.income.filter((r) => (r.date ?? "").startsWith(month))), [data.finance.income, month]);
-  const monthExpense = useMemo(() => sum(data.finance.expense.filter((r) => (r.date ?? "").startsWith(month))), [data.finance.expense, month]);
   const todayTasks = active(data.work.tasks).filter((r) => !r.completed && (!r.dueDate || r.dueDate <= today));
   const doneTasks = active(data.work.tasks).filter((r) => r.completed);
   const waterToday = active(health.water).filter((r) => r.date === today).reduce((n, r) => n + Number(r.amount ?? 0), 0);
@@ -237,9 +238,18 @@ export function SelfWorkspace({
     ...active(data.finance.income).map((r) => ({ ...r, kind: "income" as const })),
     ...active(data.finance.expense).map((r) => ({ ...r, kind: "expense" as const })),
   ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || b.updatedAt.localeCompare(a.updatedAt)), [data.finance.income, data.finance.expense]);
-  const visibleEntries = entries.filter((r) => transactionFilter === "all" || r.kind === transactionFilter);
-  const tasks = active(data.work.tasks).filter((r) => filter === "all" || (filter === "completed" ? r.completed : !r.completed))
-    .sort((a, b) => Number(Boolean(a.completed)) - Number(Boolean(b.completed)) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? ""));
+  const taskGroups = groupTasks(data.work.tasks, today);
+  const locale = lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US";
+  // One balance that carries over month to month, plus money in / out per month.
+  const balanceAll = totalBalance(data.finance.income, data.finance.expense);
+  const flowNow = monthFlow(data.finance.income, data.finance.expense, month);
+  const flowSel = monthFlow(data.finance.income, data.finance.expense, financeMonth);
+  const monthName = (m: string) => new Date(m + "-15T12:00:00").toLocaleDateString(locale, { month: "long", year: "numeric" });
+  const dayGroups = groupByDay(entries.filter((e) => (e.date ?? "").startsWith(financeMonth) && (transactionFilter === "all" || e.kind === transactionFilter)));
+  const yesterday = (() => { const d = new Date(today + "T12:00:00"); d.setDate(d.getDate() - 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
+  const dayLabel = (d: string) => d === today ? tx(lang, "todayLbl") : d === yesterday ? tx(lang, "yesterday") : new Date(d + "T12:00:00").toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "long" });
+  const week = weekSummary(health.workouts, today);
+  const streak = weekStreak(health.workouts, today);
 
   async function persist(next: UserData) {
     setData(next);
@@ -351,7 +361,7 @@ export function SelfWorkspace({
   const bills = dueBillsTotal(data);
   const carInfo = carOf(data);
   const carNext = carInfo.vehicle ? nextDue(carInfo.items, carInfo.vehicle.odometer) : null;
-  const categories = expenseByCategory(data.finance.expense, month);
+  const categories = expenseByCategory(data.finance.expense, financeMonth);
   const topCategory = categories[0]?.amount ?? 0;
   const progress = active(data.work.tasks).length ? Math.round(doneTasks.length / active(data.work.tasks).length * 100) : 0;
   const hour = new Date().getHours();
@@ -376,9 +386,9 @@ export function SelfWorkspace({
           </header>
 
           <div className="self-card self-balance self-hero">
-            <span>{t("balance")}</span>
-            <strong>{money(monthIncome - monthExpense)}</strong>
-            <div className="self-finance-split"><div><small>{t("income")}</small><b>{money(monthIncome)}</b></div><div><small>{t("expense")}</small><b>{money(monthExpense)}</b></div></div>
+            <span>{tx(lang, "balanceTotal")}</span>
+            <strong>{money(balanceAll)}</strong>
+            <FlowSplit flow={flowNow} money={money} labelIn={tx(lang, "moneyIn")} labelOut={tx(lang, "moneyOut")} />
             <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
           </div>
 
@@ -407,16 +417,25 @@ export function SelfWorkspace({
 
           <div className="self-section-head"><h3>{t("todayTasks")}</h3><button onClick={() => openModal("task")} type="button">+ {t("add")}</button></div>
           <div className="self-card">
-            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 5).map((task) => <TaskRow key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}
+            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 5).map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}
           </div>
         </>
       )}
 
       {section === "finance" && !subPage && (
         <>
-          <header className="self-large"><p>{t("thisMonth")}</p><h1>{t("finance")}</h1></header>
-          <div className="self-card self-balance"><span>{t("balance")}</span><strong>{money(monthIncome - monthExpense)}</strong><div className="self-finance-split"><div><small>{t("income")}</small><b>{money(monthIncome)}</b></div><div><small>{t("expense")}</small><b>{money(monthExpense)}</b></div></div></div>
-          <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("addIncome")}</button><button type="button" onClick={() => openModal("expense")}>+ {t("addExpense")}</button></div>
+          <header className="self-large"><h1>{t("finance")}</h1></header>
+          <div className="self-month">
+            <button type="button" aria-label={tx(lang, "prevMonth")} onClick={() => setFinanceMonth(shiftMonth(financeMonth, -1))}>‹</button>
+            <b>{monthName(financeMonth)}</b>
+            <button type="button" aria-label={tx(lang, "nextMonth")} onClick={() => setFinanceMonth(shiftMonth(financeMonth, 1))} disabled={financeMonth >= month}>›</button>
+          </div>
+          <div className="self-card self-balance self-hero">
+            <span>{tx(lang, "balanceTotal")}</span>
+            <strong>{money(balanceAll)}</strong>
+            <FlowSplit flow={flowSel} money={money} labelIn={tx(lang, "moneyIn")} labelOut={tx(lang, "moneyOut")} />
+            <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
+          </div>
           {categories.length > 0 && (
             <>
               <div className="self-section-head"><h3>{tx(lang, "byCategory")}</h3></div>
@@ -436,17 +455,44 @@ export function SelfWorkspace({
           <BillsCard data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), amount: t("amount"), delete: t("delete") }} />
           <div className="self-section-head"><h3>{t("recent")}</h3></div>
           <div className="self-filter"><button className={transactionFilter === "all" ? "on" : ""} type="button" onClick={() => setTransactionFilter("all")}>{t("filterAll")}</button><button className={transactionFilter === "income" ? "on" : ""} type="button" onClick={() => setTransactionFilter("income")}>{t("income")}</button><button className={transactionFilter === "expense" ? "on" : ""} type="button" onClick={() => setTransactionFilter("expense")}>{t("expense")}</button></div>
-          <div className="self-card">{visibleEntries.length === 0 ? <div className="self-empty">{t("noTransactions")}</div> : visibleEntries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)} · {localDate(entry.date)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}</div>
+          {dayGroups.length === 0 ? <div className="self-card"><div className="self-empty">{t("noTransactions")}</div></div> : dayGroups.map((g) => (
+            <section key={g.date} className="self-day">
+              <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{g.net >= 0 ? "+" : "−"}{money(Math.abs(g.net))}</span></div>
+              <div className="self-card">
+                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
+              </div>
+            </section>
+          ))}
         </>
       )}
 
       {section === "work" && !subPage && (
         <>
-          <header className="self-large"><p>{t("todayProgress")}</p><h1>{t("work")}</h1></header>
-          <div className="self-card self-balance"><div><span>{t("tasksDone")}</span><strong>{doneTasks.length} / {active(data.work.tasks).length}</strong></div><div className="self-progress"><i style={{ width: progress + "%" }} /></div></div>
-          <div className="self-section-head"><h3>{t("todayTasks")}</h3><button type="button" onClick={() => openModal("task")}>+ {t("addTask")}</button></div>
-          <div className="self-filter"><button type="button" className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>{t("all")}</button><button type="button" className={filter === "open" ? "on" : ""} onClick={() => setFilter("open")}>{t("open")}</button><button type="button" className={filter === "completed" ? "on" : ""} onClick={() => setFilter("completed")}>{t("completed")}</button></div>
-          <div className="self-card">{tasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : tasks.map((task) => <TaskRow key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}</div>
+          <header className="self-large"><h1>{t("work")}</h1></header>
+          <div className="self-card self-balance self-hero">
+            <span>{t("tasksDone")}</span>
+            <strong>{doneTasks.length} / {active(data.work.tasks).length}</strong>
+            <div className="self-progress"><i style={{ width: progress + "%" }} /></div>
+            <div className="self-finance-actions"><button type="button" onClick={() => openModal("task")}>+ {t("addTask")}</button></div>
+          </div>
+          {active(data.work.tasks).length === 0 && <div className="self-card"><div className="self-empty">{t("noTasks")}</div></div>}
+          {([
+            ["overdue", tx(lang, "overdue"), taskGroups.overdue],
+            ["today", tx(lang, "todayLbl"), taskGroups.today],
+            ["upcoming", tx(lang, "upcoming"), taskGroups.upcoming],
+            ["someday", tx(lang, "noDate"), taskGroups.someday],
+          ] as const).map(([key, label, list]) => list.length === 0 ? null : (
+            <section key={key} className={"self-day " + key}>
+              <div className="self-day-head"><span>{label}</span><span>{list.length}</span></div>
+              <div className="self-card">{list.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}</div>
+            </section>
+          ))}
+          {taskGroups.done.length > 0 && (
+            <section className="self-day">
+              <button type="button" className="self-day-head self-toggle" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}><span>{tx(lang, "showDone", { n: taskGroups.done.length })}</span><span aria-hidden="true">{showDone ? "⌃" : "⌄"}</span></button>
+              {showDone && <div className="self-card">{taskGroups.done.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}</div>}
+            </section>
+          )}
         </>
       )}
 
@@ -469,6 +515,18 @@ export function SelfWorkspace({
         <>
           <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {backLabel}</button>
           <header className="self-large"><h1>{t("health")}</h1></header>
+          <div className="self-card self-week">
+            <div className="self-week-head"><b>{tx(lang, "thisWeek")}</b><span>{tx(lang, "weekLine", { n: week.count, m: week.minutes })}</span></div>
+            <div className="self-week-days">
+              {week.days.map((d) => (
+                <div key={d.date} className={"self-week-day" + (d.trained ? " on" : "") + (d.date === today ? " now" : "")}>
+                  <i>{new Date(d.date + "T12:00:00").toLocaleDateString(locale, { weekday: "narrow" })}</i>
+                  <span>{new Date(d.date + "T12:00:00").getDate()}</span>
+                </div>
+              ))}
+            </div>
+            {streak > 0 && <small className="self-streak">{tx(lang, "streak", { n: streak })}</small>}
+          </div>
           <div className="self-grid self-grid-2"><div className="self-metric"><span>{t("waterToday")}</span><strong>{waterToday}<i> ml</i></strong><div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div></div><div className="self-metric"><span>{t("lastWeight")}</span><strong>{lastWeight ? Number(lastWeight.amount).toFixed(1) : "—"}<i> kg</i></strong></div></div>
           <div className="self-finance-actions"><button type="button" onClick={() => void addWater()}>{t("addWater")}</button><button type="button" onClick={() => openModal("weight")}>{t("addWeight")}</button><button type="button" onClick={() => openModal("workout")}>{t("addWorkout")}</button><button type="button" onClick={() => openModal("meal")}>{t("addMeal")}</button></div>
           <div className="self-section-head"><h3>{t("recent")}</h3></div>
@@ -507,14 +565,26 @@ export function SelfWorkspace({
   );
 }
 
-function TaskRow({ task, onToggle, onDelete, t }: {
-  task: TaskRecord; onToggle: () => void; onDelete: () => void; t: (key: CopyKey) => string;
+function TaskRow({ task, today, onToggle, onDelete, t }: {
+  task: TaskRecord; today: string; onToggle: () => void; onDelete: () => void; t: (key: CopyKey) => string;
 }) {
+  const overdue = !task.completed && !!task.dueDate && task.dueDate < today;
+  const prio = task.priority ?? "medium";
   return (
-    <div className={"self-task-row " + (task.completed ? "is-done" : "")}>
-      <button className="self-check" type="button" onClick={onToggle} aria-label={task.completed ? t("open") : t("done")}>{task.completed ? "✓" : ""}</button>
-      <div className="self-task-copy"><b>{task.title}</b><small>{task.dueDate ? localDate(task.dueDate) : t("today")} · {t(task.priority ?? "medium")}</small></div>
+    <div className={"self-task-row " + (task.completed ? "is-done" : "") + (overdue ? " is-overdue" : "")}>
+      <button className={"self-check prio-" + prio} type="button" onClick={onToggle} aria-label={task.completed ? t("open") : t("done")}>{task.completed ? "✓" : ""}</button>
+      <div className="self-task-copy"><b>{task.title}</b><small>{task.dueDate ? <span className="self-due">{localDate(task.dueDate)}</span> : null}{prio !== "medium" ? <span className={"self-prio " + prio}>{t(prio)}</span> : null}</small></div>
       <button className="self-delete" type="button" onClick={onDelete} aria-label={t("delete")}>×</button>
+    </div>
+  );
+}
+
+/** Money in (green, up) and out (red, down) for a month, under the balance. */
+function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out: number }; money: (n: number) => string; labelIn: string; labelOut: string }) {
+  return (
+    <div className="self-finance-split self-flow">
+      <div><small><span className="self-arrow up" aria-hidden="true">↑</span>{labelIn}</small><b>+{money(flow.in)}</b></div>
+      <div><small><span className="self-arrow down" aria-hidden="true">↓</span>{labelOut}</small><b>−{money(flow.out)}</b></div>
     </div>
   );
 }

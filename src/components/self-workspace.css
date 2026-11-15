@@ -167,3 +167,38 @@
 .self-task-copy b{font-size:15px}
 .self-task-copy small{font-size:12px}
 .self-check{width:26px;height:26px;border-radius:50%}
+
+/* ---- order: balance flow, month switcher, day groups, task sections, training week ---- */
+.self-flow small{display:flex;align-items:center;gap:5px}
+.self-arrow{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:800}
+.self-arrow.up{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+.self-arrow.down{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad)}
+.app.theme-light .self-hero .self-arrow.up,.app.theme-graphite .self-hero .self-arrow.up{color:#7EE2A8}
+.app.theme-light .self-hero .self-arrow.down,.app.theme-graphite .self-hero .self-arrow.down{color:#FF9A8F}
+.self-month{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-6px}
+.self-month b{font-size:17px;font-weight:650;text-transform:capitalize}
+.self-month button{width:44px;height:44px;border-radius:12px;background:var(--card);color:var(--cyan);font-size:24px;line-height:1}
+.self-month button:disabled{opacity:.35}
+.self-day{display:flex;flex-direction:column;gap:6px}
+.self-day-head{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0;font-size:13px;font-weight:650;color:var(--muted);text-transform:capitalize}
+.self-day-head .income{color:var(--ok)}
+.self-day-head .expense{color:var(--bad)}
+.self-day.overdue .self-day-head span:first-child{color:var(--bad)}
+.self-toggle{width:100%;min-height:40px;color:var(--muted)}
+.self-task-row.is-overdue .self-due{color:var(--bad);font-weight:650}
+.self-task-copy small{display:flex;gap:8px;align-items:center}
+.self-prio{font-weight:650}
+.self-prio.high{color:var(--bad)}
+.self-prio.low{color:var(--muted)}
+.self-check.prio-high{border-color:var(--bad)}
+.self-week{padding:14px;display:flex;flex-direction:column;gap:12px}
+.self-week-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.self-week-head b{font-size:16px}
+.self-week-head span{font-size:13px;color:var(--muted)}
+.self-week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.self-week-day{display:flex;flex-direction:column;align-items:center;gap:6px}
+.self-week-day i{font-style:normal;font-size:11px;color:var(--muted);text-transform:uppercase}
+.self-week-day span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:650;background:var(--bg2)}
+.self-week-day.on span{background:var(--cyan);color:var(--on)}
+.self-week-day.now span{box-shadow:0 0 0 2px var(--cyan)}
+.self-streak{font-size:13px;color:var(--cyan);font-weight:650}
