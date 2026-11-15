@@ -54,7 +54,8 @@ export function useCurrency() {
   }, []);
   /** Amount entered in `from` shown in the chosen currency. */
   const toCur = useCallback((n: number, from?: string) => convert(n, from, cur, rates), [cur, rates]);
-  const money = useCallback((n: number): ReactNode => <Money n={n} cur={cur} />, [cur]);
+  /** `plus` shows "+" for positive amounts; the sign always goes after the currency symbol. */
+  const money = useCallback((n: number, plus = false): ReactNode => <Money n={n} cur={cur} plus={plus} />, [cur]);
   return { cur, setCur: setCurrency, toCur, money, currencies: CURRENCIES };
 }
 
@@ -63,12 +64,12 @@ export function CurrencySign({ cur }: { cur: Currency }) {
   return <>{SIGN[cur].text}</>;
 }
 
-export function Money({ n, cur }: { n: number; cur: Currency }) {
+export function Money({ n, cur, plus = false }: { n: number; cur: Currency; plus?: boolean }) {
   const s = SIGN[cur];
   return (
     <span className="money">
       {s.before ? <CurrencySign cur={cur} /> : null}
-      {formatNumber(n)}
+      {plus && n > 0 ? "+" : ""}{formatNumber(n)}
       {!s.before ? <>{" "}<CurrencySign cur={cur} /></> : null}
     </span>
   );

@@ -169,7 +169,7 @@ export function CarPage({ data, persist, lang, money, toCur, cur, labels, onBack
           </div>
 
           <div className="self-card self-inline-metrics">
-            <div><span>{tx(lang, "carExpenses")}</span><b>{money(carSpend)}</b></div>
+            <div><span>{tx(lang, "carExpenses")}</span><b>{money(carSpend, cur)}</b></div>
             <div><span>{tx(lang, "nextService")}</span><b>{sorted[0] ? itemName(lang, sorted[0].item) : "—"}</b></div>
           </div>
 
@@ -183,7 +183,7 @@ export function CarPage({ data, persist, lang, money, toCur, cur, labels, onBack
                       <b>{itemName(lang, { kind: e.kind, title: car.items.find((i) => i.id === e.itemId)?.title })}</b>
                       <small>{new Date(e.date + "T12:00:00").toLocaleDateString()} · {formatKm(e.km)} {tx(lang, "km")}</small>
                     </div>
-                    {e.cost ? <strong className="expense">−{money(e.cost, e.currency)}</strong> : null}
+                    {e.cost ? <strong className="expense">{money(-e.cost, e.currency)}</strong> : null}
                   </div>
                 ))}
               </div>

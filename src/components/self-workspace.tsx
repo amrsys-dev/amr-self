@@ -484,9 +484,9 @@ export function SelfWorkspace({
           <div className="self-filter"><button className={transactionFilter === "all" ? "on" : ""} type="button" onClick={() => setTransactionFilter("all")}>{t("filterAll")}</button><button className={transactionFilter === "income" ? "on" : ""} type="button" onClick={() => setTransactionFilter("income")}>{t("income")}</button><button className={transactionFilter === "expense" ? "on" : ""} type="button" onClick={() => setTransactionFilter("expense")}>{t("expense")}</button></div>
           {dayGroups.length === 0 ? <div className="self-card"><div className="self-empty">{t("noTransactions")}</div></div> : dayGroups.map((g) => (
             <section key={g.date} className="self-day">
-              <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{g.net >= 0 ? "+" : "−"}{money(Math.abs(g.net))}</span></div>
+              <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{money(g.net, true)}</span></div>
               <div className="self-card">
-                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
+                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{money(entry.kind === "income" ? amountOf(entry) : -amountOf(entry), true)}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
               </div>
             </section>
           ))}
@@ -654,11 +654,11 @@ function TaskRow({ task, today, onToggle, onDelete, t }: {
 }
 
 /** Money in (green, up) and out (red, down) for a month, under the balance. */
-function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out: number }; money: (n: number) => ReactNode; labelIn: string; labelOut: string }) {
+function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out: number }; money: (n: number, plus?: boolean) => ReactNode; labelIn: string; labelOut: string }) {
   return (
     <div className="self-finance-split self-flow">
-      <div><small><span className="self-arrow up" aria-hidden="true">↑</span>{labelIn}</small><b>+{money(flow.in)}</b></div>
-      <div><small><span className="self-arrow down" aria-hidden="true">↓</span>{labelOut}</small><b>−{money(flow.out)}</b></div>
+      <div><small><span className="self-arrow up" aria-hidden="true">↑</span>{labelIn}</small><b>{money(flow.in, true)}</b></div>
+      <div><small><span className="self-arrow down" aria-hidden="true">↓</span>{labelOut}</small><b>{money(-flow.out)}</b></div>
     </div>
   );
 }
