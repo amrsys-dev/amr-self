@@ -15,7 +15,7 @@ a{color:inherit;text-decoration:none}
 .sbr svg{display:block}
 .hd{height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;flex:none;position:relative;z-index:4;background:var(--bg)}
 .hd .brand{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
-.hd .mono{height:28px;width:auto;max-width:66px;object-fit:contain;object-position:left center;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.hd .mono{height:28px;width:auto;max-width:96px;object-fit:contain;object-position:left center;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .hd .appname{font-size:17px;font-weight:650;letter-spacing:-.4px;white-space:nowrap}
 .hd .ttl{flex:1;min-width:0;font-size:17px;font-weight:650;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .hd .back,.hd .tool{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--cyan);flex:none;font-size:24px;line-height:1}
@@ -272,7 +272,11 @@ p{margin:0;line-height:1.4}
 .skin-mini-graphite b{color:#EEF2F3}
 
 .monopl{display:inline-flex;align-items:center;justify-content:center;height:32px;flex:none}
-.monopl .mono{height:26px;max-width:84px;filter:none}
+.monopl .mono{height:28px;max-width:96px;filter:none}
+/* Company mark follows the theme: silver-copper by default, green-gold in the Saudi theme. */
+.mono-saudi{display:none}
+.app.theme-saudi .mono-saudi{display:block}
+.app.theme-saudi .mono-default{display:none}
 .pubhd{background:transparent}
 
 /* theme tokens: remap cyan/steel so existing chrome follows the skin */

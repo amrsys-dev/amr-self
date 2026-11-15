@@ -4,7 +4,8 @@ export function Brand() {
   return (
     <div className="brand">
       <span className="monopl">
-        <img className="mono" src="/amr-mono.png" alt="" />
+        <img className="mono mono-default" src="/amr-mono.png" alt="AMR" />
+        <img className="mono mono-saudi" src="/amr-mono-saudi.png" alt="AMR" />
       </span>
       <span className="appname">SELF</span>
     </div>

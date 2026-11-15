@@ -35,7 +35,7 @@ function PublicCardPage() {
       <div className="hd pubhd">
         <div className="brand">
           <span className="monopl">
-            <img className="mono" src="/amr-mono.png" alt="" />
+            <img className="mono" src="/amr-mono.png" alt="AMR" />
           </span>
           <span className="appname">SELF</span>
         </div>
