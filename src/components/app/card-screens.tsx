@@ -6,13 +6,13 @@ import type { App } from "./use-id-app.ts";
 
 /** Business card and its theme picker. */
 export function CardScreens({ app }: { app: App }) {
-  const { lang, t, screen, setScreen, session, origin, cardUrl, publicContacts, saveProfile, shareCard, saveVcard } = app;
+  const { lang, t, screen, setScreen, session, origin, cardUrl, publicContacts, saveProfile, shareCard, shareCardImage, saveVcard } = app;
   return (
     <>
     {session && screen === "card" && (
       <>
-        <Header title={t("card")} onBack={() => setScreen("more")} tool={<button className="tool" type="button" onClick={() => setScreen("card-themes")}>⋯</button>} />
-        <div className="page">
+        <Header title={t("card")} onBack={() => setScreen("profile")} tool={<button className="tool" type="button" onClick={() => setScreen("card-themes")}>⋯</button>} />
+        <div className={`page skin-page skin-${session.theme}`}>
           <CardHero
             nick={session.nick}
             url={cardUrl}
@@ -20,8 +20,8 @@ export function CardScreens({ app }: { app: App }) {
             contacts={publicContacts}
             lang={lang}
             domain={origin.replace(/^https?:\/\//, "")}
-            onShare={shareCard}
-            onSave={shareCard}
+            onShareLink={shareCard}
+            onShareImage={() => void shareCardImage()}
             onVcard={saveVcard}
           />
         </div>

@@ -512,3 +512,31 @@ p{margin:0;line-height:1.4}
 /* Language pill on the welcome screen */
 .lang-pill{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:20px;background:var(--card);font-size:15px}
 .lang-pill span:first-child{font-size:20px;line-height:1}
+
+/* ===================== AMR ID card: one link page in the owner's theme ===================== */
+.svc-ico{display:inline-grid;place-items:center;flex:none;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.svc-ico svg{display:block}
+.svc{gap:8px}
+.idcard{display:flex;flex-direction:column;align-items:center;padding:18px 0 28px;gap:0}
+.idcard-ava{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:var(--cyan);color:var(--on);font-size:42px;font-weight:750;letter-spacing:-1px;box-shadow:0 10px 30px color-mix(in srgb,var(--cyan) 28%,transparent)}
+.idcard-nick{margin:16px 0 2px;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.8px;color:var(--t);text-align:center;word-break:break-all}
+.idcard-sub{font-size:14px;font-weight:650;color:var(--muted);letter-spacing:.06em}
+.idcard-links{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.idlink{display:flex;align-items:center;gap:14px;width:100%;min-height:68px;padding:12px 14px;border-radius:18px;background:var(--card);color:var(--t);text-decoration:none;transition:transform .12s}
+.idlink:active{transform:scale(.98)}
+.idlink-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.idlink-copy b{font-size:17px;font-weight:650}
+.idlink-copy small{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idlink-chev{color:var(--muted);font-size:24px;line-height:1}
+.idcard-actions{width:100%;display:grid;grid-template-columns:1fr;gap:8px;margin-top:20px}
+.idcard-actions.three{grid-template-columns:1fr 1fr 1fr}
+.idbtn{min-height:50px;border-radius:14px;background:var(--card);color:var(--t);font-size:15px;font-weight:650;padding:0 8px}
+.idbtn.primary{background:var(--cyan);color:var(--on)}
+.idbtn:active{opacity:.85}
+.idqr-toggle{margin-top:18px;min-height:40px;padding:0 16px;border-radius:20px;color:var(--muted);font-size:15px;font-weight:600}
+.idqr{margin-top:8px;padding:14px;border-radius:18px;background:#FFFFFF}
+.idqr svg.qr{display:block;width:180px;height:180px;color:#000000}
+.idcard-foot{margin-top:22px;font-size:13px;font-weight:650;color:var(--muted);letter-spacing:.08em;opacity:.8}
+.pubcard{min-height:100dvh}
+.pubcard .page{padding-top:max(16px,env(safe-area-inset-top))}
+.skin-page{background:transparent}

@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
+import { renderCardImage } from "@/lib/card/share-image.ts";
+import { serviceName } from "../contact-icons.tsx";
+import { contactDetail } from "../qr-card.tsx";
 import type { Contact, ContactKind, PublicContact } from "@/lib/card/visibility.ts";
 import { toPublicContacts } from "@/lib/card/visibility.ts";
 import { api } from "@/lib/client.ts";
@@ -552,23 +556,35 @@ export function useIdApp() {
   }
 
   function shareCard() {
-    if (navigator.share) void navigator.share({ title: session?.nick, url: cardUrl });
+    if (!session) return;
+    const data = { title: `${session.nick} · AMR ID`, text: session.nick, url: cardUrl };
+    if (navigator.share) void navigator.share(data).catch(() => undefined);
     else void navigator.clipboard.writeText(cardUrl);
+  }
+
+  /** Small JPEG of the card (tens of KB) for a chat; falls back to a download. */
+  async function shareCardImage() {
+    if (!session) return;
+    const blob = await renderCardImage({
+      nick: session.nick,
+      url: cardUrl,
+      theme: session.theme,
+      contacts: publicContacts,
+      name: (c) => serviceName(c.kind, t),
+      detail: (c) => contactDetail(c, t),
+    });
+    const file = new File([blob], `${session.nick.replace(/^@/, "")}.jpg`, { type: "image/jpeg" });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], text: cardUrl }).catch(() => undefined);
+      return;
+    }
+    downloadBlob(blob, file.name);
   }
 
   function saveVcard() {
     if (!session) return;
-    const lines = ["BEGIN:VCARD", "VERSION:3.0", `FN:${session.nick}`, `URL:${cardUrl}`];
-    for (const c of publicContacts) {
-      if (c.kind === "email" && c.display) lines.push(`EMAIL:${c.display}`);
-      if (c.href) lines.push(`X-SOCIALPROFILE:${c.href}`);
-    }
-    lines.push("END:VCARD");
-    const blob = new Blob([lines.join("\n")], { type: "text/vcard" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${session.nick.replace("@", "")}.vcf`;
-    a.click();
+    const blob = new Blob([buildVcard({ nick: session.nick, url: cardUrl, contacts: publicContacts })], { type: "text/vcard" });
+    downloadBlob(blob, vcardFileName(session.nick));
   }
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
@@ -732,6 +748,7 @@ export function useIdApp() {
     addContact,
     toggleContact,
     shareCard,
+    shareCardImage,
     saveVcard,
     skin,
     cls,
@@ -751,3 +768,11 @@ export function useIdApp() {
 }
 
 export type App = ReturnType<typeof useIdApp>;
+
+export function downloadBlob(blob: Blob, name: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}

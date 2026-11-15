@@ -4,7 +4,8 @@ import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
-import { accountIdOf, GLYPH } from "./types.ts";
+import { accountIdOf } from "./types.ts";
+import { ServiceIcon } from "../contact-icons.tsx";
 import type { App } from "./use-id-app.ts";
 
 const NAV_PATHS: Record<"today" | "finance" | "work" | "more" | "profile", ReactNode> = {
@@ -114,7 +115,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <div className="card pad0 set-list">
                   {session.contacts.map((c) => (
                     <div className="set-row" key={c.id}>
-                      <span className="glyph">{GLYPH[c.kind]}</span>
+                      <ServiceIcon kind={c.kind} size={32} />
                       <span className="set-label set-contact">{c.value}</span>
                       <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
                         <i />

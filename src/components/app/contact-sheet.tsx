@@ -1,12 +1,11 @@
 import { TestBanner } from "./ui.tsx";
-import { GLYPH } from "./types.ts";
-import { type MsgKey } from "@/lib/i18n.ts";
+import { ServiceIcon, serviceName } from "../contact-icons.tsx";
 import type { App } from "./use-id-app.ts";
 
 /** Bottom sheet for adding a contact. */
 export function ContactSheet({ app }: { app: App }) {
   const { t, session, testOtp, sheet, setSheet, newKind, setNewKind, newValue, setNewValue, addContact } = app;
-  const kindName = (k: typeof newKind) => k === "telegram" ? t("telegram") : k === "email" ? t("email") : k === "whatsapp" ? t("wa") : k === "other" ? t("other_service") : k === "youtube" ? "YouTube" : t(k as MsgKey);
+  const kindName = (k: typeof newKind) => serviceName(k, t);
   return (
     <>
     {sheet && session && (
@@ -28,7 +27,7 @@ export function ContactSheet({ app }: { app: App }) {
                       setSheet("value");
                     }}
                   >
-                    <span className="glyph">{GLYPH[k]}</span>
+                    <ServiceIcon kind={k} size={46} />
                     <span>{kindName(k)}</span>
                   </button>
                 ))}
@@ -37,7 +36,7 @@ export function ContactSheet({ app }: { app: App }) {
           )}
           {sheet === "value" && (
             <>
-              <h2><span className="glyph">{GLYPH[newKind]}</span> {kindName(newKind)}</h2>
+              <h2><ServiceIcon kind={newKind} size={36} /> {kindName(newKind)}</h2>
               <div className="field">
                 <div className="box">
                   <input value={newValue} onChange={(e) => setNewValue(e.target.value)} autoCapitalize="off" autoFocus aria-label={t("contact_value")} placeholder={newKind === "telegram" ? "@username" : newKind === "whatsapp" ? "+966…" : newKind === "email" ? "name@mail.com" : ""} />

@@ -5,7 +5,7 @@ import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
-import { emailOtpEnabled, isTestMode, publicCardOrigin, readDoConfig, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
+import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
@@ -1138,22 +1138,8 @@ function cardCacheHeaders(cacheControl: string, extra?: HeadersInit): HeadersIni
 export async function handlePublicCard(request: Request, nickParam: string): Promise<Response> {
   const nick = normalizeNick(nickParam, fmt());
   if (!nick) return json({ error: "not_found" }, 404, cardCacheHeaders("private, no-store"));
-  const doCfg = readDoConfig();
-  if (doCfg) {
-    const url = new URL(`${doCfg.url}/v1/card/${encodeURIComponent(nick)}`);
-    const src = new URL(request.url);
-    const theme = src.searchParams.get("t");
-    const lang = (src.searchParams.get("lang") ?? request.headers.get("accept-language") ?? "").slice(0, 2);
-    if (theme) url.searchParams.set("t", theme);
-    if (lang) url.searchParams.set("lang", lang);
-    const origin = publicCardOrigin(request);
-    if (origin) url.searchParams.set("origin", origin);
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${doCfg.secret}` }, cache: "no-store" });
-    const data = await res.json();
-    const cache = res.headers.get("cache-control") ?? (res.status === 200 ? PUBLIC_CARD_CACHE : "private, no-store");
-    const hit = res.headers.get("x-amr-cache");
-    return json(data, res.status, cardCacheHeaders(cache, hit ? { "x-amr-cache": hit } : undefined));
-  }
+  // Read through the regular store (it goes via the gateway when one is configured),
+  // so the card does not depend on the worker's own nick parser.
   const raw = await getStores().kv.get(nickKey(nick));
   if (!raw) return json({ error: "not_found" }, 404, cardCacheHeaders("private, no-store"));
   const user = JSON.parse(raw) as UserRecord;
