@@ -560,3 +560,49 @@ p{margin:0;line-height:1.4}
 .idcover-title .idcard-sub{color:rgba(255,255,255,.82)}
 .idcover-edit{display:flex;gap:8px;justify-content:center;margin-top:12px}
 .idchip{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:18px;background:var(--card);color:var(--cyan);font-size:14px;font-weight:650;cursor:pointer}
+
+/* ===================== AMR Design System v1.0: theme families × Light/Dark =====================
+ * Themes change tokens only (no reload, no network, no extra bundle). Every pair below was
+ * checked for WCAG AA: text ≥ 7:1, secondary text / actions / status ≥ 4.5:1 on cards. */
+.app.ds{font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans','Noto Sans Arabic','Segoe UI',sans-serif}
+.app.ds.ds-emerald-saudi.light{--bg:#F6F8F7;--bg2:#E8EEEB;--card:#FFFFFF;--card2:#FFFFFF;--line:#D3DCD8;--t:#101714;--muted:#4A5752;--cyan:#087A55;--cyan2:#087A55;--on:#FFFFFF;--accent:#8C6D22;--tint:#E2F1EB;--ok:#087A55;--bad:#B42318;--warn:#9A6700;--tab:#FBFCFB;--sb:#F6F8F7;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D3DCD8;--focus:#087A55;background:var(--bg);color:var(--t)}
+.app.ds.ds-emerald-saudi.dark{--bg:#0E1714;--bg2:#1A2924;--card:#15211D;--card2:#1B2B25;--line:#29403A;--t:#EEF3F0;--muted:#A9B8B1;--cyan:#20C997;--cyan2:#20C997;--on:#062519;--accent:#C9A44C;--tint:#163A2E;--ok:#3DD39E;--bad:#F2877B;--warn:#E0B44C;--tab:#101A17;--sb:#0E1714;--hair:rgba(255,255,255,.09);--field:#1B2B25;--field-line:#29403A;--focus:#20C997;background:var(--bg);color:var(--t)}
+.app.ds.ds-wood-metal.light{--bg:#F5F1EC;--bg2:#EAE3DA;--card:#FFFFFF;--card2:#FFFFFF;--line:#D9CFC3;--t:#1E1712;--muted:#5C5046;--cyan:#6B4A2F;--cyan2:#6B4A2F;--on:#FFFFFF;--accent:#7E6A3A;--tint:#F0E7DC;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FAF7F3;--sb:#F5F1EC;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D9CFC3;--focus:#6B4A2F;background:var(--bg);color:var(--t)}
+.app.ds.ds-wood-metal.dark{--bg:#15110E;--bg2:#262019;--card:#1F1915;--card2:#2A221C;--line:#3B3129;--t:#F2ECE4;--muted:#B9AC9E;--cyan:#D9C08A;--cyan2:#D9C08A;--on:#1C150D;--accent:#AEB5BB;--tint:#332A1F;--ok:#6FCF97;--bad:#F2877B;--warn:#E0B44C;--tab:#18130F;--sb:#15110E;--hair:rgba(255,255,255,.09);--field:#2A221C;--field-line:#3B3129;--focus:#D9C08A;background:var(--bg);color:var(--t)}
+.app.ds.ds-carbon-red.light{--bg:#F4F5F6;--bg2:#E7E9EC;--card:#FFFFFF;--card2:#FFFFFF;--line:#D3D7DC;--t:#111316;--muted:#50565E;--cyan:#B3242E;--cyan2:#B3242E;--on:#FFFFFF;--accent:#5E6873;--tint:#F6E3E4;--ok:#1E7A46;--bad:#B3242E;--warn:#9A6700;--tab:#FAFAFB;--sb:#F4F5F6;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D3D7DC;--focus:#B3242E;background:var(--bg);color:var(--t)}
+.app.ds.ds-carbon-red.dark{--bg:#0F1012;--bg2:#1E2125;--card:#17191C;--card2:#202328;--line:#30343A;--t:#F1F2F4;--muted:#A6ABB3;--cyan:#F0646A;--cyan2:#F0646A;--on:#1A0607;--accent:#9AA4AF;--tint:#3A1A1C;--ok:#4CC38A;--bad:#FF8A85;--warn:#E0B44C;--tab:#121315;--sb:#0F1012;--hair:rgba(255,255,255,.09);--field:#202328;--field-line:#30343A;--focus:#F0646A;background:var(--bg);color:var(--t)}
+.app.ds.ds-cream-lavender.light{--bg:#FBF8F2;--bg2:#F0EBE2;--card:#FFFFFF;--card2:#FFFFFF;--line:#E2DBCF;--t:#231F2A;--muted:#5D5666;--cyan:#6650A6;--cyan2:#6650A6;--on:#FFFFFF;--accent:#7B68B5;--tint:#EEE9F7;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FDFBF7;--sb:#FBF8F2;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#E2DBCF;--focus:#6650A6;background:var(--bg);color:var(--t)}
+.app.ds.ds-cream-lavender.dark{--bg:#17151C;--bg2:#26222E;--card:#201D27;--card2:#2A2633;--line:#3A3446;--t:#F3F0F7;--muted:#B6AEC4;--cyan:#B9A8F0;--cyan2:#B9A8F0;--on:#1B1428;--accent:#D9CFF5;--tint:#2D2640;--ok:#6FCF97;--bad:#F2877B;--warn:#E0B44C;--tab:#1A171F;--sb:#17151C;--hair:rgba(255,255,255,.09);--field:#2A2633;--field-line:#3A3446;--focus:#B9A8F0;background:var(--bg);color:var(--t)}
+.app.ds.ds-rose-champagne.light{--bg:#FAF4F2;--bg2:#F0E5E1;--card:#FFFFFF;--card2:#FFFFFF;--line:#E4D3CE;--t:#2A1D1D;--muted:#66504D;--cyan:#9A4F55;--cyan2:#9A4F55;--on:#FFFFFF;--accent:#8C6D3A;--tint:#F6E6E5;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FCF8F7;--sb:#FAF4F2;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#E4D3CE;--focus:#9A4F55;background:var(--bg);color:var(--t)}
+.app.ds.ds-rose-champagne.dark{--bg:#1A1314;--bg2:#2C2122;--card:#251B1C;--card2:#302425;--line:#423233;--t:#F6ECEA;--muted:#C4B0AD;--cyan:#E3AAA6;--cyan2:#E3AAA6;--on:#2A1517;--accent:#D9BE88;--tint:#3A2627;--ok:#6FCF97;--bad:#FF9A8F;--warn:#E0B44C;--tab:#1D1516;--sb:#1A1314;--hair:rgba(255,255,255,.09);--field:#302425;--field-line:#423233;--focus:#E3AAA6;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-creator.light{--bg:#F6F5FB;--bg2:#EAE8F4;--card:#FFFFFF;--card2:#FFFFFF;--line:#D9D6E8;--t:#15131F;--muted:#54506A;--cyan:#5B4BD6;--cyan2:#5B4BD6;--on:#FFFFFF;--accent:#C24A2E;--tint:#ECE9FB;--ok:#1E7A46;--bad:#B42318;--warn:#9A6700;--tab:#FAF9FD;--sb:#F6F5FB;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D9D6E8;--focus:#5B4BD6;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-creator.dark{--bg:#121019;--bg2:#221F2E;--card:#1B1825;--card2:#242033;--line:#353049;--t:#F2F0FA;--muted:#ADA7C3;--cyan:#9C8FFF;--cyan2:#9C8FFF;--on:#120E2A;--accent:#FF8A6B;--tint:#2A2547;--ok:#4CC38A;--bad:#FF8A85;--warn:#E0B44C;--tab:#15121D;--sb:#121019;--hair:rgba(255,255,255,.09);--field:#242033;--field-line:#353049;--focus:#9C8FFF;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-tactical.light{--bg:#F3F4F0;--bg2:#E5E8DF;--card:#FFFFFF;--card2:#FFFFFF;--line:#D1D6C8;--t:#151812;--muted:#52594A;--cyan:#4F6129;--cyan2:#4F6129;--on:#FFFFFF;--accent:#9A5B12;--tint:#E8EDDC;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#F9FAF7;--sb:#F3F4F0;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D1D6C8;--focus:#4F6129;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-tactical.dark{--bg:#101211;--bg2:#1F2320;--card:#181B19;--card2:#222623;--line:#323833;--t:#E9ECE6;--muted:#A4AB9F;--cyan:#AAB57C;--cyan2:#AAB57C;--on:#151809;--accent:#E0A030;--tint:#262C1E;--ok:#7CC48E;--bad:#F2877B;--warn:#E0A030;--tab:#131514;--sb:#101211;--hair:rgba(255,255,255,.09);--field:#222623;--field-line:#323833;--focus:#AAB57C;background:var(--bg);color:var(--t)}
+/* Brand monogram: green-gold colourway for Emerald Saudi, silver-copper for the rest (shape untouched) */
+.app.ds .mono-saudi{display:none}
+.app.ds .mono-default{display:block}
+.app.ds.ds-emerald-saudi .mono-saudi{display:block}
+.app.ds.ds-emerald-saudi .mono-default{display:none}
+/* Geometry: cards 16, controls 12, fewer pills */
+.app.ds .card,.app.ds .self-card,.app.ds .self-metric,.app.ds .self-module,.app.ds .idlink{border-radius:16px}
+.app.ds .btn,.app.ds .self-primary,.app.ds .self-secondary,.app.ds .idbtn,.app.ds .self-finance-actions button,.app.ds .field .box,.app.ds .select-wrap select,.app.ds .self-modal input,.app.ds .self-field input{border-radius:12px}
+.app.ds .self-add,.app.ds .self-section-head button,.app.ds .idchip,.app.ds .self-customize,.app.ds .lang-pill{border-radius:10px}
+/* Light mode: calm background, subtle card edge */
+.app.ds.light .card,.app.ds.light .self-card,.app.ds.light .self-metric,.app.ds.light .idlink,.app.ds.light .self-month button{box-shadow:0 0 0 1px color-mix(in srgb,var(--line) 75%,transparent),0 1px 2px rgba(16,23,20,.04)}
+/* Dark mode: charcoal surfaces separated from the page */
+.app.ds.dark .card,.app.ds.dark .self-card,.app.ds.dark .idlink{box-shadow:0 0 0 1px var(--hair)}
+/* Primary action and accents */
+.app.ds .btn.p,.app.ds .self-primary,.app.ds .idbtn.primary{background:var(--cyan);color:var(--on)}
+.app.ds .self-finance-actions button,.app.ds .self-add,.app.ds .self-section-head button,.app.ds .idchip{background:var(--tint);color:var(--cyan)}
+.app.ds .nav button.on{color:var(--cyan)}
+.app.ds .toggle.on{background:var(--cyan)}
+.app.ds .self-progress i,.app.ds .self-week-day.on span{background:var(--cyan);color:var(--on)}
+.app.ds .idcard-ava{background:var(--cyan);color:var(--on)}
+/* Visible keyboard focus everywhere */
+.app.ds :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.app.ds input:focus-visible,.app.ds select:focus-visible{outline:none}
+/* Numbers line up */
+.app.ds .money,.app.ds .self-balance strong,.app.ds .self-metric strong{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.app.ds *{transition:none!important;animation:none!important}}
+

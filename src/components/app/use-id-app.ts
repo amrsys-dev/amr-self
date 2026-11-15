@@ -28,8 +28,14 @@ import { accountIdOf, type Meta, type Screen, type SessionState } from "./types.
 
 const GUEST_FLAG = "amrself.guest";
 const THEME_KEY = "self.theme";
-export const UI_THEMES = ["graphite", "light", "saudi"] as const;
+const MODE_KEY = "self.mode";
+/** AMR Design System v1.0 theme families; each has a Light and a Dark mode. */
+export const UI_THEMES = ["emerald-saudi", "wood-metal", "carbon-red", "cream-lavender", "rose-champagne", "digital-creator", "digital-tactical"] as const;
 export type UiTheme = (typeof UI_THEMES)[number];
+export const UI_MODES = ["system", "light", "dark"] as const;
+export type UiMode = (typeof UI_MODES)[number];
+/** Old device settings (before the design system) mapped to family + mode. */
+const LEGACY_THEME: Record<string, [UiTheme, UiMode]> = { saudi: ["emerald-saudi", "dark"], light: ["emerald-saudi", "light"], graphite: ["carbon-red", "dark"] };
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
@@ -39,6 +45,8 @@ export function useIdApp() {
   const [screen, setScreen] = useState<Screen>("welcome");
   const [appearance, setAppearance] = useState<"dark" | "light">("dark");
   const [uiTheme, setUiTheme] = useState<UiTheme | null>(null);
+  const [uiMode, setUiMode] = useState<UiMode>("system");
+  const [systemDark, setSystemDark] = useState(true);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
   const [err, setErr] = useState("");
@@ -81,8 +89,22 @@ export function useIdApp() {
 
   useEffect(() => {
     void requestPersistentStorage();
-    const savedTheme = localStorage.getItem(THEME_KEY);
-    if (savedTheme && (UI_THEMES as readonly string[]).includes(savedTheme)) setUiTheme(savedTheme as UiTheme);
+    const savedTheme = localStorage.getItem(THEME_KEY) ?? "";
+    const savedMode = localStorage.getItem(MODE_KEY) ?? "";
+    if ((UI_THEMES as readonly string[]).includes(savedTheme)) setUiTheme(savedTheme as UiTheme);
+    else if (LEGACY_THEME[savedTheme]) {
+      const [fam, mode] = LEGACY_THEME[savedTheme]!;
+      setUiTheme(fam);
+      setUiMode(mode);
+      localStorage.setItem(THEME_KEY, fam);
+      localStorage.setItem(MODE_KEY, mode);
+    }
+    if ((UI_MODES as readonly string[]).includes(savedMode)) setUiMode(savedMode as UiMode);
+    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
+    if (mq) {
+      setSystemDark(mq.matches);
+      mq.addEventListener?.("change", (e) => setSystemDark(e.matches));
+    }
     if (localStorage.getItem(GUEST_FLAG) === "1") {
       setGuest(true);
       setScreen("today");
@@ -610,14 +632,20 @@ export function useIdApp() {
   }
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
-  /** Device-level look of the app. The server only stores dark/light, so "saudi" lives here. */
-  const theme: UiTheme = uiTheme ?? (appearance === "light" ? "light" : "graphite");
-  const cls = `app ${theme === "light" ? "light" : "dark"} theme-${theme} ${skin}`;
+  /** Device-level look: theme family + Light/Dark/System. The public card keeps its own theme. */
+  const theme: UiTheme = uiTheme ?? "emerald-saudi";
+  const mode: "light" | "dark" = uiMode === "system" ? (systemDark ? "dark" : "light") : uiMode;
+  const cls = skin ? `app ${appearance} ${skin}` : `app ${mode} ds ds-${theme}`;
 
   function chooseTheme(next: UiTheme) {
     localStorage.setItem(THEME_KEY, next);
     setUiTheme(next);
-    const ap = next === "light" ? "light" : "dark";
+  }
+
+  function chooseMode(next: UiMode) {
+    localStorage.setItem(MODE_KEY, next);
+    setUiMode(next);
+    const ap = next === "system" ? (systemDark ? "dark" : "light") : next;
     setAppearance(ap);
     if (session) void saveProfile({ appearance: ap });
   }
@@ -779,6 +807,8 @@ export function useIdApp() {
     inShell,
     theme,
     chooseTheme,
+    chooseMode,
+    uiMode,
     guest,
     setGuest,
     backupMsg,

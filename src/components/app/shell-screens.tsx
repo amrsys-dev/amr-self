@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { UI_THEMES, type UiTheme } from "./use-id-app.ts";
+import { UI_MODES, UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import type { Lang } from "@/lib/i18n.ts";
@@ -40,8 +40,16 @@ function PickRow({ label, value, children, onPick, current }: { label: string; v
 
 function ThemeRow({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
   return (
-    <PickRow label={t("ui_theme")} value={t(`theme_${theme}` as MsgKey)} current={theme} onPick={(v) => chooseTheme(v as UiTheme)}>
-      {UI_THEMES.map((k) => <option key={k} value={k}>{t(`theme_${k}` as MsgKey)}</option>)}
+    <PickRow label={t("ui_theme")} value={t(`fam_${theme.replace("-", "_")}` as MsgKey)} current={theme} onPick={(v) => chooseTheme(v as UiTheme)}>
+      {UI_THEMES.map((k) => <option key={k} value={k}>{t(`fam_${k.replace("-", "_")}` as MsgKey)}</option>)}
+    </PickRow>
+  );
+}
+
+function ModeRow({ mode, chooseMode, t }: { mode: UiMode; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
+  return (
+    <PickRow label={t("ui_mode")} value={t(`mode_${mode}` as MsgKey)} current={mode} onPick={(v) => chooseMode(v as UiMode)}>
+      {UI_MODES.map((k) => <option key={k} value={k}>{t(`mode_${k}` as MsgKey)}</option>)}
     </PickRow>
   );
 }
@@ -77,7 +85,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
   return (
     <>
     {inShell && (
@@ -139,6 +147,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
+                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
                 <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
@@ -188,6 +197,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
+                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
                 <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
@@ -238,9 +248,9 @@ export function ShellScreens({ app }: { app: App }) {
         </div>
         <nav className="nav" aria-label={t("sections")}>
           {([
-            ["today", t("today")],
+            ["today", t("nav_home")],
             ["finance", t("finance")],
-            ["work", t("work")],
+            ["work", t("nav_planner")],
             ["more", t("more")],
             ["profile", t("profile")],
           ] as const).map(([k, label]) => (
