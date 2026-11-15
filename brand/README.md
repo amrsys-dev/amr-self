@@ -23,3 +23,8 @@ All files are transparent PNG, 1600 px wide.
 - `self-icon-1024.png` in this folder — SELF icon master.
 
 Palette: cyan `#00D4FF`, teal `#007C8A`, copper `#C77B3A`, silver `#D6D9DD`, black `#0B0F14`; Saudi theme: green `#03130C`–`#0E3323`, matte gold `#D3B05A`.
+
+## App colourway (from 2026-11)
+
+`amr-bronze.png` — one flat brushed-bronze colour (soft top-to-bottom tone, no gloss or highlights),
+used in SELF on every theme, light and dark. Shape is the original monogram's alpha mask, unchanged.

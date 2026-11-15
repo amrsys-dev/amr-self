@@ -30,12 +30,16 @@ const GUEST_FLAG = "amrself.guest";
 const THEME_KEY = "self.theme";
 const MODE_KEY = "self.mode";
 /** AMR Design System v1.0 theme families; each has a Light and a Dark mode. */
-export const UI_THEMES = ["emerald-saudi", "wood-metal", "carbon-red", "cream-lavender", "rose-champagne", "digital-creator", "digital-tactical"] as const;
+export const UI_THEMES = ["emerald", "graphite", "bronze"] as const;
 export type UiTheme = (typeof UI_THEMES)[number];
 export const UI_MODES = ["system", "light", "dark"] as const;
 export type UiMode = (typeof UI_MODES)[number];
 /** Old device settings (before the design system) mapped to family + mode. */
-const LEGACY_THEME: Record<string, [UiTheme, UiMode]> = { saudi: ["emerald-saudi", "dark"], light: ["emerald-saudi", "light"], graphite: ["carbon-red", "dark"] };
+const LEGACY_THEME: Record<string, [UiTheme, UiMode | null]> = {
+  saudi: ["emerald", "dark"], light: ["emerald", "light"],
+  "emerald-saudi": ["emerald", null], "carbon-red": ["graphite", null], "digital-creator": ["graphite", null], "digital-tactical": ["graphite", null],
+  "wood-metal": ["bronze", null], "cream-lavender": ["bronze", null], "rose-champagne": ["bronze", null],
+};
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
@@ -95,9 +99,11 @@ export function useIdApp() {
     else if (LEGACY_THEME[savedTheme]) {
       const [fam, mode] = LEGACY_THEME[savedTheme]!;
       setUiTheme(fam);
-      setUiMode(mode);
       localStorage.setItem(THEME_KEY, fam);
-      localStorage.setItem(MODE_KEY, mode);
+      if (mode && !savedMode) {
+        setUiMode(mode);
+        localStorage.setItem(MODE_KEY, mode);
+      }
     }
     if ((UI_MODES as readonly string[]).includes(savedMode)) setUiMode(savedMode as UiMode);
     const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
@@ -149,7 +155,8 @@ export function useIdApp() {
 
   function fail(status: number, data: { error?: string }) {
     if (status === 429) setErr(t("rate_limited"));
-    else if (data.error === "invalid_code" || data.error === "invalid_credentials") setErr(t("invalid_code"));
+    else if (data.error === "invalid_credentials") setErr(screen === "recovery" ? t("invalid_code") : t("wrong_login"));
+    else if (data.error === "invalid_code") setErr(t("invalid_code"));
     else if (data.error === "nick_taken") setErr(t("nick_taken_hint"));
     else if (data.error === "password_short") setErr(t("password_short"));
     else if (data.error === "password_weak" || data.error === "same_as_nick") setErr(t("password_weak"));
@@ -633,7 +640,7 @@ export function useIdApp() {
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
   /** Device-level look: theme family + Light/Dark/System. The public card keeps its own theme. */
-  const theme: UiTheme = uiTheme ?? "emerald-saudi";
+  const theme: UiTheme = uiTheme ?? "emerald";
   const mode: "light" | "dark" = uiMode === "system" ? (systemDark ? "dark" : "light") : uiMode;
   const cls = skin ? `app ${appearance} ${skin}` : `app ${mode} ds ds-${theme}`;
 
