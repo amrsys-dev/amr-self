@@ -440,52 +440,75 @@ p{margin:0;line-height:1.4}
 .nav button.on{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
 .page.withnav{padding-bottom:100px}
 
-/* ===================== Theme: light — soft colour light, glass cards, deep navy key cards ===================== */
-.app.theme-light{--bg:#EEF1F6;--bg2:#E7EBF2;--card:#FFFFFF;--card2:#F8FAFD;--line:#DCE2EB;--tab:#FFFFFF;--sb:#EEF1F6;
-  background:radial-gradient(90% 36% at 0% 0%,#DCE6FF 0%,transparent 70%),radial-gradient(80% 32% at 100% 4%,#D3F1F4 0%,transparent 70%),radial-gradient(100% 40% at 50% 100%,#E7E3FA 0%,transparent 70%),var(--bg)}
-.app.theme-light .hd{background:transparent}
-.app.theme-light .card,.app.theme-light .self-card,.app.theme-light .self-metric,.app.theme-light .self-module{background:rgba(255,255,255,.88);border:1px solid #FFFFFF;box-shadow:inset 0 1px 0 #FFFFFF,0 10px 28px rgba(31,45,77,.08)}
-/* Key numbers sit on a deep navy card: strong contrast without a header band */
-.app.theme-light .self-balance{background:linear-gradient(140deg,#1B2741 0%,#24385C 55%,#0E5D69 100%);border-color:transparent;color:#FFFFFF;box-shadow:0 14px 32px rgba(27,39,65,.28)}
-.app.theme-light .self-balance strong,.app.theme-light .self-balance b{color:#FFFFFF}
-.app.theme-light .self-balance span,.app.theme-light .self-balance small{color:#C3CEDF}
-.app.theme-light .self-balance .self-finance-actions button{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.24);color:#FFFFFF}
-.app.theme-light .self-balance .self-progress{background:rgba(255,255,255,.18)}
-.app.theme-light .nav{border-top:0;background:rgba(255,255,255,.94);box-shadow:0 -10px 30px rgba(29,42,68,.10)}
-
-/* ===================== Theme: Saudi — deep green, matte gold frames ===================== */
-.app.theme-saudi{--bg:#03130C;--bg2:#062016;--card:#0A2A1C;--card2:#0E3323;--t:#F4EEDC;--muted:#BDB596;--line:#6B5A28;--cyan:#D3B05A;--cyan2:#A8842F;--tint:#163A24;--on:#1A1405;--ok:#3FAE6A;--steel:#CFC6A6;--sb:#03130C;--tab:#04170F;--hair:rgba(211,176,90,.14);
-  background:radial-gradient(120% 60% at 50% -10%,#0D3B26 0%,var(--bg) 60%)}
-.app.theme-saudi .hd{background:transparent;border-bottom:1px solid rgba(211,176,90,.28)}
-.app.theme-saudi .card,.app.theme-saudi .self-card,.app.theme-saudi .self-metric{border:1px solid #8A7330;background:linear-gradient(160deg,#0F3524,#0A2719);box-shadow:inset 0 1px 0 rgba(255,231,160,.10),0 8px 22px rgba(0,0,0,.35)}
-.app.theme-saudi .btn.p{background:linear-gradient(180deg,#DCBB66,#B08A35);border:1px solid #EBD291;color:#1A1405;box-shadow:inset 0 1px 0 rgba(255,245,210,.45),0 6px 16px rgba(0,0,0,.35)}
-.app.theme-saudi .btn.g,.app.theme-saudi .btn.ghost,.app.theme-saudi .select-wrap select{border-color:#8A7330;background:linear-gradient(180deg,#0E3323,#0A2A1C)}
-.app.theme-saudi .nav{border-top:1px solid #6B5A28}
-.app.theme-saudi .nav button.on{background:linear-gradient(180deg,rgba(211,176,90,.22),rgba(211,176,90,.08));box-shadow:inset 0 0 0 1px rgba(211,176,90,.45)}
-.app.theme-saudi .self-progress i{background:linear-gradient(90deg,#A8842F,#E2C677)}
-.app.theme-saudi .self-check{border-color:#BFA45A}
-
-/* ===================== Apple-like system layer (all themes) ===================== */
+/* ===================== Themes: Apple-like, light and calm ===================== */
+.app{--field:var(--card2);--field-line:var(--line)}
 .app{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',Inter,'Noto Sans','Segoe UI',sans-serif;letter-spacing:-.01em}
-/* Header: small company mark, large product name */
-.hd{height:58px;padding:0 20px;background:transparent}
+/* Graphite = Apple dark */
+.app.theme-graphite{--bg:#000000;--bg2:#1C1C1E;--card:#1C1C1E;--card2:#2C2C2E;--line:#38383A;--muted:#AEAEB2;--t:#FFFFFF;--tab:#121212;--sb:#000000;--hair:rgba(84,84,88,.65);--field:#2C2C2E;--field-line:#48484A}
+/* Light = Apple grouped background, white cards; secondary text kept dark enough to read */
+.app.theme-light{--bg:#F2F2F7;--bg2:#E9E9EE;--card:#FFFFFF;--card2:#FFFFFF;--line:#D1D1D6;--t:#000000;--muted:#55555B;--cyan:#00727F;--cyan2:#005F6A;--tint:#E1F1F3;--tab:#F9F9F9;--sb:#F2F2F7;--hair:rgba(60,60,67,.18);--field:#FFFFFF;--field-line:#C7C7CC;background:var(--bg)}
+/* Saudi = deep green with a touch of matte gold (accent only, no gold frames) */
+.app.theme-saudi{--bg:#04140D;--bg2:#0F2C1E;--card:#0C2419;--card2:#11301F;--t:#F5F1E6;--muted:#C3CABF;--line:#24402F;--cyan:#CFB06A;--cyan2:#B39352;--tint:#173627;--on:#1A1405;--ok:#4CC27E;--bad:#F08A7E;--steel:#B9C2B6;--sb:#04140D;--tab:#06180F;--hair:rgba(255,255,255,.08);--field:#0A1E15;--field-line:#2E4D3B;background:var(--bg)}
+.app.theme-saudi .mono-default{display:none}
+/* Header: small company mark, product name */
+.hd{height:58px;padding:0 20px;background:transparent;border:0}
 .hd .brand{gap:10px}
 .monopl{height:22px}
 .monopl .mono,.hd .mono{height:18px;max-width:64px}
 .hd .appname{font-size:27px;font-weight:800;letter-spacing:-.9px;line-height:1}
-/* Tab bar: translucent with blur, hairline, tint colour for the active tab (no pill) */
-.nav{height:84px;padding:6px 6px 22px;background:color-mix(in srgb,var(--tab) 80%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--hair);box-shadow:none}
-.nav button{font-size:10.5px;font-weight:600;min-height:50px;gap:3px;border-radius:12px}
+/* Cards: flat, no frames */
+.app .card,.app .self-card,.app .self-metric,.app .self-module{background:var(--card);border:0;box-shadow:none}
+/* Tab bar: translucent, hairline, tint for the active tab */
+.nav{height:84px;padding:6px 6px 22px;background:color-mix(in srgb,var(--tab) 86%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--hair);box-shadow:none}
+.nav button{font-size:11px;font-weight:600;min-height:50px;gap:3px;border-radius:12px;background:none;color:var(--muted)}
 .nav button svg{width:26px;height:26px}
-.nav button.on,.app.theme-saudi .nav button.on{background:none;box-shadow:none;color:var(--cyan)}
-/* Buttons: filled tint instead of outlines */
-.btn{border-radius:12px;font-weight:650}
-.btn.g,.btn.ghost{background:color-mix(in srgb,var(--t) 7%,transparent);border-color:transparent}
-.select-wrap select{border-color:transparent;background:var(--card)}
+.nav button.on{background:none;box-shadow:none;color:var(--cyan)}
+.page.withnav{padding-bottom:100px}
+/* Buttons */
+.btn{min-height:50px;border-radius:12px;font-size:17px;font-weight:650}
+.btn.p{background:var(--cyan);color:var(--on);border:0;box-shadow:none}
+.btn.g,.btn.ghost{background:var(--card);border:0;color:var(--t)}
+.btn.danger{background:var(--card);border:0;color:var(--bad);flex:1}
+.btn:focus-visible,.set-row:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 35%,transparent)}
+/* Fields: always visible, focus ring stays inside the field's own space */
+.field .box{background:var(--field);border:1px solid var(--field-line);min-height:50px}
+.field .box:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 20%,transparent)}
+.field .box input{font-size:17px}
+.select-wrap select{min-height:50px;border:1px solid var(--field-line);background:var(--field);font-size:17px}
+.select-wrap select:focus-visible{outline:none;border-color:var(--cyan)}
+.sheet{background:var(--bg);border-top:0}
+.sheet h2{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.svc{background:var(--card);border:0}
+/* Readable sizes */
+.tiny{font-size:14px}
+.hint,.sub{font-size:15px;color:var(--muted)}
+.group{margin-top:22px}
+.group .lab{font-size:14px;font-weight:600;color:var(--muted);padding:0 16px 8px;text-transform:none}
+.row .txt span{font-size:14px}
+.svc span{font-size:13px}
 
-/* Graphite = Apple dark */
-.app.theme-graphite{--bg:#000000;--bg2:#1C1C1E;--card:#1C1C1E;--card2:#2C2C2E;--line:#38383A;--muted:#98989F;--t:#FFFFFF;--tab:#121212;--sb:#000000;--hair:rgba(84,84,88,.65)}
-/* Light = Apple grouped background, white cards, no gradients */
-.app.theme-light{--bg:#F2F2F7;--bg2:#E5E5EA;--card:#FFFFFF;--card2:#FFFFFF;--line:#E5E5EA;--t:#000000;--muted:#6C6C70;--tab:#F9F9F9;--sb:#F2F2F7;--hair:rgba(60,60,67,.18);background:var(--bg)}
-.app.theme-light .card,.app.theme-light .self-card,.app.theme-light .self-metric,.app.theme-light .self-module{background:#FFFFFF;border:0;box-shadow:none}
-.app.theme-light .nav{background:rgba(249,249,249,.88)}
+/* Settings list (Apple Settings style): full-width rows, text left, value right */
+.set-list{margin-top:22px}
+.group .set-list{margin-top:0}
+.set-row{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 16px;background:none;color:var(--t);text-align:start;font-size:17px;border:0}
+.set-row + .set-row{box-shadow:inset 0 .5px 0 var(--hair)}
+.set-label{flex:1;min-width:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-contact{font-weight:600}
+.set-value{display:flex;align-items:center;gap:6px;font-size:17px;color:var(--muted);white-space:nowrap}
+.set-flag{font-size:20px;line-height:1}
+.set-chev{color:var(--muted);font-size:20px;line-height:1;flex:none}
+.set-row.accent .set-label{color:var(--cyan);font-weight:600}
+.set-row.danger .set-label{color:var(--bad);font-weight:600}
+.set-row:disabled{opacity:.45}
+.set-row:active{background:color-mix(in srgb,var(--t) 6%,transparent)}
+.set-pick{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.set-nick{display:block;width:100%;padding:20px 16px;text-align:center}
+.set-nick .nick{font-size:30px;margin:0}
+.toggle{width:51px;height:31px;border-radius:16px;background:color-mix(in srgb,var(--t) 16%,transparent)}
+.toggle i{width:27px;height:27px;border-radius:14px}
+.toggle.on{background:var(--ok)}
+.toggle.on i{left:22px}
+.app.theme-saudi .toggle.on{background:var(--cyan)}
+/* Language pill on the welcome screen */
+.lang-pill{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:20px;background:var(--card);font-size:15px}
+.lang-pill span:first-child{font-size:20px;line-height:1}

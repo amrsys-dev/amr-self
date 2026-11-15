@@ -5,7 +5,8 @@ import type { App } from "./use-id-app.ts";
 
 /** Bottom sheet for adding a contact. */
 export function ContactSheet({ app }: { app: App }) {
-  const { t, session, testOtp, sheet, setSheet, setNewKind, newValue, setNewValue, addContact } = app;
+  const { t, session, testOtp, sheet, setSheet, newKind, setNewKind, newValue, setNewValue, addContact } = app;
+  const kindName = (k: typeof newKind) => k === "telegram" ? t("telegram") : k === "email" ? t("email") : k === "whatsapp" ? t("wa") : k === "other" ? t("other_service") : k === "youtube" ? "YouTube" : t(k as MsgKey);
   return (
     <>
     {sheet && session && (
@@ -28,9 +29,7 @@ export function ContactSheet({ app }: { app: App }) {
                     }}
                   >
                     <span className="glyph">{GLYPH[k]}</span>
-                    <span>
-                      {k === "telegram" ? t("telegram") : k === "email" ? t("email") : k === "whatsapp" ? t("wa") : k === "other" ? t("other_service") : k === "youtube" ? "YouTube" : t(k as MsgKey)}
-                    </span>
+                    <span>{kindName(k)}</span>
                   </button>
                 ))}
               </div>
@@ -38,10 +37,10 @@ export function ContactSheet({ app }: { app: App }) {
           )}
           {sheet === "value" && (
             <>
-              <h2>{t("contact_value")}</h2>
+              <h2><span className="glyph">{GLYPH[newKind]}</span> {kindName(newKind)}</h2>
               <div className="field">
                 <div className="box">
-                  <input value={newValue} onChange={(e) => setNewValue(e.target.value)} autoCapitalize="off" />
+                  <input value={newValue} onChange={(e) => setNewValue(e.target.value)} autoCapitalize="off" autoFocus aria-label={t("contact_value")} placeholder={newKind === "telegram" ? "@username" : newKind === "whatsapp" ? "+966…" : newKind === "email" ? "name@mail.com" : ""} />
                 </div>
               </div>
               <TestBanner code={testOtp} t={t} />

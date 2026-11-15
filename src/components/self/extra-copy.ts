@@ -2,6 +2,7 @@
 import type { Lang } from "@/lib/i18n.ts";
 
 const ru = {
+  add: "Добавить",
   balanceTotal: "Баланс", moneyIn: "Пришло", moneyOut: "Ушло", yesterday: "Вчера", todayLbl: "Сегодня", upcoming: "Предстоящие", noDate: "Без даты", showDone: "Выполненные · {n}", thisWeek: "Эта неделя", weekLine: "{n} трен. · {m} мин", streak: "Серия: {n} нед. подряд", prevMonth: "Предыдущий месяц", nextMonth: "Следующий месяц",
   goodMorning: "Доброе утро", goodAfternoon: "Добрый день", goodEvening: "Добрый вечер", allPaid: "Всё оплачено", toPay: "{n} к оплате", healthSub: "Вода, вес, тренировки, питание", cardSub: "QR-код и все контакты по одной ссылке",
   cat_food: "Продукты", cat_fuel: "Топливо", cat_car: "Автомобиль", cat_housing: "Аренда и жильё", cat_utilities: "Свет, вода, газ",
@@ -26,6 +27,7 @@ const ru = {
 type Copy = { [K in keyof typeof ru]: string };
 
 const en: Copy = {
+  add: "Add",
   balanceTotal: "Balance", moneyIn: "In", moneyOut: "Out", yesterday: "Yesterday", todayLbl: "Today", upcoming: "Upcoming", noDate: "No date", showDone: "Completed · {n}", thisWeek: "This week", weekLine: "{n} workouts · {m} min", streak: "Streak: {n} weeks in a row", prevMonth: "Previous month", nextMonth: "Next month",
   goodMorning: "Good morning", goodAfternoon: "Good afternoon", goodEvening: "Good evening", allPaid: "All paid", toPay: "{n} to pay", healthSub: "Water, weight, workouts, meals", cardSub: "QR code and all contacts in one link",
   cat_food: "Groceries", cat_fuel: "Fuel", cat_car: "Car", cat_housing: "Rent & home", cat_utilities: "Electricity, water, gas",
@@ -48,6 +50,7 @@ const en: Copy = {
 };
 
 const ar: Copy = {
+  add: "إضافة",
   balanceTotal: "الرصيد", moneyIn: "وارد", moneyOut: "صادر", yesterday: "أمس", todayLbl: "اليوم", upcoming: "القادمة", noDate: "بدون تاريخ", showDone: "المكتملة · {n}", thisWeek: "هذا الأسبوع", weekLine: "{n} تمارين · {m} دقيقة", streak: "سلسلة: {n} أسابيع متتالية", prevMonth: "الشهر السابق", nextMonth: "الشهر التالي",
   goodMorning: "صباح الخير", goodAfternoon: "مساء الخير", goodEvening: "مساء الخير", allPaid: "كل شيء مدفوع", toPay: "{n} للدفع", healthSub: "الماء والوزن والتمارين والوجبات", cardSub: "رمز QR وكل جهات الاتصال في رابط واحد",
   cat_food: "البقالة", cat_fuel: "الوقود", cat_car: "السيارة", cat_housing: "الإيجار والسكن", cat_utilities: "الكهرباء والماء والغاز",
@@ -70,6 +73,7 @@ const ar: Copy = {
 };
 
 const uz: Copy = {
+  add: "Qo‘shish",
   balanceTotal: "Balans", moneyIn: "Kirim", moneyOut: "Chiqim", yesterday: "Kecha", todayLbl: "Bugun", upcoming: "Kelgusi", noDate: "Sanasiz", showDone: "Bajarilgan · {n}", thisWeek: "Shu hafta", weekLine: "{n} mashg‘ulot · {m} daq", streak: "Ketma-ket: {n} hafta", prevMonth: "Oldingi oy", nextMonth: "Keyingi oy",
   goodMorning: "Xayrli tong", goodAfternoon: "Xayrli kun", goodEvening: "Xayrli kech", allPaid: "Hammasi to‘langan", toPay: "{n} ta to‘lov", healthSub: "Suv, vazn, mashg‘ulot, ovqat", cardSub: "QR-kod va barcha kontaktlar bitta havolada",
   cat_food: "Oziq-ovqat", cat_fuel: "Yoqilg‘i", cat_car: "Avtomobil", cat_housing: "Ijara va uy", cat_utilities: "Svet, suv, gaz",
@@ -92,6 +96,7 @@ const uz: Copy = {
 };
 
 const tj: Copy = {
+  add: "Илова",
   balanceTotal: "Тавозун", moneyIn: "Омад", moneyOut: "Рафт", yesterday: "Дирӯз", todayLbl: "Имрӯз", upcoming: "Оянда", noDate: "Бе сана", showDone: "Иҷрошуда · {n}", thisWeek: "Ин ҳафта", weekLine: "{n} тамрин · {m} дақ", streak: "Пайдарпай: {n} ҳафта", prevMonth: "Моҳи гузашта", nextMonth: "Моҳи оянда",
   goodMorning: "Субҳ ба хайр", goodAfternoon: "Рӯз ба хайр", goodEvening: "Шом ба хайр", allPaid: "Ҳама пардохт шуд", toPay: "{n} барои пардохт", healthSub: "Об, вазн, тамрин, хӯрок", cardSub: "QR-код ва ҳамаи тамосҳо дар як пайванд",
   cat_food: "Озуқа", cat_fuel: "Сӯзишворӣ", cat_car: "Мошин", cat_housing: "Иҷора ва манзил", cat_utilities: "Барқ, об, газ",

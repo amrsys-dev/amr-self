@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { UI_THEMES, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
-import { Header, LangPicker } from "./ui.tsx";
+import { Header, LANG_OPTIONS } from "./ui.tsx";
+import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf, GLYPH } from "./types.ts";
 import type { App } from "./use-id-app.ts";
@@ -22,22 +23,43 @@ function NavIcon({ name }: { name: keyof typeof NAV_PATHS }) {
   );
 }
 
-/** One compact control instead of big tiles: graphite, light (wave header) or Saudi (green and matte gold). */
-function ThemeSelect({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
+/** Settings row with a native picker laid over it: label on the left, current value on the right. */
+function PickRow({ label, value, children, onPick, current }: { label: string; value: ReactNode; children?: ReactNode; onPick: (v: string) => void; current: string }) {
   return (
-    <div className="group">
-      <label className="lab" htmlFor="ui-theme">{t("ui_theme")}</label>
-      <div className="select-wrap">
-        <select id="ui-theme" value={theme} onChange={(e) => chooseTheme(e.target.value as UiTheme)}>
-          {UI_THEMES.map((k) => (
-            <option key={k} value={k}>{t(`theme_${k}` as MsgKey)}</option>
-          ))}
-        </select>
-      </div>
-    </div>
+    <label className="set-row">
+      <span className="set-label">{label}</span>
+      <span className="set-value">{value}</span>
+      <span className="set-chev" aria-hidden="true">⌄</span>
+      <select className="set-pick" aria-label={label} value={current} onChange={(e) => onPick(e.target.value)}>{children}</select>
+    </label>
   );
 }
 
+function ThemeRow({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
+  return (
+    <PickRow label={t("ui_theme")} value={t(`theme_${theme}` as MsgKey)} current={theme} onPick={(v) => chooseTheme(v as UiTheme)}>
+      {UI_THEMES.map((k) => <option key={k} value={k}>{t(`theme_${k}` as MsgKey)}</option>)}
+    </PickRow>
+  );
+}
+
+function LangRow({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
+  const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
+  return (
+    <PickRow label={t("lang")} value={<><span className="set-flag">{cur.flag}</span>{cur.code.toUpperCase()}</>} current={lang} onPick={(v) => setLang(v as Lang)}>
+      {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
+    </PickRow>
+  );
+}
+
+function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: () => void; tone?: "accent" | "danger"; disabled?: boolean }) {
+  return (
+    <button type="button" className={"set-row" + (tone ? " " + tone : "")} onClick={onClick} disabled={disabled}>
+      <span className="set-label">{label}</span>
+      {!tone && <span className="set-chev" aria-hidden="true">›</span>}
+    </button>
+  );
+}
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
@@ -84,60 +106,42 @@ export function ShellScreens({ app }: { app: App }) {
           )}
           {screen === "profile" && session && (
             <>
-              <div className="card hero" style={{ textAlign: "center" }}>
-                <div className="nick" style={{ fontSize: 28 }}>
-                  {session.nick}
-                </div>
-              </div>
+              <button type="button" className="card hero set-nick" onClick={() => setScreen("card")}>
+                <div className="nick">{session.nick}</div>
+              </button>
               <div className="group">
                 <div className="lab">{t("show_hide")}</div>
-                <div className="card pad0">
+                <div className="card pad0 set-list">
                   {session.contacts.map((c) => (
-                    <div className="row crow" key={c.id}>
-                      <span className="glyph ico">{GLYPH[c.kind]}</span>
-                      <div className="txt">
-                        <b>{c.kind === "whatsapp" ? t("listed_by_owner") : c.value}</b>
-                              </div>
-                      <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")}>
+                    <div className="set-row" key={c.id}>
+                      <span className="glyph">{GLYPH[c.kind]}</span>
+                      <span className="set-label set-contact">{c.value}</span>
+                      <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
                         <i />
                       </button>
                     </div>
                   ))}
-                  <button className="row" type="button" onClick={() => setSheet("kind")}>
-                    <div className="txt">
-                      <b>{t("add_contact")}</b>
-                    </div>
-                  </button>
+                  <LinkRow label={t("add_contact")} tone="accent" onClick={() => setSheet("kind")} />
                 </div>
               </div>
-              <ThemeSelect theme={theme} chooseTheme={chooseTheme} t={t} />
-              <div className="btns">
-                <button className="btn g" type="button" onClick={() => setScreen("card-themes")}>
-                  {t("card_theme")}
-                </button>
-              </div>
-              <LangPicker lang={lang} setLang={setLang} t={t} />
-              <div className="btns">
-                <button
-                  className={`btn g ${session.nickChanged ? "off" : ""}`}
-                  type="button"
+              <div className="card pad0 set-list">
+                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <LangRow lang={lang} setLang={setLang} t={t} />
+                <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
+                <LinkRow
+                  label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
+                  disabled={session.nickChanged}
                   onClick={() => {
-                    if (session.nickChanged) return;
                     setNewNick("");
                     setNewNickStatus("");
                     setReauthPassword("");
                     setErr("");
                     setScreen("nick-change");
                   }}
-                >
-                  {session.nickChanged ? t("nick_change_used") : t("change_nick")}
-                </button>
-              </div>
-              {session.contacts.some((c) => c.verified && c.kind === "telegram") ? (
-                <div className="btns">
-                  <button
-                    className="btn g"
-                    type="button"
+                />
+                {session.contacts.some((c) => c.verified && c.kind === "telegram") ? (
+                  <LinkRow
+                    label={t("change_channel")}
                     onClick={() => {
                       const next = session.contacts.find((c) => c.verified && c.kind === "telegram");
                       setPendingContactId(next?.id ?? "");
@@ -148,68 +152,40 @@ export function ShellScreens({ app }: { app: App }) {
                       setErr("");
                       setScreen("sec-2fa-change");
                     }}
-                  >
-                    {t("change_channel")}
-                  </button>
-                </div>
-              ) : null}
-              <div className="btns">
-                <button className="btn g" type="button" onClick={() => void logout()}>
-                  {t("sign_out")}
-                </button>
+                  />
+                ) : null}
               </div>
-              <div className="btns">
-                <button
-                  className="btn danger"
-                  type="button"
-                  onClick={() => {
-                    setReauthPassword("");
-                    setCode("");
-                    setOtpId("");
-                    setTestOtp(undefined);
-                    setErr("");
-                    setScreen("account-delete");
-                  }}
-                >
-                  {t("delete_my_data")}
-                </button>
-              </div>
-              {meta?.testMode ? (
-                <p className="tiny">
-                  {t("test_banner")}
-                  {meta.storeKind === "memory" ? " · " : ""}
-                </p>
-              ) : null}
             </>
           )}
           {screen === "profile" && !session && (
-            <div className="card hero" style={{ textAlign: "center" }}>
-              <h2>{t("guest_title")}</h2>
-              <p className="sub">{t("guest_sub")}</p>
-              <div className="btns">
-                <button className="btn p" type="button" onClick={() => { setNick(""); setNickStatus(""); setScreen("signup-nick"); }}>
-                  {t("create_id")}
-                </button>
+            <>
+              <div className="card hero" style={{ textAlign: "center" }}>
+                <h2>{t("guest_title")}</h2>
+                <div className="btns">
+                  <button className="btn p" type="button" onClick={() => { setNick(""); setNickStatus(""); setScreen("signup-nick"); }}>
+                    {t("create_id")}
+                  </button>
+                </div>
+                <div className="btns">
+                  <button className="btn g" type="button" onClick={() => setScreen("login")}>
+                    {t("have_id")}
+                  </button>
+                </div>
               </div>
-              <div className="btns">
-                <button className="btn g" type="button" onClick={() => setScreen("login")}>
-                  {t("have_id")}
-                </button>
+              <div className="card pad0 set-list">
+                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <LangRow lang={lang} setLang={setLang} t={t} />
               </div>
-            </div>
+            </>
           )}
           {screen === "profile" && (
             <div className="group">
               <div className="lab">{t("backup")}</div>
-              <p className="hint">{t("backup_hint_file")}</p>
-              <div className="btns">
-                <button className="btn g" type="button" onClick={() => void exportBackup()}>
-                  {t("backup_export")}
-                </button>
-              </div>
-              <div className="btns">
-                <label className="btn g">
-                  {t("backup_import")}
+              <div className="card pad0 set-list">
+                <LinkRow label={t("backup_export")} onClick={() => void exportBackup()} />
+                <label className="set-row">
+                  <span className="set-label">{t("backup_import")}</span>
+                  <span className="set-chev" aria-hidden="true">›</span>
                   <input
                     type="file"
                     accept="application/json,.json"
@@ -223,10 +199,26 @@ export function ShellScreens({ app }: { app: App }) {
                 </label>
               </div>
               {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : null}
-              {!session ? <ThemeSelect theme={theme} chooseTheme={chooseTheme} t={t} /> : null}
-              {!session ? <LangPicker lang={lang} setLang={setLang} t={t} /> : null}
             </div>
           )}
+          {screen === "profile" && session && (
+            <div className="card pad0 set-list">
+              <LinkRow label={t("sign_out")} tone="accent" onClick={() => void logout()} />
+              <LinkRow
+                label={t("delete_my_data")}
+                tone="danger"
+                onClick={() => {
+                  setReauthPassword("");
+                  setCode("");
+                  setOtpId("");
+                  setTestOtp(undefined);
+                  setErr("");
+                  setScreen("account-delete");
+                }}
+              />
+            </div>
+          )}
+          {screen === "profile" && session && meta?.testMode ? <p className="tiny">{t("test_banner")}</p> : null}
         </div>
         <nav className="nav" aria-label={t("sections")}>
           {([

@@ -1,4 +1,4 @@
-import { LANGS, type Lang, type MsgKey } from "@/lib/i18n.ts";
+import { type Lang, type MsgKey } from "@/lib/i18n.ts";
 
 export function Brand() {
   return (
@@ -61,18 +61,25 @@ export function Header({ title, onBack, tool }: { title?: string; onBack?: () =>
   );
 }
 
+export const LANG_OPTIONS: { code: Lang; flag: string; name: string }[] = [
+  { code: "ru", flag: "🇷🇺", name: "Русский" },
+  { code: "ar", flag: "🇸🇦", name: "العربية" },
+  { code: "uz", flag: "🇺🇿", name: "O‘zbekcha" },
+  { code: "tj", flag: "🇹🇯", name: "Тоҷикӣ" },
+  { code: "en", flag: "🇬🇧", name: "English" },
+];
+
+/** Compact language dropdown with flags. */
 export function LangPicker({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
-  const labels: Record<Lang, string> = { ru: "RU", ar: "AR", uz: "UZ", tj: "TJ", en: "EN" };
+  const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
   return (
-    <div className="group">
-      <div className="lab">{t("lang")}</div>
-      <div className="cit">
-        {LANGS.map((l) => (
-          <button key={l} type="button" className={lang === l ? "on" : ""} onClick={() => setLang(l)}>
-            {labels[l]}
-          </button>
-        ))}
-      </div>
-    </div>
+    <label className="lang-pill">
+      <span aria-hidden="true">{cur.flag}</span>
+      <b>{cur.code.toUpperCase()}</b>
+      <span className="set-chev" aria-hidden="true">⌄</span>
+      <select className="set-pick" aria-label={t("lang")} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+        {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
+      </select>
+    </label>
   );
 }

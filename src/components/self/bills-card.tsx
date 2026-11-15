@@ -68,10 +68,10 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
     <>
       <div className="self-section-head">
         <h3>{tx(lang, "bills")}</h3>
-        <button type="button" onClick={() => setOpen(true)}>+ {tx(lang, "addBill")}</button>
+        <button type="button" className="self-add" onClick={() => setOpen(true)} aria-label={tx(lang, "addBill")}>+ {tx(lang, "add")}</button>
       </div>
-      <div className="self-card">
-        {rows.length === 0 ? <div className="self-empty">{tx(lang, "noBills")}</div> : rows.map(({ bill, s }) => (
+      {rows.length > 0 && <div className="self-card">
+        {rows.map(({ bill, s }) => (
           <div className="self-list-row" key={bill.id}>
             <div className="self-list-mark"><CategoryIcon c={bill.category} /></div>
             <div className="self-list-copy">
@@ -89,7 +89,7 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
             <button className="self-delete" type="button" onClick={() => void remove(bill)} aria-label={labels.delete}>×</button>
           </div>
         ))}
-      </div>
+      </div>}
 
       {open && (
         <div className="self-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>

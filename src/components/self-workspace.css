@@ -148,7 +148,6 @@
 .self-hero{padding:18px;border-radius:20px;gap:10px}
 .self-hero strong{font-size:36px;font-weight:800;letter-spacing:-1px}
 .self-finance-actions button{min-height:44px;border:0;border-radius:12px;background:color-mix(in srgb,var(--cyan) 14%,transparent);font-size:15px;font-weight:600}
-.app.theme-graphite .self-balance{background:linear-gradient(140deg,#0F3A44 0%,#14232E 70%);border:0}
 .self-menu{padding:0}
 .self-menu-row{display:flex;align-items:center;gap:12px;width:100%;min-height:66px;padding:10px 14px;text-align:start;color:inherit;border-bottom:.5px solid var(--hair)}
 .self-menu-row:last-child{border-bottom:0}
@@ -156,7 +155,6 @@
 .self-menu-icon.car{background:#0A84FF}
 .self-menu-icon.health{background:#FF375F}
 .self-menu-icon.identity{background:#0E8F9E}
-.app.theme-saudi .self-menu-icon{background:linear-gradient(180deg,#DCBB66,#B08A35);color:#1A1405}
 .self-menu-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .self-menu-copy b{font-size:16px;font-weight:600}
 .self-menu-copy small{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -173,8 +171,6 @@
 .self-arrow{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;font-weight:800}
 .self-arrow.up{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
 .self-arrow.down{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad)}
-.app.theme-light .self-hero .self-arrow.up,.app.theme-graphite .self-hero .self-arrow.up{color:#7EE2A8}
-.app.theme-light .self-hero .self-arrow.down,.app.theme-graphite .self-hero .self-arrow.down{color:#FF9A8F}
 .self-month{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-6px}
 .self-month b{font-size:17px;font-weight:650;text-transform:capitalize}
 .self-month button{width:44px;height:44px;border-radius:12px;background:var(--card);color:var(--cyan);font-size:24px;line-height:1}
@@ -202,3 +198,52 @@
 .self-week-day.on span{background:var(--cyan);color:var(--on)}
 .self-week-day.now span{box-shadow:0 0 0 2px var(--cyan)}
 .self-streak{font-size:13px;color:var(--cyan);font-weight:650}
+
+/* ===================== Readability pass: contrast, sizes, visible fields ===================== */
+/* Key numbers: plain card, dark text on light, light text on dark — never white on white */
+.app .self-balance{background:var(--card);color:var(--t);border:0;box-shadow:none}
+.app .self-balance strong,.app .self-balance b{color:var(--t)}
+.app .self-balance>span,.app .self-balance small{color:var(--muted)}
+.self-balance>span{font-size:15px;font-weight:600}
+.self-hero strong{font-size:36px;line-height:1.1}
+.self-finance-split small{font-size:14px;font-weight:600}
+.self-finance-split b{font-size:18px;font-weight:700}
+.self-flow div:first-child b{color:var(--ok)}
+.self-flow div:last-child b{color:var(--bad)}
+.app .self-finance-actions button{min-height:46px;border:0;background:color-mix(in srgb,var(--cyan) 14%,transparent);color:var(--cyan);font-size:16px;font-weight:650}
+.app .self-progress{background:color-mix(in srgb,var(--t) 12%,transparent);height:6px}
+.app .self-progress i{background:var(--cyan)}
+/* Section heads: title left, small rounded "+ Add" right */
+.self-section-head h3{min-width:0;font-size:20px}
+.self-section-head button,.self-add{flex:none;white-space:nowrap;min-height:34px;padding:0 14px;border-radius:17px;background:color-mix(in srgb,var(--cyan) 14%,transparent);color:var(--cyan);font-size:15px;font-weight:650}
+/* Text sizes: nothing below 13px */
+.self-empty{font-size:15px}
+.self-filter button{min-height:36px;font-size:14px;font-weight:600}
+.self-filter button.on{background:var(--card);color:var(--t)}
+.self-list-copy small,.self-task-copy small{font-size:13px;color:var(--muted)}
+.self-day-head{font-size:14px}
+.self-pill{font-size:13px;min-height:26px}
+.self-pay{font-size:14px;min-height:36px}
+.self-metric>span{font-size:14px}
+.self-metric small,.self-maint-foot small,.self-odo>div>small,.self-inline-link span{font-size:13px;color:var(--muted)}
+.self-maint-top b,.self-inline-link b{font-size:16px}
+.self-catbar-top{font-size:15px}
+.self-error{font-size:14px}
+.self-week-day i{font-size:12px}
+.self-month b{font-size:18px}
+.self-month button{background:var(--card)}
+.self-large p{font-size:14px}
+/* Forms: fields always visible with a clear border; labels readable */
+.self-modal-backdrop{background:rgba(0,0,0,.5)}
+.self-modal{background:var(--bg);border:0;gap:14px;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.self-modal-head h3{font-size:20px;font-weight:700}
+.self-modal label,.self-field label,.self-cats legend{font-size:14px;font-weight:600;color:var(--muted);gap:8px}
+.self-field input,.self-modal input,.self-modal select,.self-modal textarea{min-height:50px;padding:12px 14px;border-radius:12px;background:var(--field);border:1px solid var(--field-line);color:var(--t);font-size:17px;font-weight:500}
+.self-field input:focus,.self-modal input:focus,.self-modal select:focus,.self-modal textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 20%,transparent)}
+.self-modal input::placeholder{color:color-mix(in srgb,var(--muted) 70%,transparent)}
+.self-cats-grid button{min-height:70px;font-size:13px;background:var(--card);border:1px solid transparent}
+.self-cats-grid button.on{border-color:var(--cyan);box-shadow:none;background:color-mix(in srgb,var(--cyan) 12%,var(--card))}
+.self-primary,.self-secondary{min-height:50px;border-radius:12px;font-size:17px;font-weight:650}
+.self-secondary{border:0;background:var(--card)}
+.self-check{border-color:color-mix(in srgb,var(--t) 40%,transparent)}
+.self-menu-icon{background:var(--cyan);color:var(--on)}
