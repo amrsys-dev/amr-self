@@ -9,18 +9,18 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content",
       },
-      { title: "AMR ID" },
-      { name: "description", content: "AMR ID" },
+      { title: "SELF" },
+      { name: "description", content: "Personal life management: health, finances, work and digital identity." },
       { name: "theme-color", content: "#0B0E11" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "AMR ID" },
+      { name: "apple-mobile-web-app-title", content: "SELF" },
     ],
     links: [
-      { rel: "icon", type: "image/png", href: "/amr-mono.png" },
-      { rel: "apple-touch-icon", href: "/amr-mono.png" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.webmanifest" },
     ],
@@ -43,6 +43,20 @@ export const Route = createRootRoute({
 function SwBoot() {
   useEffect(() => {
     registerSw();
+    // Height of the on-screen keyboard, so bottom sheets and dialogs sit right above it.
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty("--kb", `${Math.round(kb)}px`);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
   }, []);
   return null;
 }

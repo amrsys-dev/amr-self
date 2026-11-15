@@ -5,7 +5,8 @@ import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
-import { emailOtpEnabled, isTestMode, publicCardOrigin, readDoConfig, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
+import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
+import { photoUrl } from "./photo.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
@@ -44,7 +45,7 @@ const wrappedSchema = z.object({
 const authKeySchema = z.string().min(16).max(128);
 
 const signupSchema = z.object({
-  nick: z.string().optional(),
+  nick: z.string().min(3).max(40),
   authKey: authKeySchema,
   recoveryVerifyKey: authKeySchema.optional(),
   kdfPassword: kdfSchema,
@@ -54,10 +55,7 @@ const signupSchema = z.object({
   wrapRecovery: wrappedSchema.optional(),
   wrapRecoveries: z.array(wrappedSchema).min(1).max(10).optional(),
   recoveryVerifyKeys: z.array(authKeySchema).min(1).max(10).optional(),
-  channel: z.enum(["telegram", "email"]),
-  dest: z.string().min(2).max(200),
   lang: z.string().optional(),
-  ageConfirmed: z.literal(true),
 });
 
 const loginSchema = z.object({
@@ -352,6 +350,7 @@ async function dummyNickProbe(nick: string): Promise<void> {
 function sessionPayload(user: UserRecord) {
   return {
     nick: user.nick,
+    dataId: user.dataId ?? user.nick,
     theme: user.theme,
     appearance: user.appearance,
     contacts: user.contacts,
@@ -359,6 +358,7 @@ function sessionPayload(user: UserRecord) {
     kdf: user.kdf,
     dataVersion: user.dataVersion ?? 0,
     cardPath: publicCardPath(user.nick),
+    photo: photoUrl(user),
     passwordReset: "recovery_code_only" as const,
     nickChanged: Boolean(user.nickChanged),
     recoveryLeft: (user.recoveryHashes ?? (user.recoveryHash ? [user.recoveryHash] : [])).length,
@@ -372,11 +372,11 @@ export async function handleMeta(request: Request): Promise<Response> {
     storeKind: stores.kind,
     nickFormat: process.env.AMR_NICK_FORMAT ?? "xxx-xxx",
     nickReissue: false,
-    passwordMin: 10,
+    passwordMin: 8,
     passwordReset: "recovery_code_only",
     recoveryCodes: recoveryCodesCount(),
     emailOtp: emailOtpEnabled(),
-    ageRequired: true,
+    ageRequired: false,
     env: vercelEnv(),
     cardOrigin: publicCardOrigin(request),
     telegramBot: telegramOtpLive() ? `@${telegramBotUsername()}` : undefined,
@@ -439,7 +439,6 @@ export async function handleSignup(request: Request): Promise<Response> {
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const body = signupSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
-  if (body.data.ageConfirmed !== true) return json({ error: "age_required" }, 400);
   const authKey = requireKey(body.data.authKey);
   const verifyRaw = body.data.recoveryVerifyKeys?.length ? body.data.recoveryVerifyKeys : body.data.recoveryVerifyKey ? [body.data.recoveryVerifyKey] : [];
   const wrapList = (body.data.wrapRecoveries?.length ? body.data.wrapRecoveries : body.data.wrapRecovery ? [body.data.wrapRecovery] : []) as WrappedKey[];
@@ -457,23 +456,20 @@ export async function handleSignup(request: Request): Promise<Response> {
   const nick = await uniqueNick(body.data.nick);
   if (!nick) return json({ error: "nick_taken" }, 409);
   const now = new Date().toISOString();
-  const channel = body.data.channel as OtpChannel;
-  if (channel === "email" && !emailOtpEnabled()) return json({ error: "email_otp_disabled" }, 400);
-  const dest = body.data.dest.trim();
   const recoveryHashes: string[] = [];
   for (const k of verifyKeys) recoveryHashes.push(await hashAuthKey(k));
   const user: UserRecord = {
     nick,
+    dataId: b64url(randomBytes(16)),
     createdAt: now,
     passwordHash: await hashAuthKey(authKey),
     recoveryHash: recoveryHashes[0]!,
     recoveryHashes,
     recoveryKdfs: kdfList,
     kdf: { password: body.data.kdfPassword, recovery: kdfList[0]! },
-    otp:
-      channel === "telegram"
-        ? { telegram: telegramFromUserInput(dest, false) }
-        : { email: { address: dest, verified: false } },
+    // AMR ID registration is independent of Telegram, WhatsApp, and email.
+    // External platforms are optional profile links, not account prerequisites.
+    otp: {},
     contacts: [],
     theme: "graphite",
     wrapPassword: body.data.wrapPassword as WrappedKey,
@@ -481,29 +477,10 @@ export async function handleSignup(request: Request): Promise<Response> {
     wrapRecoveries: wrapList,
     appearance: "dark",
     dataVersion: 0,
-    ageConfirmedAt: now,
   };
-  if (channel === "telegram" && telegramOtpLive()) {
-    const pendingId = randomBytes(16).toString("base64url");
-    const pending: PendingSignup = { kind: "signup", user, dest };
-    await getStores().kv.put(otpKey(pendingId), JSON.stringify(pending), {
-      expirationTtl: Math.ceil(TELEGRAM_LINK_TTL_MS / 1000) + 60,
-    });
-    const link = await issueTelegramLink({ nick, purpose: "signup", pendingOtpId: pendingId, lang: body.data.lang });
-    return json({ nick, channel, ...linkPayload(link) });
-  }
-  const issued = await issueOtp(request, {
-    nick,
-    purpose: "signup",
-    channel,
-    dest,
-    lang: body.data.lang,
-  });
-  if (issued instanceof Response) return issued;
-  const pending: PendingSignup = { kind: "signup", user, otp: issued.otp, dest };
-  await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
-  const test = isTestMode() ? { testOtp: issued.code } : {};
-  return json({ otpId: issued.otpId, nick, channel, ...test });
+  if (!(await claimNick(nick, JSON.stringify(user)))) return json({ error: "nick_taken" }, 409);
+  const { cookie } = await createSession(nick);
+  return jsonWithCookie(sessionPayload(user), cookie);
 }
 
 export async function handleLogin(request: Request): Promise<Response> {
@@ -527,11 +504,8 @@ export async function handleLogin(request: Request): Promise<Response> {
   // account's stored, already-verified destination.
   const stored = verifiedOtpDest(user);
   if (!stored) {
-    if (telegramOtpLive()) {
-      const link = await issueTelegramLink({ nick, purpose: "login", lang: body.data.lang });
-      return json({ error: "telegram_link_required", nick, ...linkPayload(link) }, 409);
-    }
-    return json({ error: "no_otp_dest" }, 400);
+    const { cookie } = await createSession(user.nick);
+    return jsonWithCookie(sessionPayload(user), cookie);
   }
   const issued = await issueOtp(request, {
     nick,
@@ -761,7 +735,7 @@ const patchSchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"]),
+        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
         value: z.string().max(200),
         visible: z.boolean(),
         label: z.string().max(80).optional(),
@@ -800,7 +774,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
 }
 
 const addContactSchema = z.object({
-  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "email", "other"]),
+  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
   value: z.string().min(1).max(200),
   visible: z.boolean().optional(),
   label: z.string().max(80).optional(),
@@ -812,37 +786,20 @@ export async function handleAddContact(request: Request): Promise<Response> {
   if (user instanceof Response) return user;
   const body = addContactSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
-  if (body.data.kind === "other" && !isHttpsUrl(body.data.value)) return json({ error: "invalid", hint: "https_only" }, 400);
+  if ((body.data.kind === "other" || body.data.kind === "youtube") && !isHttpsUrl(body.data.value) && body.data.kind === "other") return json({ error: "invalid", hint: "https_only" }, 400);
   const id = randomBytes(8).toString("base64url");
-  const needsOtp =
-    body.data.kind === "telegram" || (body.data.kind === "email" && emailOtpEnabled());
   const contact: Contact = {
     id,
     kind: body.data.kind,
     value: body.data.value.trim(),
     visible: body.data.visible ?? defaultContactVisible(body.data.kind),
-    verified: body.data.kind === "telegram" || body.data.kind === "email" ? false : !needsOtp,
+    verified: false,
     label: body.data.label,
   };
   user.contacts.push(contact);
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
-  if (!needsOtp) return json({ contact });
-  const channel = body.data.kind === "telegram" ? "telegram" : "email";
-  const issued = await issueOtp(request, {
-    nick: user.nick,
-    purpose: "contact",
-    channel,
-    dest: contact.value,
-    lang: body.data.lang,
-  });
-  if (issued instanceof Response) return issued;
-  await getStores().kv.put(
-    otpKey(issued.otpId),
-    JSON.stringify({ kind: "contact", nick: user.nick, contactId: id, otp: issued.otp }),
-    otpPutTtl(),
-  );
-  const test = isTestMode() ? { testOtp: issued.code } : {};
-  return json({ contact, otpId: issued.otpId, ...test });
+  // Contacts are public links, not authentication factors. No OTP is sent here.
+  return json({ contact });
 }
 
 export async function handleVerifyContact(request: Request): Promise<Response> {
@@ -947,6 +904,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   await clearOtpsForNick(nick);
   await revokeAllSessions(nick);
   await deleteAllDataBlobs(stores.blobs, nick);
+  if (user.photo) await stores.blobs.delete(user.photo.key);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
@@ -1082,6 +1040,9 @@ export async function handleChangeNick(request: Request): Promise<Response> {
   if (next.toLowerCase() === user.nick.toLowerCase()) return json({ error: "invalid" }, 400);
   const stores = getStores();
   const oldNick = user.nick;
+  // Legacy accounts used nick as the encryption AAD. Freeze that value before
+  // moving storage keys so a nick change does not make existing blobs undecryptable.
+  user.dataId ??= oldNick;
   user.previousNick = oldNick;
   user.nickChanged = true;
   user.nick = next;
@@ -1180,22 +1141,8 @@ function cardCacheHeaders(cacheControl: string, extra?: HeadersInit): HeadersIni
 export async function handlePublicCard(request: Request, nickParam: string): Promise<Response> {
   const nick = normalizeNick(nickParam, fmt());
   if (!nick) return json({ error: "not_found" }, 404, cardCacheHeaders("private, no-store"));
-  const doCfg = readDoConfig();
-  if (doCfg) {
-    const url = new URL(`${doCfg.url}/v1/card/${encodeURIComponent(nick)}`);
-    const src = new URL(request.url);
-    const theme = src.searchParams.get("t");
-    const lang = (src.searchParams.get("lang") ?? request.headers.get("accept-language") ?? "").slice(0, 2);
-    if (theme) url.searchParams.set("t", theme);
-    if (lang) url.searchParams.set("lang", lang);
-    const origin = publicCardOrigin(request);
-    if (origin) url.searchParams.set("origin", origin);
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${doCfg.secret}` }, cache: "no-store" });
-    const data = await res.json();
-    const cache = res.headers.get("cache-control") ?? (res.status === 200 ? PUBLIC_CARD_CACHE : "private, no-store");
-    const hit = res.headers.get("x-amr-cache");
-    return json(data, res.status, cardCacheHeaders(cache, hit ? { "x-amr-cache": hit } : undefined));
-  }
+  // Read through the regular store (it goes via the gateway when one is configured),
+  // so the card does not depend on the worker's own nick parser.
   const raw = await getStores().kv.get(nickKey(nick));
   if (!raw) return json({ error: "not_found" }, 404, cardCacheHeaders("private, no-store"));
   const user = JSON.parse(raw) as UserRecord;
@@ -1207,6 +1154,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
       nick: user.nick,
       theme,
       contacts,
+      photo: photoUrl(user),
       url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
     },
     200,

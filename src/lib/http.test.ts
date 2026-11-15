@@ -25,4 +25,21 @@ describe("security headers", () => {
         .find((header) => header.key === "Strict-Transport-Security")?.value ?? "";
     assertNoPreload(hsts);
   });
+
+  it("allows TanStack Start inline hydration scripts in CSP", () => {
+    const csp = SECURITY_HEADERS["Content-Security-Policy"] ?? "";
+    assert.match(csp, /script-src 'self' 'unsafe-inline'/);
+    // hash-wasm (argon2id for passwords) compiles WebAssembly in the browser.
+    assert.match(csp, /'wasm-unsafe-eval'/);
+    assert.doesNotMatch(csp, /script-src 'self';/);
+
+    const raw = JSON.parse(readFileSync(resolve("vercel.json"), "utf8")) as {
+      headers?: { headers?: { key: string; value: string }[] }[];
+    };
+    const vercelCsp =
+      raw.headers
+        ?.flatMap((entry) => entry.headers ?? [])
+        .find((header) => header.key === "Content-Security-Policy")?.value ?? "";
+    assert.equal(vercelCsp, csp);
+  });
 });

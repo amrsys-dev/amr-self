@@ -5,6 +5,7 @@ export const CONTACT_KINDS = [
   "discord",
   "steam",
   "snapchat",
+  "youtube",
   "email",
   "other",
 ] as const;
@@ -48,11 +49,15 @@ export function contactHref(c: Contact): string | null {
   if (!v) return null;
   switch (c.kind) {
     case "telegram":
+      if (/^https:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i.test(v)) return v;
       return `https://t.me/${v.replace(/^@/, "")}`;
     case "whatsapp":
-      // The number in the wa.me href is by design so WhatsApp can open a chat.
-      // The visible label never includes the number (see listed_by_owner).
+      if (/^https:\/\/(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(v)) return v;
+      // The number is used only in the link; it is not printed on the card.
       return `https://wa.me/${v.replace(/[^\d]/g, "")}`;
+    case "youtube":
+      if (/^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(v)) return v;
+      return `https://www.youtube.com/@${encodeURIComponent(v.replace(/^@/, ""))}`;
     case "signal":
       return `https://signal.me/#u/${encodeURIComponent(v.replace(/^@/, ""))}`;
     case "discord":
@@ -79,6 +84,7 @@ export function defaultContactVisible(kind: ContactKind): boolean {
 
 export function displayContactValue(c: Contact, listedByOwner = ""): string {
   if (c.kind === "whatsapp") return listedByOwner;
+  if (c.kind === "youtube") return c.label || "YouTube";
   if (c.kind === "telegram" || c.kind === "signal") {
     return c.value.startsWith("@") ? c.value : `@${c.value}`;
   }

@@ -1,9 +1,39 @@
-/** Empty tab schema for stage 1. Content arrives in later PRs. */
+/** Personal data model. Sensitive user data is encrypted before it leaves the device. */
+import type { CarProfile, MaintenanceItem, ServiceEntry } from "../car/maintenance.ts";
+import type { BillRecord } from "../finance/categories.ts";
 
 export type DataRecord = {
   id: string;
   updatedAt: string;
   deleted?: boolean;
+};
+
+export type FinanceRecord = DataRecord & {
+  title?: string;
+  amount?: number;
+  /** Currency the amount was entered in (SAR when missing). */
+  currency?: string;
+  category?: string;
+  date?: string;
+  note?: string;
+  kind?: "income" | "expense";
+};
+
+export type TaskRecord = DataRecord & {
+  title?: string;
+  dueDate?: string;
+  priority?: "low" | "medium" | "high";
+  completed?: boolean;
+};
+
+export type HealthEntry = DataRecord & {
+  kind?: "water" | "weight" | "meal" | "workout";
+  title?: string;
+  date?: string;
+  amount?: number;
+  unit?: string;
+  calories?: number;
+  note?: string;
 };
 
 export type SalaryRecord = DataRecord & { amount: number; currency: "SAR" };
@@ -13,16 +43,29 @@ export type UserData = {
   finance: {
     salary: SalaryRecord | null;
     gigs: DataRecord[];
-    income: DataRecord[];
-    expense: DataRecord[];
-    planned: DataRecord[];
+    income: FinanceRecord[];
+    expense: FinanceRecord[];
+    /** Monthly bills: rent, electricity, phone. */
+    planned: BillRecord[];
     limits: DataRecord[];
   };
-  work: { tasks: DataRecord[] };
+  work: { tasks: TaskRecord[] };
   visa: { entries: DataRecord[] };
   diary: { items: DataRecord[] };
   sport: { sessions: DataRecord[] };
   plans: { items: DataRecord[] };
+  health?: {
+    water: HealthEntry[];
+    weight: HealthEntry[];
+    nutrition: HealthEntry[];
+    workouts: HealthEntry[];
+  };
+  /** Car upkeep by odometer. Optional: older data has none. */
+  car?: {
+    vehicles: CarProfile[];
+    items: MaintenanceItem[];
+    log: ServiceEntry[];
+  };
 };
 
 export function emptyUserData(): UserData {
@@ -34,5 +77,7 @@ export function emptyUserData(): UserData {
     diary: { items: [] },
     sport: { sessions: [] },
     plans: { items: [] },
+    health: { water: [], weight: [], nutrition: [], workouts: [] },
+    car: { vehicles: [], items: [], log: [] },
   };
 }

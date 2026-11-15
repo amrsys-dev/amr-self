@@ -1,0 +1,269 @@
+import type { ReactNode } from "react";
+import { UI_MODES, UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
+import type { MsgKey } from "@/lib/i18n.ts";
+import { Header, LANG_OPTIONS } from "./ui.tsx";
+import type { Lang } from "@/lib/i18n.ts";
+import { SelfWorkspace } from "../self-workspace.tsx";
+import { accountIdOf } from "./types.ts";
+import { ServiceIcon } from "../contact-icons.tsx";
+import { CurrencySign, useCurrency } from "../self/currency.tsx";
+import { isCurrency } from "@/lib/finance/currency.ts";
+import type { App } from "./use-id-app.ts";
+
+const NAV_PATHS: Record<"today" | "finance" | "work" | "more" | "profile", ReactNode> = {
+  today: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5.5 10v9.5h13V10" /><path d="M10 19.5v-5h4v5" /></>,
+  finance: <><rect x="3" y="6" width="18" height="14" rx="3" /><path d="M3 10.5h18" /><circle cx="16.5" cy="15" r="1.3" /></>,
+  work: <><rect x="3" y="7.5" width="18" height="12.5" rx="2.5" /><path d="M9 7.5V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5v2" /><path d="M3 13h18" /></>,
+  more: <><rect x="4" y="4" width="6.5" height="6.5" rx="1.8" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8" /></>,
+  profile: <><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
+};
+
+function NavIcon({ name }: { name: keyof typeof NAV_PATHS }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {NAV_PATHS[name]}
+    </svg>
+  );
+}
+
+/** Settings row with a native picker laid over it: label on the left, current value on the right. */
+function PickRow({ label, value, children, onPick, current }: { label: string; value: ReactNode; children?: ReactNode; onPick: (v: string) => void; current: string }) {
+  return (
+    <label className="set-row">
+      <span className="set-label">{label}</span>
+      <span className="set-value">{value}</span>
+      <span className="set-chev" aria-hidden="true">⌄</span>
+      <select className="set-pick" aria-label={label} value={current} onChange={(e) => onPick(e.target.value)}>{children}</select>
+    </label>
+  );
+}
+
+function ThemeRow({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
+  return (
+    <PickRow label={t("ui_theme")} value={t(`fam_${theme.replace("-", "_")}` as MsgKey)} current={theme} onPick={(v) => chooseTheme(v as UiTheme)}>
+      {UI_THEMES.map((k) => <option key={k} value={k}>{t(`fam_${k.replace("-", "_")}` as MsgKey)}</option>)}
+    </PickRow>
+  );
+}
+
+function ModeRow({ mode, chooseMode, t }: { mode: UiMode; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
+  return (
+    <PickRow label={t("ui_mode")} value={t(`mode_${mode}` as MsgKey)} current={mode} onPick={(v) => chooseMode(v as UiMode)}>
+      {UI_MODES.map((k) => <option key={k} value={k}>{t(`mode_${k}` as MsgKey)}</option>)}
+    </PickRow>
+  );
+}
+
+function LangRow({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
+  const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
+  return (
+    <PickRow label={t("lang")} value={<><span className="set-flag">{cur.flag}</span>{cur.code.toUpperCase()}</>} current={lang} onPick={(v) => setLang(v as Lang)}>
+      {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
+    </PickRow>
+  );
+}
+
+const CURRENCY_NAMES = { SAR: "Saudi riyal", USD: "US dollar", RUB: "Российский рубль", UZS: "Oʻzbek soʻmi", TJS: "Сомонӣ" } as const;
+
+function CurrencyRow({ t }: { t: (k: MsgKey) => string }) {
+  const { cur, setCur, currencies } = useCurrency();
+  return (
+    <PickRow label={t("currency")} value={<><CurrencySign cur={cur} /> {cur}</>} current={cur} onPick={(v) => { if (isCurrency(v)) setCur(v); }}>
+      {currencies.map((c) => <option key={c} value={c}>{c} · {CURRENCY_NAMES[c]}</option>)}
+    </PickRow>
+  );
+}
+
+function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: () => void; tone?: "accent" | "danger"; disabled?: boolean }) {
+  return (
+    <button type="button" className={"set-row" + (tone ? " " + tone : "")} onClick={onClick} disabled={disabled}>
+      <span className="set-label">{label}</span>
+      {!tone && <span className="set-chev" aria-hidden="true">›</span>}
+    </button>
+  );
+}
+
+/** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
+export function ShellScreens({ app }: { app: App }) {
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
+  return (
+    <>
+    {inShell && (
+      <>
+        {/* Tabs show only the product mark; each screen carries its own large title. */}
+        <Header />
+        <div className="page withnav">
+          {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && !session && guest && (
+            <SelfWorkspace
+              section={screen}
+              accountId="guest"
+              dataKey={null}
+              keyVersion={keyVersion}
+              lang={lang}
+              onUnlock={() => undefined}
+              onOpenCard={() => setScreen("profile")}
+              guestStore={guestStore}
+              onNavigate={(next) => setScreen(next)}
+            />
+          )}
+          {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && session && (
+            <SelfWorkspace
+              section={screen}
+              accountId={accountIdOf(session)}
+              wrapPassword={session.wrapPassword}
+              passwordKdf={session.kdf?.password}
+              dataKey={dataKeyRef.current}
+              keyVersion={keyVersion}
+              lang={lang}
+              onUnlock={(key) => {
+                dataKeyRef.current = key;
+                setKeyVersion((v) => v + 1);
+              }}
+              onOpenCard={() => setScreen("card")}
+              onNavigate={(next) => setScreen(next)}
+            />
+          )}
+          {screen === "profile" && (
+            <header className="self-large"><h1>{t("profile")}</h1></header>
+          )}
+          {screen === "profile" && session && (
+            <>
+              <button type="button" className="card hero set-nick" onClick={() => setScreen("card")}>
+                <div className="nick">{session.nick}</div>
+              </button>
+              <div className="group">
+                <div className="lab">{t("show_hide")}</div>
+                <div className="card pad0 set-list">
+                  {session.contacts.map((c) => (
+                    <div className="set-row" key={c.id}>
+                      <ServiceIcon kind={c.kind} size={32} />
+                      <span className="set-label set-contact">{c.value}</span>
+                      <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
+                        <i />
+                      </button>
+                    </div>
+                  ))}
+                  <LinkRow label={t("add_contact")} tone="accent" onClick={() => setSheet("kind")} />
+                </div>
+              </div>
+              <div className="card pad0 set-list">
+                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
+                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <LangRow lang={lang} setLang={setLang} t={t} />
+                <CurrencyRow t={t} />
+                <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
+                <LinkRow
+                  label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
+                  disabled={session.nickChanged}
+                  onClick={() => {
+                    setNewNick("");
+                    setNewNickStatus("");
+                    setReauthPassword("");
+                    setErr("");
+                    setScreen("nick-change");
+                  }}
+                />
+                {session.contacts.some((c) => c.verified && c.kind === "telegram") ? (
+                  <LinkRow
+                    label={t("change_channel")}
+                    onClick={() => {
+                      const next = session.contacts.find((c) => c.verified && c.kind === "telegram");
+                      setPendingContactId(next?.id ?? "");
+                      setReauthPassword("");
+                      setCode("");
+                      setOtpId("");
+                      setTestOtp(undefined);
+                      setErr("");
+                      setScreen("sec-2fa-change");
+                    }}
+                  />
+                ) : null}
+              </div>
+            </>
+          )}
+          {screen === "profile" && !session && (
+            <>
+              <div className="card hero" style={{ textAlign: "center" }}>
+                <h2>{t("guest_title")}</h2>
+                <div className="btns">
+                  <button className="btn p" type="button" onClick={() => { setNick(""); setNickStatus(""); setScreen("signup-nick"); }}>
+                    {t("create_id")}
+                  </button>
+                </div>
+                <div className="btns">
+                  <button className="btn g" type="button" onClick={() => setScreen("login")}>
+                    {t("have_id")}
+                  </button>
+                </div>
+              </div>
+              <div className="card pad0 set-list">
+                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
+                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <LangRow lang={lang} setLang={setLang} t={t} />
+                <CurrencyRow t={t} />
+              </div>
+            </>
+          )}
+          {screen === "profile" && (
+            <div className="group">
+              <div className="lab">{t("backup")}</div>
+              <div className="card pad0 set-list">
+                <LinkRow label={t("backup_export")} onClick={() => void exportBackup()} />
+                <label className="set-row">
+                  <span className="set-label">{t("backup_import")}</span>
+                  <span className="set-chev" aria-hidden="true">›</span>
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void importBackup(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+              {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : null}
+            </div>
+          )}
+          {screen === "profile" && session && (
+            <div className="card pad0 set-list">
+              <LinkRow label={t("sign_out")} tone="accent" onClick={() => void logout()} />
+              <LinkRow
+                label={t("delete_my_data")}
+                tone="danger"
+                onClick={() => {
+                  setReauthPassword("");
+                  setCode("");
+                  setOtpId("");
+                  setTestOtp(undefined);
+                  setErr("");
+                  setScreen("account-delete");
+                }}
+              />
+            </div>
+          )}
+          {screen === "profile" && session && meta?.testMode ? <p className="tiny">{t("test_banner")}</p> : null}
+        </div>
+        <nav className="nav" aria-label={t("sections")}>
+          {([
+            ["today", t("nav_home")],
+            ["finance", t("finance")],
+            ["work", t("nav_planner")],
+            ["more", t("more")],
+            ["profile", t("profile")],
+          ] as const).map(([k, label]) => (
+            <button key={k} type="button" className={screen === k ? "on" : ""} aria-current={screen === k ? "page" : undefined} onClick={() => setScreen(k)}>
+              <NavIcon name={k} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </>
+    )}
+
+
+    </>
+  );
+}

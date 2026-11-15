@@ -1,14 +1,31 @@
-# Self
+# SELF
 
-Personal assistant and digital ID. Separate from Safar.
+SELF is a standalone personal life-management PWA. It combines daily planning, personal finance, health tracking, and digital identity in one private workspace.
 
-Stage 1 is a preview skeleton: sign-up, password + one-time code, a public business card, and empty tabs. Nothing is in production, and no custom domain is attached.
+## Current MVP scope
+
+- Existing account registration, login, Telegram one-time codes, recovery codes, and public digital card.
+- Today dashboard with monthly income/expenses, task progress, and water tracking.
+- Personal income and expense entries in SAR.
+- Tasks with due dates, priorities, completion, and deletion.
+- Basic health logs: water, weight, meals/calories, and workouts.
+- Existing encrypted local data store and background synchronization.
+- RU / AR (RTL) / UZ / TJ / EN interface language support.
+- PWA shell and responsive mobile-first interface.
+
+## Deliberately not enabled yet
+
+- Vault/password manager: no secrets are stored by this MVP. A dedicated local-only encryption design, auto-lock, and security review are required first.
+- Medical diagnosis, clinical scoring, or health recommendations.
+- Automatic bank integrations, payment processing, or financial advice.
+- Advanced nutrition databases, wearable integrations, and automated fitness plans.
+- Full budgeting, debts, recurring transactions, and financial forecasting.
 
 ## Stack
 
-TanStack Start, React, TypeScript, Vite, Nitro on Vercel — the same family as the Safar hub. The data-file key is random and wrapped twice (password and recovery code) with argon2id then HKDF; the server only ever sees a derived auth key. Blobs are XChaCha20-Poly1305 with AAD = account id + version. Test storage is a local file (or in-memory locally). Preview uses the Cloudflare worker (CF_DO_URL + CF_DO_SECRET) for Durable Object nick/CAS/rate limits, KV write-through, and encrypted R2 blobs. No Cloudflare API token is stored on Vercel. Public business cards are cached at the edge for 30 seconds (stale-while-revalidate 120) via Cache-Control and the Workers Cache API.
+TanStack Start, React, TypeScript, Vite, Nitro on Vercel. Personal data is encrypted on the client before it is stored or synchronized. The random data-file key is wrapped with password/recovery material using Argon2id and HKDF. Data blobs use XChaCha20-Poly1305 with account/version AAD. The existing encrypted IndexedDB and remote sync path remain the persistence layer.
 
-## Local
+## Local development
 
 ```bash
 cp .env.example .env
@@ -19,12 +36,8 @@ npm run typecheck
 npm run dev
 ```
 
-With `OTP_MODE=test` locally (and no worker relay) a one-time code appears in a clearly marked test banner and in the server log. That never runs when `VERCEL_ENV=production`, and it is also off on preview once `CF_DO_URL` is set: login codes go only to the linked `@amr_id_bot` chat.
+With `OTP_MODE=test` locally and no worker relay, a one-time code appears only in a clearly marked test banner and server log. Production never exposes this test code.
 
-## Nick
+## Release policy
 
-Default format is `@AMR-xxx-xxx`. Set `AMR_NICK_FORMAT=xxxx-xxxx` to switch to `@AMR-xxxx-xxxx`. Retired nicks are never reissued. A nick may be changed exactly once. Sign-up issues `AMR_RECOVERY_CODES` (default 10) one-time recovery codes, generated on the device and shown once — never sent to the server or Telegram. Support cannot reset a password. Login codes go only through the Telegram bot until a domain is approved (`AMR_OTP_EMAIL=false`). Logs are kept 30 days, reports 90 days; «delete everything» wipes immediately (provider backups may remain up to 30 days).
-
-## Preview only
-
-Deploy with `vercel deploy` (no `--prod`). Do not attach DNS or a custom domain until Murad writes «выкатывай» in the IT private chat.
+Preview only until explicitly approved. Do not run a production deployment, attach DNS, or configure a custom domain until the owner explicitly authorizes release.

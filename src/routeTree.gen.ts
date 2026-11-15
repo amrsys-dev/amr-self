@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiMetaRouteImport } from './routes/api/meta'
+import { Route as ApiRatesRouteImport } from './routes/api/rates'
 import { Route as UNickRouteImport } from './routes/u.$nick'
 import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
@@ -20,10 +21,12 @@ import { Route as ApiAuthRecoveryRouteImport } from './routes/api/auth/recovery'
 import { Route as ApiAuthSignupRouteImport } from './routes/api/auth/signup'
 import { Route as ApiAuthTelegramLinkRouteImport } from './routes/api/auth/telegram-link'
 import { Route as ApiCardNickRouteImport } from './routes/api/card.$nick'
+import { Route as ApiCardPhotoNickRouteImport } from './routes/api/card-photo.$nick'
 import { Route as ApiMeIndexRouteImport } from './routes/api/me/index'
 import { Route as ApiMeDataRouteImport } from './routes/api/me/data'
 import { Route as ApiMeDeleteRouteImport } from './routes/api/me/delete'
 import { Route as ApiMeNickRouteImport } from './routes/api/me/nick'
+import { Route as ApiMePhotoRouteImport } from './routes/api/me/photo'
 import { Route as ApiMeOtpChannelRouteImport } from './routes/api/me/otp-channel'
 import { Route as ApiMeRecoveryCodesRouteImport } from './routes/api/me/recovery-codes'
 import { Route as ApiNickCheckRouteImport } from './routes/api/nick/check'
@@ -39,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiMetaRoute = ApiMetaRouteImport.update({
   id: '/api/meta',
   path: '/api/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRatesRoute = ApiRatesRouteImport.update({
+  id: '/api/rates',
+  path: '/api/rates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UNickRoute = UNickRouteImport.update({
@@ -86,6 +94,11 @@ const ApiCardNickRoute = ApiCardNickRouteImport.update({
   path: '/api/card/$nick',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCardPhotoNickRoute = ApiCardPhotoNickRouteImport.update({
+  id: '/api/card-photo/$nick',
+  path: '/api/card-photo/$nick',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeIndexRoute = ApiMeIndexRouteImport.update({
   id: '/api/me/',
   path: '/api/me/',
@@ -104,6 +117,11 @@ const ApiMeDeleteRoute = ApiMeDeleteRouteImport.update({
 const ApiMeNickRoute = ApiMeNickRouteImport.update({
   id: '/api/me/nick',
   path: '/api/me/nick',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMePhotoRoute = ApiMePhotoRouteImport.update({
+  id: '/api/me/photo',
+  path: '/api/me/photo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMeOtpChannelRoute = ApiMeOtpChannelRouteImport.update({
@@ -140,6 +158,7 @@ const ApiMeContactsVerifyRoute = ApiMeContactsVerifyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
+  '/api/rates': typeof ApiRatesRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -149,11 +168,13 @@ export interface FileRoutesByFullPath {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
+  '/api/card-photo/$nick': typeof ApiCardPhotoNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/nick': typeof ApiMeNickRoute
+  '/api/me/photo': typeof ApiMePhotoRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -163,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
+  '/api/rates': typeof ApiRatesRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -172,11 +194,13 @@ export interface FileRoutesByTo {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
+  '/api/card-photo/$nick': typeof ApiCardPhotoNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/nick': typeof ApiMeNickRoute
+  '/api/me/photo': typeof ApiMePhotoRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me': typeof ApiMeIndexRoute
@@ -187,6 +211,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
+  '/api/rates': typeof ApiRatesRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -196,11 +221,13 @@ export interface FileRoutesById {
   '/api/auth/signup': typeof ApiAuthSignupRoute
   '/api/auth/telegram-link': typeof ApiAuthTelegramLinkRoute
   '/api/card/$nick': typeof ApiCardNickRoute
+  '/api/card-photo/$nick': typeof ApiCardPhotoNickRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/nick': typeof ApiMeNickRoute
+  '/api/me/photo': typeof ApiMePhotoRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
   '/api/me/': typeof ApiMeIndexRoute
@@ -212,6 +239,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/meta'
+    | '/api/rates'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -221,9 +249,11 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/auth/telegram-link'
     | '/api/card/$nick'
+    | '/api/card-photo/$nick'
     | '/api/me/data'
     | '/api/me/delete'
     | '/api/me/nick'
+    | '/api/me/photo'
     | '/api/me/otp-channel'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
@@ -235,6 +265,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/meta'
+    | '/api/rates'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -244,9 +275,11 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/auth/telegram-link'
     | '/api/card/$nick'
+    | '/api/card-photo/$nick'
     | '/api/me/data'
     | '/api/me/delete'
     | '/api/me/nick'
+    | '/api/me/photo'
     | '/api/me/otp-channel'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
@@ -258,6 +291,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/meta'
+    | '/api/rates'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -267,9 +301,11 @@ export interface FileRouteTypes {
     | '/api/auth/signup'
     | '/api/auth/telegram-link'
     | '/api/card/$nick'
+    | '/api/card-photo/$nick'
     | '/api/me/data'
     | '/api/me/delete'
     | '/api/me/nick'
+    | '/api/me/photo'
     | '/api/me/otp-channel'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
@@ -282,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiMetaRoute: typeof ApiMetaRoute
+  ApiRatesRoute: typeof ApiRatesRoute
   UNickRoute: typeof UNickRoute
   ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
@@ -291,9 +328,11 @@ export interface RootRouteChildren {
   ApiAuthSignupRoute: typeof ApiAuthSignupRoute
   ApiAuthTelegramLinkRoute: typeof ApiAuthTelegramLinkRoute
   ApiCardNickRoute: typeof ApiCardNickRoute
+  ApiCardPhotoNickRoute: typeof ApiCardPhotoNickRoute
   ApiMeDataRoute: typeof ApiMeDataRoute
   ApiMeDeleteRoute: typeof ApiMeDeleteRoute
   ApiMeNickRoute: typeof ApiMeNickRoute
+  ApiMePhotoRoute: typeof ApiMePhotoRoute
   ApiMeOtpChannelRoute: typeof ApiMeOtpChannelRoute
   ApiMeRecoveryCodesRoute: typeof ApiMeRecoveryCodesRoute
   ApiNickCheckRoute: typeof ApiNickCheckRoute
@@ -317,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/api/meta'
       fullPath: '/api/meta'
       preLoaderRoute: typeof ApiMetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rates': {
+      id: '/api/rates'
+      path: '/api/rates'
+      fullPath: '/api/rates'
+      preLoaderRoute: typeof ApiRatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/u/$nick': {
@@ -382,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCardNickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/card-photo/$nick': {
+      id: '/api/card-photo/$nick'
+      path: '/api/card-photo/$nick'
+      fullPath: '/api/card-photo/$nick'
+      preLoaderRoute: typeof ApiCardPhotoNickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/': {
       id: '/api/me/'
       path: '/api/me'
@@ -408,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/api/me/nick'
       fullPath: '/api/me/nick'
       preLoaderRoute: typeof ApiMeNickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/photo': {
+      id: '/api/me/photo'
+      path: '/api/me/photo'
+      fullPath: '/api/me/photo'
+      preLoaderRoute: typeof ApiMePhotoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/me/otp-channel': {
@@ -458,6 +518,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiMetaRoute: ApiMetaRoute,
+  ApiRatesRoute: ApiRatesRoute,
   UNickRoute: UNickRoute,
   ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
@@ -467,9 +528,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSignupRoute: ApiAuthSignupRoute,
   ApiAuthTelegramLinkRoute: ApiAuthTelegramLinkRoute,
   ApiCardNickRoute: ApiCardNickRoute,
+  ApiCardPhotoNickRoute: ApiCardPhotoNickRoute,
   ApiMeDataRoute: ApiMeDataRoute,
   ApiMeDeleteRoute: ApiMeDeleteRoute,
   ApiMeNickRoute: ApiMeNickRoute,
+  ApiMePhotoRoute: ApiMePhotoRoute,
   ApiMeOtpChannelRoute: ApiMeOtpChannelRoute,
   ApiMeRecoveryCodesRoute: ApiMeRecoveryCodesRoute,
   ApiNickCheckRoute: ApiNickCheckRoute,

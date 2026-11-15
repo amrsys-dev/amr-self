@@ -15,7 +15,7 @@ a{color:inherit;text-decoration:none}
 .sbr svg{display:block}
 .hd{height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;flex:none;position:relative;z-index:4;background:var(--bg)}
 .hd .brand{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
-.hd .mono{height:28px;width:auto;max-width:66px;object-fit:contain;object-position:left center;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.hd .mono{height:28px;width:auto;max-width:96px;object-fit:contain;object-position:left center;flex:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
 .hd .appname{font-size:17px;font-weight:650;letter-spacing:-.4px;white-space:nowrap}
 .hd .ttl{flex:1;min-width:0;font-size:17px;font-weight:650;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .hd .back,.hd .tool{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--cyan);flex:none;font-size:24px;line-height:1}
@@ -271,8 +271,12 @@ p{margin:0;line-height:1.4}
 .skin-mini-graphite{background:#0B0E11;color:#EEF2F3;box-shadow:inset 0 0 0 1px #3FB4C0}
 .skin-mini-graphite b{color:#EEF2F3}
 
-.monopl{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:2px 8px;border-radius:8px;background:color-mix(in srgb,var(--card) 80%,#fff 10%);box-shadow:0 0 0 1px var(--line);flex:none}
-.monopl .mono{height:22px;max-width:56px;filter:none}
+.monopl{display:inline-flex;align-items:center;justify-content:center;height:32px;flex:none}
+.monopl .mono{height:28px;max-width:96px;filter:none}
+/* Company mark follows the theme: silver-copper by default, green-gold in the Saudi theme. */
+.mono-saudi{display:none}
+.app.theme-saudi .mono-saudi{display:block}
+.app.theme-saudi .mono-default{display:none}
 .pubhd{background:transparent}
 
 /* theme tokens: remap cyan/steel so existing chrome follows the skin */
@@ -415,3 +419,192 @@ p{margin:0;line-height:1.4}
 .recovery-list .recovery-code{font-size:15px;padding:10px 12px}
 .center-copy{text-align:center}
 .center-copy h1{margin-top:4px}
+
+.password-toggle{flex:none;color:var(--cyan);font-size:12px;font-weight:650;padding:4px 0 4px 8px;white-space:nowrap}
+
+.contact-icon{width:18px;height:18px;display:inline-block;flex:0 0 18px;vertical-align:middle}
+
+/* ===================== SELF look: shared controls ===================== */
+.btn{min-height:48px;border-radius:14px}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--t);flex:1}
+.btn.danger{background:transparent;border:1px solid color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad);flex:1}
+.select-wrap{position:relative}
+.select-wrap select{appearance:none;-webkit-appearance:none;width:100%;min-height:48px;padding:0 44px 0 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--t);font-size:15px;font-weight:600}
+.select-wrap::after{content:"";position:absolute;inset-inline-end:16px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.select-wrap select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* Bottom bar: icon + label, a clear pill on the active tab, 48px+ touch targets */
+.nav{height:86px;padding:8px 8px 20px;gap:4px;background:color-mix(in srgb,var(--tab) 94%,transparent);box-shadow:0 -8px 24px rgba(0,0,0,.18)}
+.nav button{gap:4px;font-size:11.5px;font-weight:650;border-radius:16px;padding:6px 0;min-height:52px;transition:background .2s,color .2s}
+.nav button svg{width:24px;height:24px}
+.nav button.on{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
+.page.withnav{padding-bottom:100px}
+
+/* ===================== Themes: Apple-like, light and calm ===================== */
+.app{--field:var(--card2);--field-line:var(--line)}
+.app{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','SF Pro Display',Inter,'Noto Sans','Segoe UI',sans-serif;letter-spacing:-.01em}
+/* Graphite = Apple dark */
+.app.theme-graphite{--bg:#000000;--bg2:#1C1C1E;--card:#1C1C1E;--card2:#2C2C2E;--line:#38383A;--muted:#AEAEB2;--t:#FFFFFF;--tab:#121212;--sb:#000000;--hair:rgba(84,84,88,.65);--field:#2C2C2E;--field-line:#48484A}
+/* Light = Apple grouped background, white cards; secondary text kept dark enough to read */
+.app.theme-light{--bg:#F2F2F7;--bg2:#E9E9EE;--card:#FFFFFF;--card2:#FFFFFF;--line:#D1D1D6;--t:#000000;--muted:#55555B;--cyan:#00727F;--cyan2:#005F6A;--tint:#E1F1F3;--tab:#F9F9F9;--sb:#F2F2F7;--hair:rgba(60,60,67,.18);--field:#FFFFFF;--field-line:#C7C7CC;background:var(--bg)}
+/* Saudi = deep green with a touch of matte gold (accent only, no gold frames) */
+.app.theme-saudi{--bg:#04140D;--bg2:#0F2C1E;--card:#0C2419;--card2:#11301F;--t:#F5F1E6;--muted:#C3CABF;--line:#24402F;--cyan:#CFB06A;--cyan2:#B39352;--tint:#173627;--on:#1A1405;--ok:#4CC27E;--bad:#F08A7E;--steel:#B9C2B6;--sb:#04140D;--tab:#06180F;--hair:rgba(255,255,255,.08);--field:#0A1E15;--field-line:#2E4D3B;background:var(--bg)}
+.app.theme-saudi .mono-default{display:none}
+/* Header: small company mark, product name */
+.hd{height:58px;padding:0 20px;background:transparent;border:0}
+.hd .brand{gap:10px}
+.monopl{height:22px}
+.monopl .mono,.hd .mono{height:18px;max-width:64px}
+.hd .appname{font-size:27px;font-weight:800;letter-spacing:-.9px;line-height:1}
+/* Cards: flat, no frames */
+.app .card,.app .self-card,.app .self-metric,.app .self-module{background:var(--card);border:0;box-shadow:none}
+/* Tab bar: translucent, hairline, tint for the active tab */
+.nav{height:84px;padding:6px 6px 22px;background:color-mix(in srgb,var(--tab) 86%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--hair);box-shadow:none}
+.nav button{font-size:11px;font-weight:600;min-height:50px;gap:3px;border-radius:12px;background:none;color:var(--muted)}
+.nav button svg{width:26px;height:26px}
+.nav button.on{background:none;box-shadow:none;color:var(--cyan)}
+.page.withnav{padding-bottom:100px}
+/* Buttons */
+.btn{min-height:50px;border-radius:12px;font-size:17px;font-weight:650}
+.btn.p{background:var(--cyan);color:var(--on);border:0;box-shadow:none}
+.btn.g,.btn.ghost{background:var(--card);border:0;color:var(--t)}
+.btn.danger{background:var(--card);border:0;color:var(--bad);flex:1}
+.btn:focus-visible,.set-row:focus-visible{outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 35%,transparent)}
+/* Fields: always visible, focus ring stays inside the field's own space */
+.field .box{background:var(--field);border:1px solid var(--field-line);min-height:50px}
+.field .box:focus-within{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 20%,transparent)}
+.field .box input{font-size:17px}
+.select-wrap select{min-height:50px;border:1px solid var(--field-line);background:var(--field);font-size:17px}
+.select-wrap select:focus-visible{outline:none;border-color:var(--cyan)}
+.sheet{background:var(--bg);border-top:0}
+.sheet h2{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.svc{background:var(--card);border:0}
+/* Readable sizes */
+.tiny{font-size:14px}
+.hint,.sub{font-size:15px;color:var(--muted)}
+.group{margin-top:22px}
+.group .lab{font-size:14px;font-weight:600;color:var(--muted);padding:0 16px 8px;text-transform:none}
+.row .txt span{font-size:14px}
+.svc span{font-size:13px}
+
+/* Settings list (Apple Settings style): full-width rows, text left, value right */
+.set-list{margin-top:22px}
+.group .set-list{margin-top:0}
+.set-row{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 16px;background:none;color:var(--t);text-align:start;font-size:17px;border:0}
+.set-row + .set-row{box-shadow:inset 0 .5px 0 var(--hair)}
+.set-label{flex:1;min-width:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.set-contact{font-weight:600}
+.set-value{display:flex;align-items:center;gap:6px;font-size:17px;color:var(--muted);white-space:nowrap}
+.set-flag{font-size:20px;line-height:1}
+.set-chev{color:var(--muted);font-size:20px;line-height:1;flex:none}
+.set-row.accent .set-label{color:var(--cyan);font-weight:600}
+.set-row.danger .set-label{color:var(--bad);font-weight:600}
+.set-row:disabled{opacity:.45}
+.set-row:active{background:color-mix(in srgb,var(--t) 6%,transparent)}
+.set-pick{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px}
+.set-nick{display:block;width:100%;padding:20px 16px;text-align:center}
+.set-nick .nick{font-size:30px;margin:0}
+.toggle{width:51px;height:31px;border-radius:16px;background:color-mix(in srgb,var(--t) 16%,transparent)}
+.toggle i{width:27px;height:27px;border-radius:14px}
+.toggle.on{background:var(--ok)}
+.toggle.on i{left:22px}
+.app.theme-saudi .toggle.on{background:var(--cyan)}
+/* Language pill on the welcome screen */
+.lang-pill{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border-radius:20px;background:var(--card);font-size:15px}
+.lang-pill span:first-child{font-size:20px;line-height:1}
+
+/* ===================== AMR ID card: one link page in the owner's theme ===================== */
+.svc-ico{display:inline-grid;place-items:center;flex:none;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08)}
+.svc-ico svg{display:block}
+.svc{gap:8px}
+.idcard{display:flex;flex-direction:column;align-items:center;padding:18px 0 28px;gap:0}
+.idcard-ava{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:var(--cyan);color:var(--on);font-size:42px;font-weight:750;letter-spacing:-1px;box-shadow:0 10px 30px color-mix(in srgb,var(--cyan) 28%,transparent)}
+.idcard-nick{margin:16px 0 2px;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.8px;color:var(--t);text-align:center;word-break:break-all}
+.idcard-sub{font-size:14px;font-weight:650;color:var(--muted);letter-spacing:.06em}
+.idcard-links{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.idlink{display:flex;align-items:center;gap:14px;width:100%;min-height:68px;padding:12px 14px;border-radius:18px;background:var(--card);color:var(--t);text-decoration:none;transition:transform .12s}
+.idlink:active{transform:scale(.98)}
+.idlink-copy{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.idlink-copy b{font-size:17px;font-weight:650}
+.idlink-copy small{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idlink-chev{color:var(--muted);font-size:24px;line-height:1}
+.idcard-actions{width:100%;display:grid;grid-template-columns:1fr;gap:8px;margin-top:20px}
+.idcard-actions.three{grid-template-columns:1fr 1fr 1fr}
+.idbtn{min-height:50px;border-radius:14px;background:var(--card);color:var(--t);font-size:15px;font-weight:650;padding:0 8px}
+.idbtn.primary{background:var(--cyan);color:var(--on)}
+.idbtn:active{opacity:.85}
+.idqr-toggle{margin-top:18px;min-height:40px;padding:0 16px;border-radius:20px;color:var(--muted);font-size:15px;font-weight:600}
+.idqr{margin-top:8px;padding:14px;border-radius:18px;background:#FFFFFF}
+.idqr svg.qr{display:block;width:180px;height:180px;color:#000000}
+.idcard-foot{margin-top:22px;font-size:13px;font-weight:650;color:var(--muted);letter-spacing:.08em;opacity:.8}
+.pubcard{min-height:100dvh}
+.pubcard .page{padding-top:max(16px,env(safe-area-inset-top))}
+.skin-page{background:transparent}
+
+/* Bottom sheets and dialogs stay above the on-screen keyboard */
+.dim{position:fixed;inset:0}
+.sheet{position:fixed;left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:430px;bottom:var(--kb,0px);max-height:calc(100dvh - var(--kb,0px) - 24px);padding-bottom:calc(20px + env(safe-area-inset-bottom));transition:bottom .15s}
+
+/* Money: compact sign, digits only as needed */
+.money{white-space:nowrap;font-variant-numeric:tabular-nums}
+/* Official Saudi riyal sign (SAMA), traced from the SAMA artwork. SAMA rules: left of the number
+   (also left of a minus), a gap after it, as tall as the digits, never reshaped. */
+.money{direction:ltr;unicode-bidi:isolate}
+.riyal{display:inline-block;height:.74em;width:.66em;margin-inline-end:.28em;vertical-align:-.02em;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89.47 100'%3E%3Cpath d='M89.44 81.39 55.68 88.58 54.58 91.26 53.68 94.12 52.97 97.38 52.64 99.97 86.40 92.78 87.47 90.16 88.40 87.21 89.08 84.10ZM63.14 5.28 60.30 7.01 57.44 9.19 54.40 12.05 52.64 14.05 52.64 46.17 42.14 48.43 42.08 0.00 39.19 1.79 36.27 4.03 33.19 6.95 31.58 8.80 31.58 50.64 8.05 55.65 7.01 58.10 6.11 60.87 5.43 63.79 4.98 67.04 31.52 61.41 31.58 74.95 3.07 81.03 2.03 83.51 1.07 86.52 0.39 89.56 0.00 92.42 29.97 86.07 31.70 85.51 32.99 84.82 33.82 84.22 34.95 83.15 35.58 82.37 41.22 74.02 41.87 72.62 42.08 71.34 42.08 59.20 52.55 56.93 52.64 56.99 52.64 78.44 86.40 71.28 87.53 68.48 88.34 65.91 89.05 62.75 89.44 59.89 63.14 65.43 63.14 54.73 86.40 49.75 87.47 47.12 88.40 44.17 89.02 41.40 89.44 38.38 63.14 43.93Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89.47 100'%3E%3Cpath d='M89.44 81.39 55.68 88.58 54.58 91.26 53.68 94.12 52.97 97.38 52.64 99.97 86.40 92.78 87.47 90.16 88.40 87.21 89.08 84.10ZM63.14 5.28 60.30 7.01 57.44 9.19 54.40 12.05 52.64 14.05 52.64 46.17 42.14 48.43 42.08 0.00 39.19 1.79 36.27 4.03 33.19 6.95 31.58 8.80 31.58 50.64 8.05 55.65 7.01 58.10 6.11 60.87 5.43 63.79 4.98 67.04 31.52 61.41 31.58 74.95 3.07 81.03 2.03 83.51 1.07 86.52 0.39 89.56 0.00 92.42 29.97 86.07 31.70 85.51 32.99 84.82 33.82 84.22 34.95 83.15 35.58 82.37 41.22 74.02 41.87 72.62 42.08 71.34 42.08 59.20 52.55 56.93 52.64 56.99 52.64 78.44 86.40 71.28 87.53 68.48 88.34 65.91 89.05 62.75 89.44 59.89 63.14 65.43 63.14 54.73 86.40 49.75 87.47 47.12 88.40 44.17 89.02 41.40 89.44 38.38 63.14 43.93Z'/%3E%3C/svg%3E") center/contain no-repeat}
+
+/* Card cover photo: full-width picture with the nick over it */
+.idcover{position:relative;width:100%;aspect-ratio:4/3.4;max-height:420px;border-radius:24px;overflow:hidden;background:var(--card)}
+.idcover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.idcover::after{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.72))}
+.idcover-title{position:absolute;left:20px;right:20px;bottom:18px;z-index:1;text-align:start}
+.idcover-title .idcard-nick{margin:0;color:#FFFFFF;text-align:start;font-size:32px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.idcover-title .idcard-sub{color:rgba(255,255,255,.82)}
+.idcover-edit{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.idchip{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:18px;background:var(--card);color:var(--cyan);font-size:14px;font-weight:650;cursor:pointer}
+
+/* ===================== AMR Design System v1.0: theme families × Light/Dark =====================
+ * Themes change tokens only (no reload, no network, no extra bundle). Every pair below was
+ * checked for WCAG AA: text ≥ 7:1, secondary text / actions / status ≥ 4.5:1 on cards. */
+.app.ds{font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans','Noto Sans Arabic','Segoe UI',sans-serif}
+.app.ds.ds-emerald-saudi.light{--bg:#F6F8F7;--bg2:#E8EEEB;--card:#FFFFFF;--card2:#FFFFFF;--line:#D3DCD8;--t:#101714;--muted:#4A5752;--cyan:#087A55;--cyan2:#087A55;--on:#FFFFFF;--accent:#8C6D22;--tint:#E2F1EB;--ok:#087A55;--bad:#B42318;--warn:#9A6700;--tab:#FBFCFB;--sb:#F6F8F7;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D3DCD8;--focus:#087A55;background:var(--bg);color:var(--t)}
+.app.ds.ds-emerald-saudi.dark{--bg:#0E1714;--bg2:#1A2924;--card:#15211D;--card2:#1B2B25;--line:#29403A;--t:#EEF3F0;--muted:#A9B8B1;--cyan:#20C997;--cyan2:#20C997;--on:#062519;--accent:#C9A44C;--tint:#163A2E;--ok:#3DD39E;--bad:#F2877B;--warn:#E0B44C;--tab:#101A17;--sb:#0E1714;--hair:rgba(255,255,255,.09);--field:#1B2B25;--field-line:#29403A;--focus:#20C997;background:var(--bg);color:var(--t)}
+.app.ds.ds-wood-metal.light{--bg:#F5F1EC;--bg2:#EAE3DA;--card:#FFFFFF;--card2:#FFFFFF;--line:#D9CFC3;--t:#1E1712;--muted:#5C5046;--cyan:#6B4A2F;--cyan2:#6B4A2F;--on:#FFFFFF;--accent:#7E6A3A;--tint:#F0E7DC;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FAF7F3;--sb:#F5F1EC;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D9CFC3;--focus:#6B4A2F;background:var(--bg);color:var(--t)}
+.app.ds.ds-wood-metal.dark{--bg:#15110E;--bg2:#262019;--card:#1F1915;--card2:#2A221C;--line:#3B3129;--t:#F2ECE4;--muted:#B9AC9E;--cyan:#D9C08A;--cyan2:#D9C08A;--on:#1C150D;--accent:#AEB5BB;--tint:#332A1F;--ok:#6FCF97;--bad:#F2877B;--warn:#E0B44C;--tab:#18130F;--sb:#15110E;--hair:rgba(255,255,255,.09);--field:#2A221C;--field-line:#3B3129;--focus:#D9C08A;background:var(--bg);color:var(--t)}
+.app.ds.ds-carbon-red.light{--bg:#F4F5F6;--bg2:#E7E9EC;--card:#FFFFFF;--card2:#FFFFFF;--line:#D3D7DC;--t:#111316;--muted:#50565E;--cyan:#B3242E;--cyan2:#B3242E;--on:#FFFFFF;--accent:#5E6873;--tint:#F6E3E4;--ok:#1E7A46;--bad:#B3242E;--warn:#9A6700;--tab:#FAFAFB;--sb:#F4F5F6;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D3D7DC;--focus:#B3242E;background:var(--bg);color:var(--t)}
+.app.ds.ds-carbon-red.dark{--bg:#0F1012;--bg2:#1E2125;--card:#17191C;--card2:#202328;--line:#30343A;--t:#F1F2F4;--muted:#A6ABB3;--cyan:#F0646A;--cyan2:#F0646A;--on:#1A0607;--accent:#9AA4AF;--tint:#3A1A1C;--ok:#4CC38A;--bad:#FF8A85;--warn:#E0B44C;--tab:#121315;--sb:#0F1012;--hair:rgba(255,255,255,.09);--field:#202328;--field-line:#30343A;--focus:#F0646A;background:var(--bg);color:var(--t)}
+.app.ds.ds-cream-lavender.light{--bg:#FBF8F2;--bg2:#F0EBE2;--card:#FFFFFF;--card2:#FFFFFF;--line:#E2DBCF;--t:#231F2A;--muted:#5D5666;--cyan:#6650A6;--cyan2:#6650A6;--on:#FFFFFF;--accent:#7B68B5;--tint:#EEE9F7;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FDFBF7;--sb:#FBF8F2;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#E2DBCF;--focus:#6650A6;background:var(--bg);color:var(--t)}
+.app.ds.ds-cream-lavender.dark{--bg:#17151C;--bg2:#26222E;--card:#201D27;--card2:#2A2633;--line:#3A3446;--t:#F3F0F7;--muted:#B6AEC4;--cyan:#B9A8F0;--cyan2:#B9A8F0;--on:#1B1428;--accent:#D9CFF5;--tint:#2D2640;--ok:#6FCF97;--bad:#F2877B;--warn:#E0B44C;--tab:#1A171F;--sb:#17151C;--hair:rgba(255,255,255,.09);--field:#2A2633;--field-line:#3A3446;--focus:#B9A8F0;background:var(--bg);color:var(--t)}
+.app.ds.ds-rose-champagne.light{--bg:#FAF4F2;--bg2:#F0E5E1;--card:#FFFFFF;--card2:#FFFFFF;--line:#E4D3CE;--t:#2A1D1D;--muted:#66504D;--cyan:#9A4F55;--cyan2:#9A4F55;--on:#FFFFFF;--accent:#8C6D3A;--tint:#F6E6E5;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#FCF8F7;--sb:#FAF4F2;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#E4D3CE;--focus:#9A4F55;background:var(--bg);color:var(--t)}
+.app.ds.ds-rose-champagne.dark{--bg:#1A1314;--bg2:#2C2122;--card:#251B1C;--card2:#302425;--line:#423233;--t:#F6ECEA;--muted:#C4B0AD;--cyan:#E3AAA6;--cyan2:#E3AAA6;--on:#2A1517;--accent:#D9BE88;--tint:#3A2627;--ok:#6FCF97;--bad:#FF9A8F;--warn:#E0B44C;--tab:#1D1516;--sb:#1A1314;--hair:rgba(255,255,255,.09);--field:#302425;--field-line:#423233;--focus:#E3AAA6;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-creator.light{--bg:#F6F5FB;--bg2:#EAE8F4;--card:#FFFFFF;--card2:#FFFFFF;--line:#D9D6E8;--t:#15131F;--muted:#54506A;--cyan:#5B4BD6;--cyan2:#5B4BD6;--on:#FFFFFF;--accent:#C24A2E;--tint:#ECE9FB;--ok:#1E7A46;--bad:#B42318;--warn:#9A6700;--tab:#FAF9FD;--sb:#F6F5FB;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D9D6E8;--focus:#5B4BD6;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-creator.dark{--bg:#121019;--bg2:#221F2E;--card:#1B1825;--card2:#242033;--line:#353049;--t:#F2F0FA;--muted:#ADA7C3;--cyan:#9C8FFF;--cyan2:#9C8FFF;--on:#120E2A;--accent:#FF8A6B;--tint:#2A2547;--ok:#4CC38A;--bad:#FF8A85;--warn:#E0B44C;--tab:#15121D;--sb:#121019;--hair:rgba(255,255,255,.09);--field:#242033;--field-line:#353049;--focus:#9C8FFF;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-tactical.light{--bg:#F3F4F0;--bg2:#E5E8DF;--card:#FFFFFF;--card2:#FFFFFF;--line:#D1D6C8;--t:#151812;--muted:#52594A;--cyan:#4F6129;--cyan2:#4F6129;--on:#FFFFFF;--accent:#9A5B12;--tint:#E8EDDC;--ok:#2E7D4F;--bad:#B42318;--warn:#9A6700;--tab:#F9FAF7;--sb:#F3F4F0;--hair:rgba(16,23,20,.12);--field:#FFFFFF;--field-line:#D1D6C8;--focus:#4F6129;background:var(--bg);color:var(--t)}
+.app.ds.ds-digital-tactical.dark{--bg:#101211;--bg2:#1F2320;--card:#181B19;--card2:#222623;--line:#323833;--t:#E9ECE6;--muted:#A4AB9F;--cyan:#AAB57C;--cyan2:#AAB57C;--on:#151809;--accent:#E0A030;--tint:#262C1E;--ok:#7CC48E;--bad:#F2877B;--warn:#E0A030;--tab:#131514;--sb:#101211;--hair:rgba(255,255,255,.09);--field:#222623;--field-line:#323833;--focus:#AAB57C;background:var(--bg);color:var(--t)}
+/* Brand monogram: green-gold colourway for Emerald Saudi, silver-copper for the rest (shape untouched) */
+.app.ds .mono-saudi{display:none}
+.app.ds .mono-default{display:block}
+.app.ds.ds-emerald-saudi .mono-saudi{display:block}
+.app.ds.ds-emerald-saudi .mono-default{display:none}
+/* Geometry: cards 16, controls 12, fewer pills */
+.app.ds .card,.app.ds .self-card,.app.ds .self-metric,.app.ds .self-module,.app.ds .idlink{border-radius:16px}
+.app.ds .btn,.app.ds .self-primary,.app.ds .self-secondary,.app.ds .idbtn,.app.ds .self-finance-actions button,.app.ds .field .box,.app.ds .select-wrap select,.app.ds .self-modal input,.app.ds .self-field input{border-radius:12px}
+.app.ds .self-add,.app.ds .self-section-head button,.app.ds .idchip,.app.ds .self-customize,.app.ds .lang-pill{border-radius:10px}
+/* Light mode: calm background, subtle card edge */
+.app.ds.light .card,.app.ds.light .self-card,.app.ds.light .self-metric,.app.ds.light .idlink,.app.ds.light .self-month button{box-shadow:0 0 0 1px color-mix(in srgb,var(--line) 75%,transparent),0 1px 2px rgba(16,23,20,.04)}
+/* Dark mode: charcoal surfaces separated from the page */
+.app.ds.dark .card,.app.ds.dark .self-card,.app.ds.dark .idlink{box-shadow:0 0 0 1px var(--hair)}
+/* Primary action and accents */
+.app.ds .btn.p,.app.ds .self-primary,.app.ds .idbtn.primary{background:var(--cyan);color:var(--on)}
+.app.ds .self-finance-actions button,.app.ds .self-add,.app.ds .self-section-head button,.app.ds .idchip{background:var(--tint);color:var(--cyan)}
+.app.ds .nav button.on{color:var(--cyan)}
+.app.ds .toggle.on{background:var(--cyan)}
+.app.ds .self-progress i,.app.ds .self-week-day.on span{background:var(--cyan);color:var(--on)}
+.app.ds .idcard-ava{background:var(--cyan);color:var(--on)}
+/* Visible keyboard focus everywhere */
+.app.ds :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.app.ds input:focus-visible,.app.ds select:focus-visible{outline:none}
+/* Numbers line up */
+.app.ds .money,.app.ds .self-balance strong,.app.ds .self-metric strong{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.app.ds *{transition:none!important;animation:none!important}}
+
