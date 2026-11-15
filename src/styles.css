@@ -454,7 +454,7 @@ p{margin:0;line-height:1.4}
 .hd{height:58px;padding:0 20px;background:transparent;border:0}
 .hd .brand{gap:10px}
 .monopl{height:22px}
-.monopl .mono,.hd .mono{height:22px;max-width:80px}
+.monopl .mono,.hd .mono{height:26px;max-width:92px}
 .hd .appname{font-size:27px;font-weight:800;letter-spacing:-.9px;line-height:1}
 /* Cards: flat, no frames */
 .app .card,.app .self-card,.app .self-metric,.app .self-module{background:var(--card);border:0;box-shadow:none}

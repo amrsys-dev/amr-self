@@ -28,3 +28,6 @@ Palette: cyan `#00D4FF`, teal `#007C8A`, copper `#C77B3A`, silver `#D6D9DD`, bla
 
 `amr-bronze.png` — one flat brushed-bronze colour (soft top-to-bottom tone, no gloss or highlights),
 used in SELF on every theme, light and dark. Shape is the original monogram's alpha mask, unchanged.
+
+`amr-3d-bronze.png` (in the app) and `amr-3d-blue.png` (spare) — same monogram with a soft bevel,
+a light outline ring and a small shadow, so it reads on light and dark backgrounds. Shape unchanged.
