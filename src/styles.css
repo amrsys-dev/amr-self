@@ -440,15 +440,18 @@ p{margin:0;line-height:1.4}
 .nav button.on{background:color-mix(in srgb,var(--cyan) 15%,transparent)}
 .page.withnav{padding-bottom:100px}
 
-/* ===================== Theme: light, with a wave header ===================== */
-.app.theme-light{--bg:#EEF1F6;--bg2:#E6EAF1;--card:#FFFFFF;--card2:#F7F9FC;--line:#DDE3EC;--tab:#FFFFFF;--sb:#1D2A44}
-.app.theme-light::before{content:"";position:absolute;inset:0 0 auto 0;height:124px;z-index:0;pointer-events:none;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 430 124' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%231B2741'/%3E%3Cstop offset='.6' stop-color='%23283A5E'/%3E%3Cstop offset='1' stop-color='%23005F6B'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 0H430V84C372 118 318 70 232 92S82 124 0 100Z' fill='url(%23g)'/%3E%3C/svg%3E") top/100% 100% no-repeat}
-.app.theme-light .hd{background:transparent;color:#fff;margin-bottom:30px}
-.app.theme-light .hd .back,.app.theme-light .hd .tool{color:#8FE7F0}
-.app.theme-light .page{position:relative;z-index:1}
-.app.theme-light .card,.app.theme-light .self-card,.app.theme-light .self-metric{border-color:#E3E8F0;box-shadow:0 10px 26px rgba(29,42,68,.08)}
-.app.theme-light .nav{border-top:0;box-shadow:0 -10px 30px rgba(29,42,68,.10)}
+/* ===================== Theme: light — soft colour light, glass cards, deep navy key cards ===================== */
+.app.theme-light{--bg:#EEF1F6;--bg2:#E7EBF2;--card:#FFFFFF;--card2:#F8FAFD;--line:#DCE2EB;--tab:#FFFFFF;--sb:#EEF1F6;
+  background:radial-gradient(90% 36% at 0% 0%,#DCE6FF 0%,transparent 70%),radial-gradient(80% 32% at 100% 4%,#D3F1F4 0%,transparent 70%),radial-gradient(100% 40% at 50% 100%,#E7E3FA 0%,transparent 70%),var(--bg)}
+.app.theme-light .hd{background:transparent}
+.app.theme-light .card,.app.theme-light .self-card,.app.theme-light .self-metric,.app.theme-light .self-module{background:rgba(255,255,255,.88);border:1px solid #FFFFFF;box-shadow:inset 0 1px 0 #FFFFFF,0 10px 28px rgba(31,45,77,.08)}
+/* Key numbers sit on a deep navy card: strong contrast without a header band */
+.app.theme-light .self-balance{background:linear-gradient(140deg,#1B2741 0%,#24385C 55%,#0E5D69 100%);border-color:transparent;color:#FFFFFF;box-shadow:0 14px 32px rgba(27,39,65,.28)}
+.app.theme-light .self-balance strong,.app.theme-light .self-balance b{color:#FFFFFF}
+.app.theme-light .self-balance span,.app.theme-light .self-balance small{color:#C3CEDF}
+.app.theme-light .self-balance .self-finance-actions button{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.24);color:#FFFFFF}
+.app.theme-light .self-balance .self-progress{background:rgba(255,255,255,.18)}
+.app.theme-light .nav{border-top:0;background:rgba(255,255,255,.94);box-shadow:0 -10px 30px rgba(29,42,68,.10)}
 
 /* ===================== Theme: Saudi — deep green, matte gold frames ===================== */
 .app.theme-saudi{--bg:#03130C;--bg2:#062016;--card:#0A2A1C;--card2:#0E3323;--t:#F4EEDC;--muted:#BDB596;--line:#6B5A28;--cyan:#D3B05A;--cyan2:#A8842F;--tint:#163A24;--on:#1A1405;--ok:#3FAE6A;--steel:#CFC6A6;--sb:#03130C;--tab:#04170F;--hair:rgba(211,176,90,.14);

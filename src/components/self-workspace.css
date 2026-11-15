@@ -83,8 +83,8 @@
 .self-secondary{border:1px solid var(--line);color:var(--t);background:var(--card)}
 .self-error{padding:10px;border-radius:10px;background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad);font-size:11px;line-height:1.4}
 .self-loading{padding:30px 5px;text-align:center;color:var(--muted);font-size:13px}
-.self-modal-backdrop{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.66);display:flex;align-items:flex-end;justify-content:center;padding:12px}
-.self-modal{width:min(100%,430px);max-height:90dvh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 60px rgba(0,0,0,.4)}
+.self-modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.66);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.self-modal{width:min(100%,430px);max-height:calc(100dvh - 24px);padding-bottom:calc(16px + env(safe-area-inset-bottom));overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 60px rgba(0,0,0,.4)}
 .self-modal-head{display:flex;align-items:center;justify-content:space-between}
 .self-modal-head h3{font-size:16px;color:var(--t)}
 .self-modal-head button{width:30px;height:30px;color:var(--muted);font-size:23px}
