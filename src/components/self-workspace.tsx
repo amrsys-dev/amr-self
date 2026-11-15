@@ -9,7 +9,6 @@ import {
 import { emptyUserData, type FinanceRecord, type HealthEntry, type TaskRecord, type UserData } from "@/lib/data/schema.ts";
 import { loadUserData, saveLocalData } from "@/lib/data/sync.ts";
 import type { Lang } from "@/lib/i18n.ts";
-import type { ReactNode } from "react";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, expenseByCategory } from "@/lib/finance/categories.ts";
 import { nextDue } from "@/lib/car/maintenance.ts";
 import { categoryLabel, formatKm, tx } from "./self/extra-copy.ts";
@@ -19,7 +18,7 @@ import { CarPage, carOf, itemName } from "./self/car-page.tsx";
 import "./self-workspace.css";
 
 type Section = "today" | "finance" | "work" | "more";
-type SubPage = "health" | "nutrition" | "activity" | "vault" | "car" | null;
+type SubPage = "health" | "car" | null;
 type ModalKind = "income" | "expense" | "task" | "weight" | "meal" | "workout" | null;
 
 type Props = {
@@ -355,49 +354,67 @@ export function SelfWorkspace({
   const categories = expenseByCategory(data.finance.expense, month);
   const topCategory = categories[0]?.amount ?? 0;
   const progress = active(data.work.tasks).length ? Math.round(doneTasks.length / active(data.work.tasks).length * 100) : 0;
-  const quickModules: { key: Exclude<SubPage, null> | "identity"; title: string; subtitle: string; mark: ReactNode; status: string }[] = [
-    { key: "car", title: tx(lang, "car"), subtitle: tx(lang, "carSubtitle"), mark: <CategoryIcon c="car" />, status: t("moduleReady") },
-    { key: "health", title: t("health"), subtitle: t("healthSnapshot"), mark: "＋", status: t("moduleReady") },
-    { key: "nutrition", title: t("nutrition"), subtitle: t("calories") + " · " + t("water"), mark: "◌", status: t("moduleReady") },
-    { key: "activity", title: t("activity"), subtitle: t("workout") + " · " + t("weight"), mark: "↗", status: t("moduleReady") },
-    { key: "identity", title: t("identity"), subtitle: t("digitalCardText"), mark: "ID", status: t("moduleReady") },
-    { key: "vault", title: t("vault"), subtitle: t("vaultSafeText"), mark: "▣", status: t("planned") },
+  const hour = new Date().getHours();
+  const greeting = tx(lang, hour < 12 ? "goodMorning" : hour < 18 ? "goodAfternoon" : "goodEvening");
+  const dateLine = new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US", { weekday: "long", day: "numeric", month: "long" });
+  const modules: { key: "car" | "health" | "identity"; title: string; subtitle: string; icon: string }[] = [
+    { key: "car", title: tx(lang, "car"), subtitle: tx(lang, "carSubtitle"), icon: "car" },
+    { key: "health", title: t("health"), subtitle: tx(lang, "healthSub"), icon: "health" },
+    { key: "identity", title: t("identity"), subtitle: tx(lang, "cardSub"), icon: "id" },
   ];
+  const backLabel = section === "today" ? t("today") : t("more");
+  const healthRows = [...active(health.weight), ...active(health.workouts), ...active(health.water), ...active(health.nutrition)]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 10);
 
   return (
     <div className="self-workspace" dir={lang === "ar" ? "rtl" : "ltr"}>
-      <div className="self-status"><span className="self-status-dot" />{t("saved")}</div>
-
       {section === "today" && !subPage && (
         <>
-          <div className="self-intro"><div><div className="self-eyebrow">SELF</div><h1>{t("welcome")}</h1><p>{new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US", { weekday: "long", day: "numeric", month: "long" })}</p></div><img className="self-day-mark" src="/self-mark.png" alt="" /></div>
-          <div className="self-section-head"><h3>{t("overview")}</h3><span>{t("today")}</span></div>
+          <header className="self-large">
+            <p>{dateLine}</p>
+            <h1>{greeting}</h1>
+          </header>
+
+          <div className="self-card self-balance self-hero">
+            <span>{t("balance")}</span>
+            <strong>{money(monthIncome - monthExpense)}</strong>
+            <div className="self-finance-split"><div><small>{t("income")}</small><b>{money(monthIncome)}</b></div><div><small>{t("expense")}</small><b>{money(monthExpense)}</b></div></div>
+            <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
+          </div>
+
           <div className="self-grid self-grid-2">
-            <div className="self-metric"><span>{t("monthIncome")}</span><strong>{money(monthIncome)}</strong><small>{t("finance")}</small></div>
-            <div className="self-metric"><span>{t("monthExpense")}</span><strong>{money(monthExpense)}</strong><small>{t("expense")}</small></div>
-            <div className="self-metric"><span>{t("tasksDone")}</span><strong>{doneTasks.length}<i> / {active(data.work.tasks).length}</i></strong><small>{progress}% {t("done")}</small><div className="self-progress"><i style={{ width: progress + "%" }} /></div></div>
-            <div className="self-metric"><span>{t("waterToday")}</span><strong>{waterToday}<i> ml</i></strong><small>{t("waterGoal")}</small><div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div></div>
+            <button type="button" className="self-metric self-tile" onClick={() => onNavigate?.("work")}>
+              <span><CategoryIcon c="freelance" size={16} />{t("tasksDone")}</span>
+              <strong>{doneTasks.length}<i> / {active(data.work.tasks).length}</i></strong>
+              <div className="self-progress"><i style={{ width: progress + "%" }} /></div>
+            </button>
+            <button type="button" className="self-metric self-tile" onClick={() => onNavigate?.("finance")}>
+              <span><CategoryIcon c="housing" size={16} />{tx(lang, "billsDue")}</span>
+              <strong>{bills.count ? money(bills.amount) : "—"}</strong>
+              <small>{bills.count ? tx(lang, "toPay", { n: bills.count }) : tx(lang, "allPaid")}</small>
+            </button>
+            <button type="button" className="self-metric self-tile" onClick={() => setSubPage("car")}>
+              <span><CategoryIcon c="car" size={16} />{tx(lang, "car")}</span>
+              <strong>{carNext ? formatKm(Math.max(0, carNext.state.leftKm)) : "—"}<i> {carNext ? tx(lang, "km") : ""}</i></strong>
+              <small>{carNext ? itemName(lang, carNext.item) : tx(lang, "addCar")}</small>
+            </button>
+            <button type="button" className="self-metric self-tile" onClick={() => setSubPage("health")}>
+              <span><CategoryIcon c="water" size={16} />{t("waterToday")}</span>
+              <strong>{waterToday}<i> ml</i></strong>
+              <div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div>
+            </button>
           </div>
-          <div className="self-section-head"><h3>{t("todayTasks")}</h3><button onClick={() => { openModal("task"); }} type="button">+ {t("add")}</button></div>
+
+          <div className="self-section-head"><h3>{t("todayTasks")}</h3><button onClick={() => openModal("task")} type="button">+ {t("add")}</button></div>
           <div className="self-card">
-            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 4).map((task) => <TaskRow key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}
+            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 5).map((task) => <TaskRow key={task.id} task={task} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}
           </div>
-          <div className="self-section-head"><h3>{t("financeSnapshot")}</h3><button type="button" onClick={() => openModal("income")}>+ {t("add")}</button></div>
-          <div className="self-card self-balance"><div><span>{t("balance")}</span><strong>{money(monthIncome - monthExpense)}</strong></div><div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div></div>
-          {(bills.count > 0 || carNext) && (
-            <div className="self-card self-inline-metrics">
-              <button type="button" className="self-inline-link" onClick={() => onNavigate?.("finance")}><span>{tx(lang, "billsDue")}</span><b>{bills.count ? money(bills.amount) : "—"}</b></button>
-              <button type="button" className="self-inline-link" onClick={() => setSubPage("car")}><span>{tx(lang, "nextService")}</span><b>{carNext ? `${itemName(lang, carNext.item)} · ${formatKm(Math.max(0, carNext.state.leftKm))} ${tx(lang, "km")}` : "—"}</b></button>
-            </div>
-          )}
-          <div className="self-section-head"><h3>{t("healthSnapshot")}</h3><button type="button" onClick={() => setSubPage("health")}>{t("viewAll")}</button></div>
-          <div className="self-card self-inline-metrics"><div><span>{t("water")}</span><b>{waterToday} ml</b></div><div><span>{t("lastWeight")}</span><b>{lastWeight ? Number(lastWeight.amount).toFixed(1) + " kg" : "—"}</b></div></div>
         </>
       )}
 
       {section === "finance" && !subPage && (
         <>
-          <div className="self-eyebrow">{t("thisMonth")}</div><h2 className="self-page-title">{t("finance")}</h2>
+          <header className="self-large"><p>{t("thisMonth")}</p><h1>{t("finance")}</h1></header>
           <div className="self-card self-balance"><span>{t("balance")}</span><strong>{money(monthIncome - monthExpense)}</strong><div className="self-finance-split"><div><small>{t("income")}</small><b>{money(monthIncome)}</b></div><div><small>{t("expense")}</small><b>{money(monthExpense)}</b></div></div></div>
           <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("addIncome")}</button><button type="button" onClick={() => openModal("expense")}>+ {t("addExpense")}</button></div>
           {categories.length > 0 && (
@@ -425,7 +442,7 @@ export function SelfWorkspace({
 
       {section === "work" && !subPage && (
         <>
-          <div className="self-eyebrow">{t("todayProgress")}</div><h2 className="self-page-title">{t("work")}</h2>
+          <header className="self-large"><p>{t("todayProgress")}</p><h1>{t("work")}</h1></header>
           <div className="self-card self-balance"><div><span>{t("tasksDone")}</span><strong>{doneTasks.length} / {active(data.work.tasks).length}</strong></div><div className="self-progress"><i style={{ width: progress + "%" }} /></div></div>
           <div className="self-section-head"><h3>{t("todayTasks")}</h3><button type="button" onClick={() => openModal("task")}>+ {t("addTask")}</button></div>
           <div className="self-filter"><button type="button" className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>{t("all")}</button><button type="button" className={filter === "open" ? "on" : ""} onClick={() => setFilter("open")}>{t("open")}</button><button type="button" className={filter === "completed" ? "on" : ""} onClick={() => setFilter("completed")}>{t("completed")}</button></div>
@@ -435,48 +452,40 @@ export function SelfWorkspace({
 
       {section === "more" && !subPage && (
         <>
-          <div className="self-eyebrow">SELF · MODULES</div><h2 className="self-page-title">{t("more")}</h2>
-          <div className="self-module-grid">
-            {quickModules.map((m) => <button key={m.key} className="self-module" type="button" onClick={() => m.key === "identity" ? onOpenCard() : setSubPage(m.key as SubPage)}><span className="self-module-mark">{m.mark}</span><b>{m.title}</b><small>{m.subtitle}</small><em>{m.status}</em></button>)}
+          <header className="self-large"><h1>{t("more")}</h1></header>
+          <div className="self-card self-menu">
+            {modules.map((m) => (
+              <button key={m.key} type="button" className="self-menu-row" onClick={() => (m.key === "identity" ? onOpenCard() : setSubPage(m.key))}>
+                <span className={`self-menu-icon ${m.key}`}><CategoryIcon c={m.icon} size={20} /></span>
+                <span className="self-menu-copy"><b>{m.title}</b><small>{m.subtitle}</small></span>
+                <span className="self-chevron" aria-hidden="true">›</span>
+              </button>
+            ))}
           </div>
         </>
       )}
 
-      {section === "more" && subPage === "health" && (
+      {subPage === "health" && (
         <>
-          <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {t("more")}</button><h2 className="self-page-title">{t("health")}</h2>
+          <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {backLabel}</button>
+          <header className="self-large"><h1>{t("health")}</h1></header>
           <div className="self-grid self-grid-2"><div className="self-metric"><span>{t("waterToday")}</span><strong>{waterToday}<i> ml</i></strong><div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div></div><div className="self-metric"><span>{t("lastWeight")}</span><strong>{lastWeight ? Number(lastWeight.amount).toFixed(1) : "—"}<i> kg</i></strong></div></div>
-          <div className="self-finance-actions"><button type="button" onClick={() => void addWater()}>{t("addWater")}</button><button type="button" onClick={() => openModal("weight")}>{t("addWeight")}</button><button type="button" onClick={() => openModal("workout")}>{t("addWorkout")}</button></div>
-          <div className="self-section-head"><h3>{t("recent")}</h3></div><div className="self-card">{[...active(health.weight), ...active(health.workouts), ...active(health.water)].sort((a,b)=>(b.updatedAt).localeCompare(a.updatedAt)).slice(0,8).map((r) => <div className="self-list-row" key={r.id}><div className="self-list-mark">{r.kind === "weight" ? "W" : r.kind === "workout" ? "A" : "H"}</div><div className="self-list-copy"><b>{r.title}</b><small>{localDate(r.date)}</small></div><strong>{r.amount} {r.unit}</strong></div>)}{health.weight.length + health.workouts.length + health.water.length === 0 ? <div className="self-empty">{t("noActivity")}</div> : null}</div>
-        </>
-      )}
-
-      {section === "more" && subPage === "nutrition" && (
-        <>
-          <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {t("more")}</button><h2 className="self-page-title">{t("nutrition")}</h2>
-          <div className="self-card self-balance"><span>{t("calories")}</span><strong>{active(health.nutrition).filter((r) => r.date === today).reduce((n,r)=>n+Number(r.calories ?? r.amount ?? 0),0)} kcal</strong></div>
-          <div className="self-finance-actions"><button type="button" onClick={() => openModal("meal")}>+ {t("addMeal")}</button><button type="button" onClick={() => void addWater()}>{t("addWater")}</button></div>
-          <div className="self-card">{active(health.nutrition).slice().sort((a,b)=>(b.updatedAt).localeCompare(a.updatedAt)).map((r) => <div className="self-list-row" key={r.id}><div className="self-list-mark">N</div><div className="self-list-copy"><b>{r.title}</b><small>{localDate(r.date)}</small></div><strong>{r.calories ?? r.amount} kcal</strong></div>)}{health.nutrition.length === 0 ? <div className="self-empty">{t("noMeals")}</div> : null}</div>
-        </>
-      )}
-
-      {section === "more" && subPage === "activity" && (
-        <>
-          <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {t("more")}</button><h2 className="self-page-title">{t("activity")}</h2>
-          <div className="self-finance-actions"><button type="button" onClick={() => openModal("weight")}>{t("addWeight")}</button><button type="button" onClick={() => openModal("workout")}>{t("addWorkout")}</button></div>
-          <div className="self-card">{[...active(health.weight), ...active(health.workouts)].sort((a,b)=>(b.updatedAt).localeCompare(a.updatedAt)).map((r) => <div className="self-list-row" key={r.id}><div className="self-list-mark">↗</div><div className="self-list-copy"><b>{r.title}</b><small>{localDate(r.date)}</small></div><strong>{r.amount} {r.unit}</strong></div>)}{health.weight.length + health.workouts.length === 0 ? <div className="self-empty">{t("noActivity")}</div> : null}</div>
+          <div className="self-finance-actions"><button type="button" onClick={() => void addWater()}>{t("addWater")}</button><button type="button" onClick={() => openModal("weight")}>{t("addWeight")}</button><button type="button" onClick={() => openModal("workout")}>{t("addWorkout")}</button><button type="button" onClick={() => openModal("meal")}>{t("addMeal")}</button></div>
+          <div className="self-section-head"><h3>{t("recent")}</h3></div>
+          <div className="self-card">
+            {healthRows.length === 0 ? <div className="self-empty">{t("noActivity")}</div> : healthRows.map((r) => (
+              <div className="self-list-row" key={r.id}>
+                <div className="self-list-mark"><CategoryIcon c={r.kind === "water" ? "water" : r.kind === "workout" ? "sport" : r.kind === "meal" ? "food" : "health"} /></div>
+                <div className="self-list-copy"><b>{r.title}</b><small>{localDate(r.date)}</small></div>
+                <strong>{r.kind === "meal" ? (r.calories ?? r.amount) + " kcal" : `${r.amount} ${r.unit}`}</strong>
+              </div>
+            ))}
+          </div>
         </>
       )}
 
       {subPage === "car" && (
-        <CarPage data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), delete: t("delete"), back: section === "today" ? t("today") : t("more") }} onBack={() => setSubPage(null)} />
-      )}
-
-      {section === "more" && subPage === "vault" && (
-        <>
-          <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {t("more")}</button><h2 className="self-page-title">{t("vault")}</h2>
-          <div className="self-card self-vault-note"><div className="self-module-mark">▣</div><b>{t("planned")}</b><p>{t("vaultSafeText")}</p></div>
-        </>
+        <CarPage data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), delete: t("delete"), back: backLabel }} onBack={() => setSubPage(null)} />
       )}
 
       {modal && (

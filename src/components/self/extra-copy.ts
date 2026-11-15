@@ -2,6 +2,7 @@
 import type { Lang } from "@/lib/i18n.ts";
 
 const ru = {
+  goodMorning: "Доброе утро", goodAfternoon: "Добрый день", goodEvening: "Добрый вечер", allPaid: "Всё оплачено", toPay: "{n} к оплате", healthSub: "Вода, вес, тренировки, питание", cardSub: "QR-код и все контакты по одной ссылке",
   cat_food: "Продукты", cat_fuel: "Топливо", cat_car: "Автомобиль", cat_housing: "Аренда и жильё", cat_utilities: "Свет, вода, газ",
   cat_telecom: "Связь и интернет", cat_health: "Здоровье", cat_sport: "Спорт и БАДы", cat_shopping: "Покупки", cat_family: "Семья",
   cat_transfer: "Переводы", cat_other: "Другое", cat_salary: "Зарплата", cat_freelance: "Подработка", cat_advance: "Аванс", cat_bonus: "Премия",
@@ -24,6 +25,7 @@ const ru = {
 type Copy = { [K in keyof typeof ru]: string };
 
 const en: Copy = {
+  goodMorning: "Good morning", goodAfternoon: "Good afternoon", goodEvening: "Good evening", allPaid: "All paid", toPay: "{n} to pay", healthSub: "Water, weight, workouts, meals", cardSub: "QR code and all contacts in one link",
   cat_food: "Groceries", cat_fuel: "Fuel", cat_car: "Car", cat_housing: "Rent & home", cat_utilities: "Electricity, water, gas",
   cat_telecom: "Phone & internet", cat_health: "Health", cat_sport: "Sport & supplements", cat_shopping: "Shopping", cat_family: "Family",
   cat_transfer: "Transfers", cat_other: "Other", cat_salary: "Salary", cat_freelance: "Side job", cat_advance: "Advance", cat_bonus: "Bonus",
@@ -44,6 +46,7 @@ const en: Copy = {
 };
 
 const ar: Copy = {
+  goodMorning: "صباح الخير", goodAfternoon: "مساء الخير", goodEvening: "مساء الخير", allPaid: "كل شيء مدفوع", toPay: "{n} للدفع", healthSub: "الماء والوزن والتمارين والوجبات", cardSub: "رمز QR وكل جهات الاتصال في رابط واحد",
   cat_food: "البقالة", cat_fuel: "الوقود", cat_car: "السيارة", cat_housing: "الإيجار والسكن", cat_utilities: "الكهرباء والماء والغاز",
   cat_telecom: "الاتصالات والإنترنت", cat_health: "الصحة", cat_sport: "الرياضة والمكملات", cat_shopping: "المشتريات", cat_family: "العائلة",
   cat_transfer: "التحويلات", cat_other: "أخرى", cat_salary: "الراتب", cat_freelance: "عمل إضافي", cat_advance: "دفعة مقدمة", cat_bonus: "مكافأة",
@@ -64,6 +67,7 @@ const ar: Copy = {
 };
 
 const uz: Copy = {
+  goodMorning: "Xayrli tong", goodAfternoon: "Xayrli kun", goodEvening: "Xayrli kech", allPaid: "Hammasi to‘langan", toPay: "{n} ta to‘lov", healthSub: "Suv, vazn, mashg‘ulot, ovqat", cardSub: "QR-kod va barcha kontaktlar bitta havolada",
   cat_food: "Oziq-ovqat", cat_fuel: "Yoqilg‘i", cat_car: "Avtomobil", cat_housing: "Ijara va uy", cat_utilities: "Svet, suv, gaz",
   cat_telecom: "Aloqa va internet", cat_health: "Salomatlik", cat_sport: "Sport va qo‘shimchalar", cat_shopping: "Xaridlar", cat_family: "Oila",
   cat_transfer: "O‘tkazmalar", cat_other: "Boshqa", cat_salary: "Maosh", cat_freelance: "Qo‘shimcha ish", cat_advance: "Avans", cat_bonus: "Mukofot",
@@ -84,6 +88,7 @@ const uz: Copy = {
 };
 
 const tj: Copy = {
+  goodMorning: "Субҳ ба хайр", goodAfternoon: "Рӯз ба хайр", goodEvening: "Шом ба хайр", allPaid: "Ҳама пардохт шуд", toPay: "{n} барои пардохт", healthSub: "Об, вазн, тамрин, хӯрок", cardSub: "QR-код ва ҳамаи тамосҳо дар як пайванд",
   cat_food: "Озуқа", cat_fuel: "Сӯзишворӣ", cat_car: "Мошин", cat_housing: "Иҷора ва манзил", cat_utilities: "Барқ, об, газ",
   cat_telecom: "Алоқа ва интернет", cat_health: "Саломатӣ", cat_sport: "Варзиш ва иловаҳо", cat_shopping: "Харидҳо", cat_family: "Оила",
   cat_transfer: "Интиқолҳо", cat_other: "Дигар", cat_salary: "Маош", cat_freelance: "Кори иловагӣ", cat_advance: "Пешпардохт", cat_bonus: "Мукофот",

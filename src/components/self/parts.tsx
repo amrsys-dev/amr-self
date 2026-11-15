@@ -29,6 +29,8 @@ const P: Record<string, ReactNode> = {
   freelance: <><rect x="3" y="7.5" width="18" height="12" rx="2.5" /><path d="M9 7.5V6a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 6v1.5" /></>,
   advance: <><path d="M12 4v16M5 11l7-7 7 7" /></>,
   bonus: <><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /></>,
+  water: <><path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z" /></>,
+  id: <><rect x="3" y="5" width="18" height="14" rx="3" /><circle cx="9" cy="11.5" r="2.3" /><path d="M5.8 16.5a3.4 3.4 0 0 1 6.4 0M14 10h4.5M14 13.5h3" /></>,
   other: <><circle cx="6.5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="17.5" cy="12" r="1.3" /></>,
 };
 const LEGACY: Record<string, string> = { transport: "fuel", workTools: "other" };

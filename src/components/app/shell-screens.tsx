@@ -38,19 +38,6 @@ function ThemeSelect({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (
   );
 }
 
-function Soon({ title, t, onBack }: { title: string; t: (k: MsgKey) => string; onBack: () => void }) {
-  return (
-    <>
-      <Header title={title} onBack={onBack} />
-      <div className="page">
-        <div className="soon">
-          <h2>{t("soon")}</h2>
-          <p>{t("soon_sub")}</p>
-        </div>
-      </div>
-    </>
-  );
-}
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
@@ -59,7 +46,8 @@ export function ShellScreens({ app }: { app: App }) {
     <>
     {inShell && (
       <>
-        <Header title={screen === "today" ? t("today") : screen === "finance" ? t("finance") : screen === "work" ? t("work") : screen === "more" ? t("more") : t("profile")} />
+        {/* Tabs show only the product mark; each screen carries its own large title. */}
+        <Header />
         <div className="page withnav">
           {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && !session && guest && (
             <SelfWorkspace
@@ -90,6 +78,9 @@ export function ShellScreens({ app }: { app: App }) {
               onOpenCard={() => setScreen("card")}
               onNavigate={(next) => setScreen(next)}
             />
+          )}
+          {screen === "profile" && (
+            <header className="self-large"><h1>{t("profile")}</h1></header>
           )}
           {screen === "profile" && session && (
             <>
@@ -254,10 +245,6 @@ export function ShellScreens({ app }: { app: App }) {
       </>
     )}
 
-    {(session || guest) && screen === "visa" && <Soon title={t("visa")} t={t} onBack={() => setScreen("more")} />}
-    {(session || guest) && screen === "diary" && <Soon title={t("diary")} t={t} onBack={() => setScreen("more")} />}
-    {(session || guest) && screen === "sport" && <Soon title={t("sport")} t={t} onBack={() => setScreen("more")} />}
-    {(session || guest) && screen === "plans" && <Soon title={t("plans")} t={t} onBack={() => setScreen("more")} />}
 
     </>
   );
