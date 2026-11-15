@@ -571,7 +571,13 @@ export function useIdApp() {
       theme: session.theme,
       contacts: publicContacts,
       name: (c) => serviceName(c.kind, t),
-      detail: (c) => contactDetail(c, t),
+      // The image cannot be tapped, so it shows the real username or number.
+      value: (c) => {
+        const own = session.contacts.find((x) => x.id === c.id);
+        if (c.kind === "whatsapp") return own?.value ?? "";
+        return c.display || own?.value || contactDetail(c, t);
+      },
+      photo: session.photo,
     });
     const file = new File([blob], `${session.nick.replace(/^@/, "")}.jpg`, { type: "image/jpeg" });
     if (navigator.canShare?.({ files: [file] })) {
@@ -579,6 +585,22 @@ export function useIdApp() {
       return;
     }
     downloadBlob(blob, file.name);
+  }
+
+  /** Cover photo for the card: shrunk on the phone to ~1000 px JPEG before upload. */
+  async function uploadPhoto(file: File) {
+    if (!session) return;
+    const blob = await shrinkImage(file, 1080, 0.8);
+    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    if (!res.ok) return;
+    const data = (await res.json()) as { photo: string | null };
+    setSession({ ...session, photo: data.photo });
+  }
+
+  async function removePhoto() {
+    if (!session) return;
+    await api("/api/me/photo", { method: "DELETE" });
+    setSession({ ...session, photo: null });
   }
 
   function saveVcard() {
@@ -749,6 +771,8 @@ export function useIdApp() {
     toggleContact,
     shareCard,
     shareCardImage,
+    uploadPhoto,
+    removePhoto,
     saveVcard,
     skin,
     cls,
@@ -775,4 +799,25 @@ export function downloadBlob(blob: Blob, name: string) {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/** Downscale a picked photo so the longest side is at most `max` px and encode as JPEG. */
+export async function shrinkImage(file: Blob, max: number, quality: number): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * k);
+    canvas.height = Math.round(img.naturalHeight * k);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), "image/jpeg", quality));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

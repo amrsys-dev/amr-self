@@ -1,5 +1,6 @@
 /** Monthly bills (rent, electricity, phone): what is due, when, and one tap to pay. */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { parseAmount } from "@/lib/finance/currency.ts";
 import type { FinanceRecord, UserData } from "@/lib/data/schema.ts";
 import { billState, EXPENSE_CATEGORIES, type BillRecord, type ExpenseCategory } from "@/lib/finance/categories.ts";
 import type { Lang } from "@/lib/i18n.ts";
@@ -10,11 +11,14 @@ type Props = {
   data: UserData;
   persist: (next: UserData) => Promise<void>;
   lang: Lang;
-  money: (n: number) => string;
+  /** Formats an amount entered in `from` in the chosen currency. */
+  money: (n: number, from?: string) => ReactNode;
+  cur: string;
+  amountLabel: ReactNode;
   labels: { save: string; cancel: string; amount: string; delete: string };
 };
 
-export function BillsCard({ data, persist, lang, money, labels }: Props) {
+export function BillsCard({ data, persist, lang, money, cur, amountLabel, labels }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -27,10 +31,10 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
     .sort((a, b) => Number(a.s.paid) - Number(b.s.paid) || a.s.daysLeft - b.s.daysLeft);
 
   async function add() {
-    const value = Number(amount.replace(",", "."));
+    const value = parseAmount(amount);
     const d = Number(day);
     if (!title.trim() || !Number.isFinite(value) || value <= 0 || !(d >= 1 && d <= 31)) return;
-    const bill: BillRecord = { id: makeId(), updatedAt: nowIso(), title: title.trim(), category, amount: value, dayOfMonth: Math.round(d), paidMonths: [] };
+    const bill: BillRecord = { id: makeId(), updatedAt: nowIso(), title: title.trim(), category, amount: value, currency: cur, dayOfMonth: Math.round(d), paidMonths: [] };
     await persist({ ...data, finance: { ...data.finance, planned: [...data.finance.planned, bill] } });
     setOpen(false);
     setTitle("");
@@ -40,7 +44,7 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
 
   async function pay(bill: BillRecord) {
     const now = nowIso();
-    const expense: FinanceRecord = { id: makeId(), updatedAt: now, title: bill.title, amount: bill.amount, currency: "SAR", category: bill.category, date: today };
+    const expense: FinanceRecord = { id: makeId(), updatedAt: now, title: bill.title, amount: bill.amount, currency: bill.currency ?? "SAR", category: bill.category, date: today };
     const updated: BillRecord = { ...bill, updatedAt: now, paidMonths: [...bill.paidMonths, today.slice(0, 7)] };
     await persist({
       ...data,
@@ -76,7 +80,7 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
             <div className="self-list-mark"><CategoryIcon c={bill.category} /></div>
             <div className="self-list-copy">
               <b>{bill.title}</b>
-              <small>{money(bill.amount)} · {tx(lang, "everyMonth", { d: bill.dayOfMonth })}</small>
+              <small>{money(bill.amount, bill.currency)} · {tx(lang, "everyMonth", { d: bill.dayOfMonth })}</small>
             </div>
             {s.paid ? (
               <span className="self-pill ok">{statusText(s)}</span>
@@ -96,7 +100,7 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
           <section className="self-modal" role="dialog" aria-modal="true" aria-label={tx(lang, "addBill")}>
             <div className="self-modal-head"><h3>{tx(lang, "addBill")}</h3><button type="button" onClick={() => setOpen(false)} aria-label={labels.cancel}>×</button></div>
             <label>{tx(lang, "billTitle")}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-            <label>{labels.amount} (SAR)<input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+            <label>{amountLabel}<input type="text" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
             <label>{tx(lang, "payDay")}<input type="number" min="1" max="31" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} /></label>
             <CategoryPicker options={EXPENSE_CATEGORIES} value={category} onChange={(v) => setCategory(v as ExpenseCategory)} lang={lang} label={tx(lang, "byCategory")} />
             <div className="self-modal-actions">
@@ -111,7 +115,7 @@ export function BillsCard({ data, persist, lang, money, labels }: Props) {
 }
 
 /** Unpaid bills of this month, for the Today screen. */
-export function dueBillsTotal(data: UserData): { count: number; amount: number } {
+export function dueBillsTotal(data: UserData, conv: (n: number, from?: string) => number = (n) => n): { count: number; amount: number } {
   const today = todayKey();
   let count = 0;
   let amount = 0;
@@ -119,7 +123,7 @@ export function dueBillsTotal(data: UserData): { count: number; amount: number }
     if (b.deleted || typeof b.title !== "string") continue;
     if (!billState(b, today).paid) {
       count += 1;
-      amount += b.amount;
+      amount += conv(b.amount, b.currency);
     }
   }
   return { count, amount };

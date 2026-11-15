@@ -2,6 +2,8 @@
  * Car upkeep: current mileage, each replacement with "km left", one tap to
  * record a replacement (its cost goes to Finance as a car expense).
  */
+import type { ReactNode } from "react";
+import { parseAmount } from "@/lib/finance/currency.ts";
 import { useState } from "react";
 import {
   DEFAULT_INTERVAL_KM,
@@ -23,7 +25,9 @@ type Props = {
   data: UserData;
   persist: (next: UserData) => Promise<void>;
   lang: Lang;
-  money: (n: number) => string;
+  money: (n: number, from?: string) => ReactNode;
+  toCur: (n: number, from?: string) => number;
+  cur: string;
   labels: { save: string; cancel: string; delete: string; back: string };
   onBack: () => void;
 };
@@ -40,7 +44,7 @@ export function itemName(lang: Lang, item: Pick<MaintenanceItem, "kind" | "title
   return item.kind === "custom" && item.title ? item.title : tx(lang, item.kind);
 }
 
-export function CarPage({ data, persist, lang, money, labels, onBack }: Props) {
+export function CarPage({ data, persist, lang, money, toCur, cur, labels, onBack }: Props) {
   const { car, vehicle, items } = carOf(data);
   const [modal, setModal] = useState<Modal>(null);
   const [name, setName] = useState("");
@@ -55,7 +59,7 @@ export function CarPage({ data, persist, lang, money, labels, onBack }: Props) {
   const month = today.slice(0, 7);
   const carSpend = data.finance.expense
     .filter((r) => !r.deleted && (r.date ?? "").startsWith(month) && (r.category === "car" || r.category === "fuel" || r.category === "transport"))
-    .reduce((n, r) => n + (Number.isFinite(r.amount) ? Number(r.amount) : 0), 0);
+    .reduce((n, r) => n + toCur(Number.isFinite(r.amount) ? Number(r.amount) : 0, r.currency), 0);
 
   function open(next: Modal) {
     setError("");
@@ -92,12 +96,12 @@ export function CarPage({ data, persist, lang, money, labels, onBack }: Props) {
     } else if (modal?.kind === "done") {
       const at = parseKm(km);
       if (at === null) return setError(tx(lang, "badNumber"));
-      const price = cost.trim() ? Number(cost.replace(",", ".")) : 0;
+      const price = cost.trim() ? parseAmount(cost) || 0 : 0;
       const item = { ...modal.item, lastKm: at, lastDate: today, updatedAt: now };
       const expense: FinanceRecord | null = price > 0
-        ? { id: makeId(), updatedAt: now, title: itemName(lang, item), amount: price, currency: "SAR", category: "car", date: today }
+        ? { id: makeId(), updatedAt: now, title: itemName(lang, item), amount: price, currency: cur, category: "car", date: today }
         : null;
-      const entry: ServiceEntry = { id: makeId(), updatedAt: now, itemId: item.id, kind: item.kind, km: at, date: today, cost: price || undefined, expenseId: expense?.id };
+      const entry: ServiceEntry = { id: makeId(), updatedAt: now, itemId: item.id, kind: item.kind, km: at, date: today, cost: price || undefined, currency: cur, expenseId: expense?.id };
       const vehicles = vehicle && at > vehicle.odometer
         ? car.vehicles.map((x) => (x.id === vehicle.id ? { ...vehicle, odometer: at, odometerDate: today, updatedAt: now } : x))
         : car.vehicles;
@@ -179,7 +183,7 @@ export function CarPage({ data, persist, lang, money, labels, onBack }: Props) {
                       <b>{itemName(lang, { kind: e.kind, title: car.items.find((i) => i.id === e.itemId)?.title })}</b>
                       <small>{new Date(e.date + "T12:00:00").toLocaleDateString()} · {formatKm(e.km)} {tx(lang, "km")}</small>
                     </div>
-                    {e.cost ? <strong className="expense">−{money(e.cost)}</strong> : null}
+                    {e.cost ? <strong className="expense">−{money(e.cost, e.currency)}</strong> : null}
                   </div>
                 ))}
               </div>
@@ -211,7 +215,7 @@ export function CarPage({ data, persist, lang, money, labels, onBack }: Props) {
               {modal.kind === "item" ? tx(lang, "lastKm") : tx(lang, "currentOdometer")}
               <input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} />
             </label>
-            {modal.kind === "done" && <label>{tx(lang, "cost")}<input type="number" min="0" step="0.01" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} /></label>}
+            {modal.kind === "done" && <label>{tx(lang, "cost")}<input type="text" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} /></label>}
             {error ? <div className="self-error" role="alert">{error}</div> : null}
             <div className="self-modal-actions">
               <button type="button" className="self-secondary" onClick={() => setModal(null)}>{labels.cancel}</button>

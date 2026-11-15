@@ -11,7 +11,8 @@ export type DataRecord = {
 export type FinanceRecord = DataRecord & {
   title?: string;
   amount?: number;
-  currency?: "SAR";
+  /** Currency the amount was entered in (SAR when missing). */
+  currency?: string;
   category?: string;
   date?: string;
   note?: string;

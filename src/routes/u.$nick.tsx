@@ -25,7 +25,7 @@ export const Route = createFileRoute("/u/$nick")({
     const services = loaderData.contacts.map((c) => serviceName(c.kind, (k) => translate("en", k))).join(" · ");
     const title = `${loaderData.nick} · AMR ID`;
     const description = services || "AMR ID";
-    const image = origin ? `${origin}/icon-512.png` : "/icon-512.png";
+    const image = loaderData.photo ? `${origin}${loaderData.photo}` : origin ? `${origin}/icon-512.png` : "/icon-512.png";
     return {
       meta: [
         { title },
@@ -36,9 +36,7 @@ export const Route = createFileRoute("/u/$nick")({
         { property: "og:description", content: description },
         { property: "og:url", content: loaderData.url },
         { property: "og:image", content: image },
-        { property: "og:image:width", content: "512" },
-        { property: "og:image:height", content: "512" },
-        { name: "twitter:card", content: "summary" },
+        { name: "twitter:card", content: loaderData.photo ? "summary_large_image" : "summary" },
       ],
     };
   },
@@ -63,7 +61,7 @@ function PublicCardPage() {
   return (
     <div className={`app dark skin-${theme} pubcard`}>
       <div className="page skin-page">
-        <CardHero nick={data.nick} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} />
+        <CardHero nick={data.nick} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} />
       </div>
     </div>
   );

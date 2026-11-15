@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   derivePasswordKeys,
   keysFromParams,
@@ -18,6 +18,8 @@ import { CarPage, carOf, itemName } from "./self/car-page.tsx";
 import { groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
 import { groupTasks } from "@/lib/tasks/groups.ts";
 import { weekStreak, weekSummary } from "@/lib/health/week.ts";
+import { CurrencySign, useCurrency } from "./self/currency.tsx";
+import { parseAmount } from "@/lib/finance/currency.ts";
 import "./self-workspace.css";
 
 type Section = "today" | "finance" | "work" | "more";
@@ -181,13 +183,43 @@ const todayKey = () => {
 const makeId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
 const active = <T extends { deleted?: boolean }>(rows: T[]) => rows.filter((r) => !r.deleted);
 const amountOf = (r: FinanceRecord) => Number.isFinite(r.amount) ? Number(r.amount) : 0;
-const money = (n: number) => new Intl.NumberFormat("en-SA", { style: "currency", currency: "SAR", maximumFractionDigits: 2 }).format(n);
+type FinanceBlockId = "recent" | "bills" | "categories";
+type FinanceBlock = { id: FinanceBlockId; on: boolean };
+const DEFAULT_BLOCKS: FinanceBlock[] = [{ id: "recent", on: true }, { id: "bills", on: true }, { id: "categories", on: true }];
+const BLOCK_LABEL = { recent: "blockRecent", bills: "bills", categories: "byCategory" } as const;
+const BLOCKS_KEY = "self.finance.blocks";
+/** Order and visibility of Finance sections, chosen by the user on this device. */
+function loadBlocks(): FinanceBlock[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(BLOCKS_KEY) ?? "null") as FinanceBlock[] | null;
+    if (Array.isArray(raw)) {
+      const known = raw.filter((b) => DEFAULT_BLOCKS.some((d) => d.id === b.id));
+      for (const d of DEFAULT_BLOCKS) if (!known.some((b) => b.id === d.id)) known.push(d);
+      return known;
+    }
+  } catch { /* storage unavailable */ }
+  return DEFAULT_BLOCKS;
+}
+function saveBlocks(b: FinanceBlock[]) {
+  try {
+    localStorage.setItem(BLOCKS_KEY, JSON.stringify(b));
+  } catch { /* ignore */ }
+}
+function moveBlock(list: FinanceBlock[], i: number, d: number): FinanceBlock[] {
+  const next = list.slice();
+  const [x] = next.splice(i, 1);
+  next.splice(i + d, 0, x!);
+  return next;
+}
 const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateString() : "";
 
 export function SelfWorkspace({
   section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore, onNavigate,
 }: Props) {
   const t = (key: CopyKey) => COPY[lang][key] ?? COPY.en[key];
+  const { cur, toCur, money } = useCurrency();
+  const [blocks, setBlocks] = useState<FinanceBlock[]>(DEFAULT_BLOCKS);
+  useEffect(() => setBlocks(loadBlocks()), []);
   const [data, setData] = useState<UserData>(emptyUserData);
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(!dataKey && !guestStore);
@@ -199,6 +231,11 @@ export function SelfWorkspace({
   const [subPage, setSubPage] = useState<SubPage>(null);
   const [modal, setModal] = useState<ModalKind>(null);
   const [showDone, setShowDone] = useState(false);
+  const [customize, setCustomize] = useState(false);
+  function updateBlocks(next: FinanceBlock[]) {
+    setBlocks(next);
+    saveBlocks(next);
+  }
   const [financeMonth, setFinanceMonth] = useState(() => todayKey().slice(0, 7));
   const [transactionFilter, setTransactionFilter] = useState<"all" | "income" | "expense">("all");
   const [title, setTitle] = useState("");
@@ -228,6 +265,9 @@ export function SelfWorkspace({
   useEffect(() => { setSubPage(null); }, [section]);
 
   const health = data.health ?? emptyUserData().health!;
+  // Amounts in the chosen currency; stored records keep their own currency.
+  const finIn = useMemo(() => data.finance.income.map((r) => ({ ...r, amount: toCur(amountOf(r), r.currency) })), [data.finance.income, toCur]);
+  const finEx = useMemo(() => data.finance.expense.map((r) => ({ ...r, amount: toCur(amountOf(r), r.currency) })), [data.finance.expense, toCur]);
   const today = todayKey();
   const month = today.slice(0, 7);
   const todayTasks = active(data.work.tasks).filter((r) => !r.completed && (!r.dueDate || r.dueDate <= today));
@@ -235,15 +275,15 @@ export function SelfWorkspace({
   const waterToday = active(health.water).filter((r) => r.date === today).reduce((n, r) => n + Number(r.amount ?? 0), 0);
   const lastWeight = active(health.weight).slice().sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""))[0];
   const entries = useMemo(() => [
-    ...active(data.finance.income).map((r) => ({ ...r, kind: "income" as const })),
-    ...active(data.finance.expense).map((r) => ({ ...r, kind: "expense" as const })),
-  ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || b.updatedAt.localeCompare(a.updatedAt)), [data.finance.income, data.finance.expense]);
+    ...active(finIn).map((r) => ({ ...r, kind: "income" as const })),
+    ...active(finEx).map((r) => ({ ...r, kind: "expense" as const })),
+  ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "") || b.updatedAt.localeCompare(a.updatedAt)), [finIn, finEx]);
   const taskGroups = groupTasks(data.work.tasks, today);
   const locale = lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US";
   // One balance that carries over month to month, plus money in / out per month.
-  const balanceAll = totalBalance(data.finance.income, data.finance.expense);
-  const flowNow = monthFlow(data.finance.income, data.finance.expense, month);
-  const flowSel = monthFlow(data.finance.income, data.finance.expense, financeMonth);
+  const balanceAll = totalBalance(finIn, finEx);
+  const flowNow = monthFlow(finIn, finEx, month);
+  const flowSel = monthFlow(finIn, finEx, financeMonth);
   const monthName = (m: string) => new Date(m + "-15T12:00:00").toLocaleDateString(locale, { month: "long", year: "numeric" });
   const dayGroups = groupByDay(entries.filter((e) => (e.date ?? "").startsWith(financeMonth) && (transactionFilter === "all" || e.kind === transactionFilter)));
   const yesterday = (() => { const d = new Date(today + "T12:00:00"); d.setDate(d.getDate() - 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
@@ -292,9 +332,9 @@ export function SelfWorkspace({
     const now = new Date().toISOString();
     const recordId = makeId();
     if (modal === "income" || modal === "expense") {
-      const value = Number(amount.replace(",", "."));
+      const value = parseAmount(amount);
       if (!title.trim() || !Number.isFinite(value) || value <= 0) return;
-      const record: FinanceRecord = { id: recordId, updatedAt: now, title: title.trim(), amount: value, currency: "SAR", category, date, note: note.trim() || undefined };
+      const record: FinanceRecord = { id: recordId, updatedAt: now, title: title.trim(), amount: value, currency: cur, category, date, note: note.trim() || undefined };
       const field = modal === "income" ? "income" : "expense";
       const next = { ...data, finance: { ...data.finance, [field]: [...data.finance[field], record] } };
       await persist(next);
@@ -358,10 +398,10 @@ export function SelfWorkspace({
   if (loading) return <div className="self-loading">{t("loading")}</div>;
   if (loadError) return <div className="self-lock"><h2>{t("noData")}</h2><p>Could not read local or synchronized data. Your encrypted records have not been deleted.</p></div>;
 
-  const bills = dueBillsTotal(data);
+  const bills = dueBillsTotal(data, toCur);
   const carInfo = carOf(data);
   const carNext = carInfo.vehicle ? nextDue(carInfo.items, carInfo.vehicle.odometer) : null;
-  const categories = expenseByCategory(data.finance.expense, financeMonth);
+  const categories = expenseByCategory(finEx, financeMonth);
   const topCategory = categories[0]?.amount ?? 0;
   const progress = active(data.work.tasks).length ? Math.round(doneTasks.length / active(data.work.tasks).length * 100) : 0;
   const hour = new Date().getHours();
@@ -436,6 +476,29 @@ export function SelfWorkspace({
             <FlowSplit flow={flowSel} money={money} labelIn={tx(lang, "moneyIn")} labelOut={tx(lang, "moneyOut")} />
             <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
           </div>
+          {blocks.filter((b) => b.on).map((b) => (
+            <div key={b.id} className="self-block">
+              {b.id === "recent" && (
+                <>
+          <div className="self-section-head"><h3>{t("recent")}</h3></div>
+          <div className="self-filter"><button className={transactionFilter === "all" ? "on" : ""} type="button" onClick={() => setTransactionFilter("all")}>{t("filterAll")}</button><button className={transactionFilter === "income" ? "on" : ""} type="button" onClick={() => setTransactionFilter("income")}>{t("income")}</button><button className={transactionFilter === "expense" ? "on" : ""} type="button" onClick={() => setTransactionFilter("expense")}>{t("expense")}</button></div>
+          {dayGroups.length === 0 ? <div className="self-card"><div className="self-empty">{t("noTransactions")}</div></div> : dayGroups.map((g) => (
+            <section key={g.date} className="self-day">
+              <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{g.net >= 0 ? "+" : "−"}{money(Math.abs(g.net))}</span></div>
+              <div className="self-card">
+                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
+              </div>
+            </section>
+          ))}
+                </>
+              )}
+              {b.id === "bills" && (
+                <>
+          <BillsCard data={data} persist={persist} lang={lang} money={(n, from) => money(toCur(n, from))} cur={cur} amountLabel={<span className="self-label-row">{t("amount")}, <CurrencySign cur={cur} /></span>} labels={{ save: t("save"), cancel: t("cancel"), amount: t("amount"), delete: t("delete") }} />
+                </>
+              )}
+              {b.id === "categories" && (
+                <>
           {categories.length > 0 && (
             <>
               <div className="self-section-head"><h3>{tx(lang, "byCategory")}</h3></div>
@@ -452,17 +515,28 @@ export function SelfWorkspace({
               </div>
             </>
           )}
-          <BillsCard data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), amount: t("amount"), delete: t("delete") }} />
-          <div className="self-section-head"><h3>{t("recent")}</h3></div>
-          <div className="self-filter"><button className={transactionFilter === "all" ? "on" : ""} type="button" onClick={() => setTransactionFilter("all")}>{t("filterAll")}</button><button className={transactionFilter === "income" ? "on" : ""} type="button" onClick={() => setTransactionFilter("income")}>{t("income")}</button><button className={transactionFilter === "expense" ? "on" : ""} type="button" onClick={() => setTransactionFilter("expense")}>{t("expense")}</button></div>
-          {dayGroups.length === 0 ? <div className="self-card"><div className="self-empty">{t("noTransactions")}</div></div> : dayGroups.map((g) => (
-            <section key={g.date} className="self-day">
-              <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{g.net >= 0 ? "+" : "−"}{money(Math.abs(g.net))}</span></div>
-              <div className="self-card">
-                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{entry.kind === "income" ? "+" : "−"}{money(amountOf(entry))}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
-              </div>
-            </section>
+                </>
+              )}
+            </div>
           ))}
+          <button type="button" className="self-customize" onClick={() => setCustomize(true)}>{tx(lang, "customize")}</button>
+          {customize && (
+            <div className="self-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setCustomize(false); }}>
+              <div className="self-modal" role="dialog" aria-modal="true">
+                <div className="self-modal-head"><h3>{tx(lang, "customize")}</h3><button type="button" onClick={() => setCustomize(false)} aria-label={t("cancel")}>×</button></div>
+                <div className="self-card set-list self-blocks-edit">
+                  {blocks.map((b, i) => (
+                    <div className="set-row" key={b.id}>
+                      <span className="set-label">{tx(lang, BLOCK_LABEL[b.id])}</span>
+                      <button type="button" className="self-move" disabled={i === 0} onClick={() => updateBlocks(moveBlock(blocks, i, -1))} aria-label="↑">↑</button>
+                      <button type="button" className="self-move" disabled={i === blocks.length - 1} onClick={() => updateBlocks(moveBlock(blocks, i, 1))} aria-label="↓">↓</button>
+                      <button type="button" className={`toggle ${b.on ? "on" : ""}`} aria-pressed={b.on} onClick={() => updateBlocks(blocks.map((x) => (x.id === b.id ? { ...x, on: !x.on } : x)))}><i /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -543,7 +617,7 @@ export function SelfWorkspace({
       )}
 
       {subPage === "car" && (
-        <CarPage data={data} persist={persist} lang={lang} money={money} labels={{ save: t("save"), cancel: t("cancel"), delete: t("delete"), back: backLabel }} onBack={() => setSubPage(null)} />
+        <CarPage data={data} persist={persist} lang={lang} money={(n, from) => money(toCur(n, from))} toCur={toCur} cur={cur} labels={{ save: t("save"), cancel: t("cancel"), delete: t("delete"), back: backLabel }} onBack={() => setSubPage(null)} />
       )}
 
       {modal && (
@@ -551,7 +625,7 @@ export function SelfWorkspace({
           <section className="self-modal" role="dialog" aria-modal="true">
             <div className="self-modal-head"><h3>{modal === "task" ? t("addTask") : modal === "income" ? t("addIncome") : modal === "expense" ? t("addExpense") : modal === "weight" ? t("addWeight") : modal === "meal" ? t("addMeal") : t("addWorkout")}</h3><button type="button" onClick={() => setModal(null)}>×</button></div>
             {(modal === "income" || modal === "expense" || modal === "task" || modal === "meal" || modal === "workout") && <label>{modal === "task" ? t("taskTitle") : modal === "meal" || modal === "workout" ? t("title") : t("title")}<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("title")} /></label>}
-            {modal !== "task" && <label>{modal === "weight" ? t("weight") + " (kg)" : modal === "meal" ? t("calories") + " (kcal)" : modal === "workout" ? t("minutes") : t("amount") + " (SAR)"}<input type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" /></label>}
+            {modal !== "task" && <label>{modal === "weight" ? t("weight") + " (kg)" : modal === "meal" ? t("calories") + " (kcal)" : modal === "workout" ? t("minutes") : <span className="self-label-row">{t("amount")}, <CurrencySign cur={cur} /></span>}<input type="text" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" /></label>}
             {(modal === "income" || modal === "expense") && <CategoryPicker options={modal === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES} value={category} onChange={setCategory} lang={lang} label={t("category")} />}
             {modal === "task" && <label>{t("priority")}<select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}><option value="low">{t("low")}</option><option value="medium">{t("medium")}</option><option value="high">{t("high")}</option></select></label>}
             <label>{modal === "task" ? t("dueDate") : t("date")}<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
@@ -580,7 +654,7 @@ function TaskRow({ task, today, onToggle, onDelete, t }: {
 }
 
 /** Money in (green, up) and out (red, down) for a month, under the balance. */
-function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out: number }; money: (n: number) => string; labelIn: string; labelOut: string }) {
+function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out: number }; money: (n: number) => ReactNode; labelIn: string; labelOut: string }) {
   return (
     <div className="self-finance-split self-flow">
       <div><small><span className="self-arrow up" aria-hidden="true">↑</span>{labelIn}</small><b>+{money(flow.in)}</b></div>

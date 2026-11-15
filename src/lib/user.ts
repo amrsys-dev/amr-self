@@ -10,6 +10,8 @@ export type UserRecord = {
   nick: string;
   /** Stable encryption identity; unlike nick, this never changes. */
   dataId?: string;
+  /** Card cover photo blob (random key, survives a nick change). */
+  photo?: { key: string; v: number; type?: string };
   createdAt: string;
   /** Hash of the client-derived auth key (never a raw password). */
   passwordHash: string;

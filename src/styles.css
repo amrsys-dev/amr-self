@@ -540,3 +540,23 @@ p{margin:0;line-height:1.4}
 .pubcard{min-height:100dvh}
 .pubcard .page{padding-top:max(16px,env(safe-area-inset-top))}
 .skin-page{background:transparent}
+
+/* Bottom sheets and dialogs stay above the on-screen keyboard */
+.dim{position:fixed;inset:0}
+.sheet{position:fixed;left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:430px;bottom:var(--kb,0px);max-height:calc(100dvh - var(--kb,0px) - 24px);padding-bottom:calc(20px + env(safe-area-inset-bottom));transition:bottom .15s}
+
+/* Money: compact sign, digits only as needed */
+.money{white-space:nowrap;font-variant-numeric:tabular-nums}
+.riyal{display:inline-block;width:.78em;height:.86em;margin-inline-end:.14em;vertical-align:-.06em;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 22'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.3' stroke-linecap='round'%3E%3Cpath d='M6.5 2v13.2c0 1.6 1.2 2.4 2.8 1.9'/%3E%3Cpath d='M12.5 1v16.5'/%3E%3Cpath d='M1.5 11.2 18.5 7.6'/%3E%3Cpath d='M1.5 16.2 18.5 12.6'/%3E%3Cpath d='M12.5 20.2 18.5 18.9'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 22'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.3' stroke-linecap='round'%3E%3Cpath d='M6.5 2v13.2c0 1.6 1.2 2.4 2.8 1.9'/%3E%3Cpath d='M12.5 1v16.5'/%3E%3Cpath d='M1.5 11.2 18.5 7.6'/%3E%3Cpath d='M1.5 16.2 18.5 12.6'/%3E%3Cpath d='M12.5 20.2 18.5 18.9'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+
+/* Card cover photo: full-width picture with the nick over it */
+.idcover{position:relative;width:100%;aspect-ratio:4/3.4;max-height:420px;border-radius:24px;overflow:hidden;background:var(--card)}
+.idcover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.idcover::after{content:"";position:absolute;inset:auto 0 0 0;height:55%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.72))}
+.idcover-title{position:absolute;left:20px;right:20px;bottom:18px;z-index:1;text-align:start}
+.idcover-title .idcard-nick{margin:0;color:#FFFFFF;text-align:start;font-size:32px;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+.idcover-title .idcard-sub{color:rgba(255,255,255,.82)}
+.idcover-edit{display:flex;gap:8px;justify-content:center;margin-top:12px}
+.idchip{position:relative;display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:18px;background:var(--card);color:var(--cyan);font-size:14px;font-weight:650;cursor:pointer}

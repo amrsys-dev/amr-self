@@ -53,6 +53,9 @@ export function CardHero({
   onShareLink,
   onShareImage,
   onVcard,
+  photo,
+  onPickPhoto,
+  onRemovePhoto,
 }: {
   nick: string;
   url: string;
@@ -64,15 +67,39 @@ export function CardHero({
   onShareLink?: () => void;
   onShareImage?: () => void;
   onVcard?: () => void;
+  photo?: string | null;
+  onPickPhoto?: (file: File) => void;
+  onRemovePhoto?: () => void;
 }) {
   const t = (k: MsgKey) => tr(lang, k);
   const [qr, setQr] = useState(false);
   const letter = (nick.replace(/^@/, "")[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
-      <div className="idcard-ava" aria-hidden="true">{letter}</div>
-      <h1 className="idcard-nick">{nick}</h1>
-      <div className="idcard-sub">AMR ID</div>
+      {photo ? (
+        <div className="idcover">
+          <img src={photo} alt="" />
+          <div className="idcover-title">
+            <h1 className="idcard-nick">{nick}</h1>
+            <div className="idcard-sub">AMR ID</div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="idcard-ava" aria-hidden="true">{letter}</div>
+          <h1 className="idcard-nick">{nick}</h1>
+          <div className="idcard-sub">AMR ID</div>
+        </>
+      )}
+      {onPickPhoto ? (
+        <div className="idcover-edit">
+          <label className="idchip">
+            {photo ? t("change_photo") : t("add_photo")}
+            <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
+          </label>
+          {photo && onRemovePhoto ? <button type="button" className="idchip" onClick={onRemovePhoto}>{t("remove_photo")}</button> : null}
+        </div>
+      ) : null}
       <div className="idcard-links">
         {contacts.map((c) => {
           const body = (

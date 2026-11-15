@@ -6,6 +6,8 @@ import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
 import { ServiceIcon } from "../contact-icons.tsx";
+import { CurrencySign, useCurrency } from "../self/currency.tsx";
+import { isCurrency } from "@/lib/finance/currency.ts";
 import type { App } from "./use-id-app.ts";
 
 const NAV_PATHS: Record<"today" | "finance" | "work" | "more" | "profile", ReactNode> = {
@@ -49,6 +51,17 @@ function LangRow({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void;
   return (
     <PickRow label={t("lang")} value={<><span className="set-flag">{cur.flag}</span>{cur.code.toUpperCase()}</>} current={lang} onPick={(v) => setLang(v as Lang)}>
       {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
+    </PickRow>
+  );
+}
+
+const CURRENCY_NAMES = { SAR: "Saudi riyal", USD: "US dollar", RUB: "Российский рубль", UZS: "Oʻzbek soʻmi", TJS: "Сомонӣ" } as const;
+
+function CurrencyRow({ t }: { t: (k: MsgKey) => string }) {
+  const { cur, setCur, currencies } = useCurrency();
+  return (
+    <PickRow label={t("currency")} value={<><CurrencySign cur={cur} /> {cur}</>} current={cur} onPick={(v) => { if (isCurrency(v)) setCur(v); }}>
+      {currencies.map((c) => <option key={c} value={c}>{c} · {CURRENCY_NAMES[c]}</option>)}
     </PickRow>
   );
 }
@@ -128,6 +141,7 @@ export function ShellScreens({ app }: { app: App }) {
               <div className="card pad0 set-list">
                 <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
+                <CurrencyRow t={t} />
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
@@ -176,6 +190,7 @@ export function ShellScreens({ app }: { app: App }) {
               <div className="card pad0 set-list">
                 <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
+                <CurrencyRow t={t} />
               </div>
             </>
           )}

@@ -6,7 +6,7 @@ import type { App } from "./use-id-app.ts";
 
 /** Business card and its theme picker. */
 export function CardScreens({ app }: { app: App }) {
-  const { lang, t, screen, setScreen, session, origin, cardUrl, publicContacts, saveProfile, shareCard, shareCardImage, saveVcard } = app;
+  const { lang, t, screen, setScreen, session, origin, cardUrl, publicContacts, saveProfile, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
   return (
     <>
     {session && screen === "card" && (
@@ -23,6 +23,9 @@ export function CardScreens({ app }: { app: App }) {
             onShareLink={shareCard}
             onShareImage={() => void shareCardImage()}
             onVcard={saveVcard}
+            photo={session.photo}
+            onPickPhoto={(f) => void uploadPhoto(f)}
+            onRemovePhoto={() => void removePhoto()}
           />
         </div>
       </>

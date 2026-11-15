@@ -247,3 +247,14 @@
 .self-secondary{border:0;background:var(--card)}
 .self-check{border-color:color-mix(in srgb,var(--t) 40%,transparent)}
 .self-menu-icon{background:var(--cyan);color:var(--on)}
+
+/* Dialogs above the keyboard; finance blocks the user can reorder */
+.self-modal-backdrop{padding-bottom:calc(12px + var(--kb,0px));transition:padding-bottom .15s}
+.self-modal{max-height:calc(100dvh - var(--kb,0px) - 24px)}
+.self-label-row{display:inline-flex;align-items:center;gap:4px}
+.self-block{display:flex;flex-direction:column;gap:12px}
+.self-customize{align-self:center;min-height:40px;padding:0 16px;border-radius:20px;color:var(--cyan);font-size:15px;font-weight:600}
+.self-move{width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--t) 8%,transparent);color:var(--t);font-size:17px;flex:none}
+.self-move:disabled{opacity:.3}
+.self-blocks-edit .set-row{gap:8px}
+.self-hero strong .money,.self-balance strong .money{letter-spacing:-1px}

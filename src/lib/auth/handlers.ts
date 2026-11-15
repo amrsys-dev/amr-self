@@ -6,6 +6,7 @@ import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
 import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
+import { photoUrl } from "./photo.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
@@ -357,6 +358,7 @@ function sessionPayload(user: UserRecord) {
     kdf: user.kdf,
     dataVersion: user.dataVersion ?? 0,
     cardPath: publicCardPath(user.nick),
+    photo: photoUrl(user),
     passwordReset: "recovery_code_only" as const,
     nickChanged: Boolean(user.nickChanged),
     recoveryLeft: (user.recoveryHashes ?? (user.recoveryHash ? [user.recoveryHash] : [])).length,
@@ -902,6 +904,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   await clearOtpsForNick(nick);
   await revokeAllSessions(nick);
   await deleteAllDataBlobs(stores.blobs, nick);
+  if (user.photo) await stores.blobs.delete(user.photo.key);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
@@ -1151,6 +1154,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
       nick: user.nick,
       theme,
       contacts,
+      photo: photoUrl(user),
       url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
     },
     200,

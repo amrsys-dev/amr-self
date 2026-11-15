@@ -45,6 +45,7 @@ export type ServiceEntry = DataRecord & {
   km: number;
   date: string;
   cost?: number;
+  currency?: string;
   expenseId?: string;
 };
 

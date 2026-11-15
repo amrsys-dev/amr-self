@@ -22,6 +22,8 @@ export type BillRecord = DataRecord & {
   title: string;
   category: ExpenseCategory;
   amount: number;
+  /** Currency the amount was entered in (SAR when missing). */
+  currency?: string;
   /** 1..31; clamped to the month's last day. */
   dayOfMonth: number;
   /** "YYYY-MM" months already paid. */

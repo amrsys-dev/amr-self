@@ -44,6 +44,8 @@ export type Meta = {
 export type SessionState = {
   nick: string;
   dataId?: string;
+  /** Card cover photo URL, if the owner added one. */
+  photo?: string | null;
   theme: CardTheme;
   appearance: "dark" | "light";
   contacts: Contact[];
