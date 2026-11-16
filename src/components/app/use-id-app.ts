@@ -53,6 +53,19 @@ export function useIdApp() {
   const [systemDark, setSystemDark] = useState(true);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
+  // «Войти через AMR ID»: после входа вернуть пользователя на экран согласия (/connect).
+  useEffect(() => {
+    if (!session) return;
+    try {
+      const pending = sessionStorage.getItem("amr-connect-pending");
+      if (pending) {
+        sessionStorage.removeItem("amr-connect-pending");
+        if (/^\/connect\?[\w=&%.-]+$/.test(pending)) location.assign(pending);
+      }
+    } catch {
+      /* storage blocked */
+    }
+  }, [session]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [testOtp, setTestOtp] = useState<string | undefined>();

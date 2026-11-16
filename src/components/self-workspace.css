@@ -258,3 +258,5 @@
 .self-move:disabled{opacity:.3}
 .self-blocks-edit .set-row{gap:8px}
 .self-hero strong .money,.self-balance strong .money{letter-spacing:-1px}
+.self-menu-row{text-decoration:none}
+.self-menu-icon.bazar{background:#B58A3A;color:#fff}

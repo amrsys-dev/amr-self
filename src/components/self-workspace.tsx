@@ -573,6 +573,7 @@ export function SelfWorkspace({
       {section === "more" && !subPage && (
         <>
           <header className="self-large"><h1>{t("more")}</h1></header>
+          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[0] ?? SVC_GROUPS.en[0]}</h3></div>
           <div className="self-card self-menu">
             {modules.map((m) => (
               <button key={m.key} type="button" className="self-menu-row" onClick={() => (m.key === "identity" ? onOpenCard() : setSubPage(m.key))}>
@@ -581,6 +582,16 @@ export function SelfWorkspace({
                 <span className="self-chevron" aria-hidden="true">›</span>
               </button>
             ))}
+          </div>
+          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[1] ?? SVC_GROUPS.en[1]}</h3></div>
+          <div className="self-card self-menu">
+            <a className="self-menu-row" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
+              <span className="self-menu-icon bazar" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
+              </span>
+              <span className="self-menu-copy"><b>AMR Bazar</b><small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small></span>
+              <span className="self-chevron" aria-hidden="true">↗</span>
+            </a>
           </div>
         </>
       )}
@@ -662,3 +673,19 @@ function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out
     </div>
   );
 }
+
+/** Вкладка «Сервисы»: встроенные разделы SELF и подключённые модули AMR (брендбук §8). */
+const SVC_GROUPS: Record<string, [string, string]> = {
+  ru: ["Разделы SELF", "Подключённые модули"],
+  en: ["SELF sections", "Connected modules"],
+  ar: ["أقسام SELF", "الوحدات المتصلة"],
+  uz: ["SELF bo‘limlari", "Ulangan modullar"],
+  tj: ["Бахшҳои SELF", "Модулҳои пайвастшуда"],
+};
+const BAZAR_SUB: Record<string, string> = {
+  ru: "Мини-маркетплейс: товары продавцов вашего города",
+  en: "Mini marketplace: goods from sellers in your city",
+  ar: "سوق صغير: منتجات البائعين في مدينتك",
+  uz: "Mini-bozor: shahringiz sotuvchilarining mahsulotlari",
+  tj: "Мини-бозор: молҳои фурӯшандагони шаҳри шумо",
+};
