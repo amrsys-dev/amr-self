@@ -45,7 +45,7 @@ type Props = {
 const COPY = {
   ru: {
     welcome: "Ваш день под контролем", overview: "Обзор дня", todayTasks: "Задачи на сегодня",
-    health: "Здоровье", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Ещё",
+    health: "Здоровье", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Сервисы",
     vault: "Сейф", nutrition: "Питание", activity: "Активность", income: "Доходы", expense: "Расходы",
     balance: "Баланс месяца", addIncome: "Добавить доход", addExpense: "Добавить расход",
     all: "Все", saved: "Сохранено на устройстве", syncing: "Ожидает синхронизации", loading: "Загрузка данных…",
@@ -71,7 +71,7 @@ const COPY = {
   },
   en: {
     welcome: "Your day, in control", overview: "Daily overview", todayTasks: "Today's tasks",
-    health: "Health", finance: "Finance", work: "Planner", identity: "Digital identity", more: "More",
+    health: "Health", finance: "Finance", work: "Planner", identity: "Digital identity", more: "Services",
     vault: "Vault", nutrition: "Nutrition", activity: "Activity", income: "Income", expense: "Expenses",
     balance: "Monthly balance", addIncome: "Add income", addExpense: "Add expense",
     all: "All", saved: "Saved on this device", syncing: "Waiting to sync", loading: "Loading your data…",
@@ -97,7 +97,7 @@ const COPY = {
   },
   ar: {
     welcome: "يومك تحت السيطرة", overview: "ملخص اليوم", todayTasks: "مهام اليوم",
-    health: "الصحة", finance: "المالية", work: "المخطط", identity: "الهوية الرقمية", more: "المزيد",
+    health: "الصحة", finance: "المالية", work: "المخطط", identity: "الهوية الرقمية", more: "الخدمات",
     vault: "الخزنة", nutrition: "التغذية", activity: "النشاط", income: "الدخل", expense: "المصروفات",
     balance: "رصيد الشهر", addIncome: "إضافة دخل", addExpense: "إضافة مصروف",
     all: "الكل", saved: "حُفظ على هذا الجهاز", syncing: "بانتظار المزامنة", loading: "جارٍ تحميل البيانات…",
@@ -123,7 +123,7 @@ const COPY = {
   },
   uz: {
     welcome: "Kuningiz nazorat ostida", overview: "Kunlik umumiy holat", todayTasks: "Bugungi vazifalar",
-    health: "Salomatlik", finance: "Moliya", work: "Reja", identity: "Raqamli shaxsiyat", more: "Yana",
+    health: "Salomatlik", finance: "Moliya", work: "Reja", identity: "Raqamli shaxsiyat", more: "Xizmatlar",
     vault: "Seyf", nutrition: "Ovqatlanish", activity: "Faollik", income: "Daromad", expense: "Xarajatlar",
     balance: "Oylik balans", addIncome: "Daromad qo‘shish", addExpense: "Xarajat qo‘shish",
     all: "Barchasi", saved: "Qurilmada saqlandi", syncing: "Sinxronlash kutilmoqda", loading: "Ma’lumotlar yuklanmoqda…",
@@ -149,7 +149,7 @@ const COPY = {
   },
   tj: {
     welcome: "Рӯзи шумо зери назорат", overview: "Хулосаи рӯз", todayTasks: "Вазифаҳои имрӯз",
-    health: "Саломатӣ", finance: "Молия", work: "Нақша", identity: "Шиносномаи рақамӣ", more: "Бештар",
+    health: "Саломатӣ", finance: "Молия", work: "Нақша", identity: "Шиносномаи рақамӣ", more: "Хидматҳо",
     vault: "Сейф", nutrition: "Ғизо", activity: "Фаъолият", income: "Даромад", expense: "Хароҷот",
     balance: "Тавозуни моҳ", addIncome: "Иловаи даромад", addExpense: "Иловаи хароҷот",
     all: "Ҳама", saved: "Дар дастгоҳ нигоҳ дошта шуд", syncing: "Интизори ҳамоҳангсозӣ", loading: "Маълумот бор мешавад…",

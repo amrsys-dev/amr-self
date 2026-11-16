@@ -85,9 +85,16 @@ export function jsonWithCookie(data: unknown, cookie: string, status = 200): Res
   return json(data, status, { "Set-Cookie": cookie });
 }
 
+/** JSON bodies larger than this are refused before parsing. */
+export const MAX_JSON_BYTES = 256 * 1024;
+
 export async function readJson<T>(request: Request): Promise<T | null> {
   try {
-    return (await request.json()) as T;
+    const declared = Number(request.headers.get("content-length") ?? "0");
+    if (declared > MAX_JSON_BYTES) return null;
+    const text = await request.text();
+    if (text.length > MAX_JSON_BYTES) return null;
+    return JSON.parse(text) as T;
   } catch {
     return null;
   }

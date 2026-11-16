@@ -94,7 +94,26 @@ function serializeCookie(value: string, maxAge: number): string {
 
 export { COOKIE as SESSION_COOKIE };
 
+/**
+ * Changes (POST/PUT/PATCH/DELETE) must come from this site. The session cookie is
+ * already SameSite=Lax; this also rejects cross-site requests by Origin / Sec-Fetch-Site.
+ */
+export function crossSiteRejected(request: Request): boolean {
+  const m = request.method.toUpperCase();
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return false;
+  if ((request.headers.get("sec-fetch-site") ?? "") === "cross-site") return true;
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  try {
+    return new URL(origin).host !== host;
+  } catch {
+    return true;
+  }
+}
+
 export async function requireUser(request: Request): Promise<UserRecord | Response> {
+  if (crossSiteRejected(request)) return Response.json({ error: "forbidden" }, { status: 403 });
   const { nickKey } = await import("../user.ts");
   const s = await readSession(request);
   if (!s) return Response.json({ error: "unauthorized" }, { status: 401 });

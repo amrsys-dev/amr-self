@@ -44,13 +44,16 @@ export function visibleContacts(contacts: readonly Contact[]): Contact[] {
   return contacts.filter((c) => c.visible);
 }
 
+/** A plain e-mail address (no spaces, no mailto parameters). */
+export const EMAIL_RE = /^[^\s@?&#<>"']{1,64}@[a-z0-9.-]{1,253}\.[a-z]{2,24}$/i;
+
 export function contactHref(c: Contact): string | null {
   const v = c.value.trim();
   if (!v) return null;
   switch (c.kind) {
     case "telegram":
       if (/^https:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i.test(v)) return v;
-      return `https://t.me/${v.replace(/^@/, "")}`;
+      return `https://t.me/${encodeURIComponent(v.replace(/^@/, ""))}`;
     case "whatsapp":
       if (/^https:\/\/(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(v)) return v;
       // The number is used only in the link; it is not printed on the card.
@@ -67,7 +70,8 @@ export function contactHref(c: Contact): string | null {
     case "snapchat":
       return `https://www.snapchat.com/add/${encodeURIComponent(v)}`;
     case "email":
-      return `mailto:${v}`;
+      // Only a plain address: no "?bcc=" or other mailto parameters.
+      return EMAIL_RE.test(v) ? `mailto:${v}` : null;
     case "other":
       if (isHttpsUrl(v)) return v;
       return null;
