@@ -616,11 +616,13 @@ export function useIdApp() {
     downloadBlob(blob, file.name);
   }
 
-  /** Cover photo for the card: shrunk on the phone to ~1000 px JPEG before upload. */
+  /** Cover photo for the card: shrunk on the phone to ~1000 px WebP (JPEG fallback) before upload. */
   async function uploadPhoto(file: File) {
     if (!session) return;
-    const blob = await shrinkImage(file, 1080, 0.8);
-    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    // WebP for photos (smaller); browsers that cannot encode it (older Safari) fall back to JPEG.
+    let blob = await shrinkImage(file, 1080, 0.8, "image/webp");
+    if (blob.type !== "image/webp") blob = await shrinkImage(file, 1080, 0.8, "image/jpeg");
+    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": blob.type }, body: blob });
     if (!res.ok) return;
     const data = (await res.json()) as { photo: string | null };
     setSession({ ...session, photo: data.photo });
@@ -839,7 +841,7 @@ export function downloadBlob(blob: Blob, name: string) {
 }
 
 /** Downscale a picked photo so the longest side is at most `max` px and encode as JPEG. */
-export async function shrinkImage(file: Blob, max: number, quality: number): Promise<Blob> {
+export async function shrinkImage(file: Blob, max: number, quality: number, type = "image/jpeg"): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -853,7 +855,7 @@ export async function shrinkImage(file: Blob, max: number, quality: number): Pro
     canvas.width = Math.round(img.naturalWidth * k);
     canvas.height = Math.round(img.naturalHeight * k);
     canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), "image/jpeg", quality));
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), type, quality));
   } finally {
     URL.revokeObjectURL(url);
   }

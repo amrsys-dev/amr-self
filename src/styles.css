@@ -623,3 +623,15 @@ p{margin:0;line-height:1.4}
 .swatch.on{border-color:var(--cyan)}
 .swatch i{width:44px;height:44px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.12) inset}
 
+
+/* ===================== AMR monogram (vector) =====================
+ * Dark: brushed champagne gold with a deeper gold edge. Light: emerald with a gold edge.
+ * One small drop shadow for depth; no gloss, no filters on large areas. */
+.app{--mono-a:#F3DFB6;--mono-b:#D2B077;--mono-c:#AE8649;--mono-edge:#7C5E2C;--mono-flat:#E2C68F}
+.app.light{--mono-a:#1F7D57;--mono-b:#0C5B3D;--mono-c:#063A26;--mono-edge:#C9A44C;--mono-flat:#0B4D34}
+.mono-svg{display:block;height:26px;width:auto;aspect-ratio:290.4/100;overflow:visible;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))}
+.app.light .mono-svg{filter:drop-shadow(0 1px 1px rgba(16,23,20,.18))}
+.monopl .mono-svg,.hd .mono-svg{height:26px;max-width:none}
+
+/* Glass only on the tab bar; solid fallback where blur is unsupported or motion is reduced */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.nav{background:var(--card)!important}}

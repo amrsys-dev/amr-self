@@ -1,11 +1,11 @@
+import { Monogram } from "../monogram.tsx";
 import { type Lang, type MsgKey } from "@/lib/i18n.ts";
 
 export function Brand() {
   return (
     <div className="brand">
       <span className="monopl">
-        <img className="mono mono-default" src="/amr-mono.png" alt="AMR" />
-        <img className="mono mono-saudi" src="/amr-mono-saudi.png" alt="AMR" />
+        <Monogram className="mono" />
       </span>
       <span className="appname">SELF</span>
     </div>
