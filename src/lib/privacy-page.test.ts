@@ -50,16 +50,29 @@ describe("privacy policy page", () => {
     assert.match(html, /<a href="https:\/\/t\.me\/amr_ecosystems">@amr_ecosystems<\/a>/);
   });
 
-  it("keeps the draft notice that the text must not be published on the service yet", () => {
+  it("has no draft notice left in the sources or the published page", () => {
+    const files = [...policies.map((p) => p.text), html];
+    for (const text of files) {
+      assert.doesNotMatch(text, /черновик/i);
+      assert.doesNotMatch(text, /в сервисе не размещать/);
+      assert.doesNotMatch(text, /draft v0\.4/i);
+      assert.doesNotMatch(text, /0\.4-draft/i);
+      assert.doesNotMatch(text, /as of this draft/i);
+      assert.doesNotMatch(text, /Do not put this on the live service/i);
+      assert.doesNotMatch(text, /مسودة/);
+      assert.doesNotMatch(text, /لا يُوضع في الخدمة/);
+    }
+  });
+
+  it("states version 1.0 dated 17.11.2026 in RU, EN and AR", () => {
     const ru = policies.find((p) => p.name === "privacy-policy.ru.md")!.text;
     const en = policies.find((p) => p.name === "privacy-policy.en.md")!.text;
-    assert.match(ru, /черновик v0\.4/);
-    assert.match(ru, /в сервисе не размещать/);
-    assert.match(en, /draft v0\.4/);
-    assert.match(en, /Do not put this on the live service/);
-    assert.match(html, /черновик v0\.4/);
-    assert.match(html, /в сервисе не размещать/);
-    assert.match(html, /draft v0\.4/);
-    assert.match(html, /Do not put this on the live service/);
+    const ar = policies.find((p) => p.name === "privacy-policy.ar.md")!.text;
+    assert.match(ru, /Версия 1\.0, 17\.11\.2026/);
+    assert.match(en, /Version 1\.0, 17\.11\.2026/);
+    assert.match(ar, /النسخة 1\.0، 17\.11\.2026/);
+    assert.match(html, /Версия 1\.0, 17\.11\.2026/);
+    assert.match(html, /Version 1\.0, 17\.11\.2026/);
+    assert.match(html, /النسخة 1\.0، 17\.11\.2026/);
   });
 });

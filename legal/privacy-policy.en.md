@@ -1,6 +1,6 @@
 # AMR ID Privacy Policy
 
-**Status:** draft v0.4 dated 11 November 2026 (KSA time, UTC+3). This is not legal advice and not a published notice. Some points were confirmed by Murad’s “agreed” on 11 November 2026, 18:39 (KSA time). A written opinion from KSA counsel is still required. Do not put this on the live service until counsel has reviewed it.
+**Version 1.0, 17.11.2026**
 
 The Russian text is the primary version (`privacy-policy.ru.md`). If a translation differs from the Russian text, the Russian text prevails. English and Arabic versions are in `privacy-policy.en.md` and `privacy-policy.ar.md`. Uzbek and Tajik translations will come later.
 
@@ -137,7 +137,7 @@ Processors and recipients in version 1:
 
 Long-term storage with Cloudflare is in Europe (EU). Cloudflare data is stored in the European Union. That is a transfer of data outside Saudi Arabia. [TO CONFIRM: where Vercel processes and stores data.] Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
 
-Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this draft: **to be formalised**. [TO CONFIRM: the legal basis and safeguards for transfers of data outside Saudi Arabia (SDAIA standard contractual clauses or another permitted tool) — to be decided with a lawyer before launch with real people.] Until there is a written opinion from counsel, we do not collect real people’s data, and the service may only be a preview on test data.
+Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this version: **to be formalised**. [TO CONFIRM: the legal basis and safeguards for transfers of data outside Saudi Arabia (SDAIA standard contractual clauses or another permitted tool) — to be decided with a lawyer before launch with real people.] Until there is a written opinion from counsel, we do not collect real people’s data, and the service may only be a preview on test data.
 
 [TO CONFIRM: the exact retention of technical logs at Vercel, Cloudflare, and Telegram themselves; our periods are in section 7.]
 
@@ -206,4 +206,4 @@ Muradulla (AMR ecosystem)
 Email: [amrsys.dev@gmail.com](mailto:amrsys.dev@gmail.com)  
 Telegram: [@amr_ecosystems](https://t.me/amr_ecosystems)
 
-Version 0.4-draft · 11 November 2026 (KSA time, UTC+3)
+Version 1.0, 17.11.2026
