@@ -73,3 +73,30 @@ export async function sendOtp(input: OtpSendInput): Promise<OtpSendResult> {
   });
   return { delivered: res.ok, provider: "email" };
 }
+
+/** Notices sent in test mode (tests read them); never filled in production. */
+export const testNotices: { to: string; text: string }[] = [];
+
+/** A plain notice from @amr_id_bot (e.g. «Google привязан»). Best effort: never blocks the action. */
+export async function sendNotice(input: { channel: OtpChannel; to: string; text: string }): Promise<boolean> {
+  if (isTestMode()) {
+    testNotices.push({ to: input.to, text: input.text });
+    return true;
+  }
+  if (input.channel !== "telegram") return false;
+  const doCfg = readDoConfig();
+  const relay = env("OTP_RELAY_URL") ?? doCfg?.url;
+  const relaySecret = env("OTP_RELAY_SECRET") ?? doCfg?.secret;
+  if (!relay || !relaySecret) return false;
+  try {
+    const res = await fetch(`${relay.replace(/\/$/, "")}/v1/otp/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${relaySecret}` },
+      body: JSON.stringify({ chatId: input.to, text: input.text }),
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
