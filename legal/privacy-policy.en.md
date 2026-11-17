@@ -19,7 +19,7 @@ Contact: email [amrsys.dev@gmail.com](mailto:amrsys.dev@gmail.com), Telegram [@a
 [TO CONFIRM: the address for data requests.]
 [TO CONFIRM: whether registration in the SDAIA controller register is required — to be decided with a lawyer before launch with real people.]
 
-We will try `amr.id` first, with `amrid.app` as a backup. [TO CONFIRM: the domains have not been purchased yet; availability is not confirmed.]
+The service website is [self.amrsys.net](https://self.amrsys.net).
 
 ## 2. What this service is
 
