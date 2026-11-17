@@ -71,8 +71,7 @@ export interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-export function browserInstallUrl(win: Window = globalThis as unknown as Window): string {
-  const url = new URL(win.location.href);
-  url.searchParams.set("install", "1");
-  return url.toString();
+export function browserInstallUrl(loc?: { origin: string; pathname: string }): string {
+  const l = loc ?? (globalThis as unknown as Window).location;
+  return `${l.origin}${l.pathname}?install=1`;
 }

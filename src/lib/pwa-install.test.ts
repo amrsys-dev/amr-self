@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INSTALL_LABEL, installUrl, isStandalone, takeInstallFlag } from "./pwa-install.ts";
+import { INSTALL_LABEL, browserInstallUrl, installUrl, isStandalone, takeInstallFlag } from "./pwa-install.ts";
 
 test("installUrl adds ?install=1 and keeps other query params", () => {
   assert.equal(installUrl("https://bazar.amrsys.net/"), "https://bazar.amrsys.net/?install=1");
@@ -33,4 +33,26 @@ test("install labels are short everyday words in all five languages", () => {
   assert.equal(INSTALL_LABEL.uz, "O‘rnatish");
   assert.equal(INSTALL_LABEL.tj, "Насб кардан");
   assert.equal(INSTALL_LABEL.en, "Install");
+});
+
+test("browserInstallUrl keeps only origin, pathname and install=1 — no hash, no other query", () => {
+  const dirty = {
+    origin: "https://self.amrsys.net",
+    pathname: "/",
+    href: "https://self.amrsys.net/?tgWebAppData=secret&city=mecca#tgWebAppData=also",
+    search: "?tgWebAppData=secret&city=mecca",
+    hash: "#tgWebAppData=also",
+  };
+  const url = browserInstallUrl(dirty);
+  assert.equal(url, "https://self.amrsys.net/?install=1");
+  const parsed = new URL(url);
+  assert.equal(parsed.hash, "");
+  assert.deepEqual([...parsed.searchParams.keys()], ["install"]);
+  assert.equal(parsed.searchParams.get("install"), "1");
+  assert.equal(url.includes("tgWebAppData"), false);
+  assert.equal(url.includes("secret"), false);
+  assert.equal(
+    browserInstallUrl({ origin: "https://safar.amrsys.net", pathname: "/app" }),
+    "https://safar.amrsys.net/app?install=1",
+  );
 });
