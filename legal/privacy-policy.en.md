@@ -76,6 +76,8 @@ We do not issue SIMs or virtual numbers, we do not ask for messenger passwords, 
 In version 1 you may keep your finances and tasks in a separate file.
 
 - The file holds your finances, tasks, plans, diary, visa notes, sport, health (water, weight, food, workouts), and car upkeep. The file is compressed and encrypted on your device, and only then sent to the server.
+- Entries in the Health section (water, weight, food and calories, workouts, dates and your notes) are sensitive data. Before your first entry the app shows a one-time consent screen: what is saved, why, and that it is not shared with anyone. Until you tap “Allow”, no health entries are saved. Your consent and its date are kept in the same encrypted file.
+- You can withdraw consent at any time: “Withdraw consent” at the bottom of the Health section. Once you confirm, all health entries are deleted from the file — at once on the device, and on the server at the next sync. The file keeps only technical markers with no content (entry number and deletion time), so another of your devices cannot bring the entries back. Older encrypted versions of the file on the server (the last 5) are replaced by new ones as you keep saving. You can log health again only after a new “Allow”.
 - The file is encrypted on the device with a key that is not sent to the server. The server stores only the encrypted file.
 - The server can see only the file size, the sync time, and which account the file belongs to. The server keeps the last 5 versions of the encrypted file.
 - The Telegram second factor does not affect the file key: losing Telegram affects sign-in, not the data in the file.
@@ -101,7 +103,8 @@ Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The aut
 - Showing guests your public contacts and uploaded photo — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.
 - Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.
 - Storing your Google ID, if you chose to sign in with Google — performance of the agreement.
-- Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising.
+- Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising. Health entries in this file are kept only with your consent (next point).
+- Storing Health section entries — your explicit consent. You give it on a separate screen with “Allow” before the first entry; the date of consent is saved. Without consent no health entries are saved. If you withdraw consent (“Withdraw consent”), the section is cleared: all health entries are deleted (see section 3.5).
 - Reviewing messages about impersonation or abuse that people send to our email or Telegram, and stopping abuse — legitimate interest: protecting people from impersonation and abuse. There is no in-app complaint button.
 
 We do not sell contact lists, and we do not build a hidden profile of a person beyond what the card and sign-in need.

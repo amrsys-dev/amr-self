@@ -111,6 +111,8 @@
 <p>In version 1 you may keep your finances and tasks in a separate file.</p>
 <ul>
 <li>The file holds your finances, tasks, plans, diary, visa notes, sport, health (water, weight, food, workouts), and car upkeep. The file is compressed and encrypted on your device, and only then sent to the server.</li>
+<li>Entries in the Health section (water, weight, food and calories, workouts, dates and your notes) are sensitive data. Before your first entry the app shows a one-time consent screen: what is saved, why, and that it is not shared with anyone. Until you tap “Allow”, no health entries are saved. Your consent and its date are kept in the same encrypted file.</li>
+<li>You can withdraw consent at any time: “Withdraw consent” at the bottom of the Health section. Once you confirm, all health entries are deleted from the file — at once on the device, and on the server at the next sync. The file keeps only technical markers with no content (entry number and deletion time), so another of your devices cannot bring the entries back. Older encrypted versions of the file on the server (the last 5) are replaced by new ones as you keep saving. You can log health again only after a new “Allow”.</li>
 <li>The file is encrypted on the device with a key that is not sent to the server. The server stores only the encrypted file.</li>
 <li>The server can see only the file size, the sync time, and which account the file belongs to. The server keeps the last 5 versions of the encrypted file.</li>
 <li>The Telegram second factor does not affect the file key: losing Telegram affects sign-in, not the data in the file.</li>
@@ -135,7 +137,8 @@
 <li>Showing guests your public contacts and uploaded photo — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.</li>
 <li>Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.</li>
 <li>Storing your Google ID, if you chose to sign in with Google — performance of the agreement.</li>
-<li>Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising.</li>
+<li>Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising. Health entries in this file are kept only with your consent (next point).</li>
+<li>Storing Health section entries — your explicit consent. You give it on a separate screen with “Allow” before the first entry; the date of consent is saved. Without consent no health entries are saved. If you withdraw consent (“Withdraw consent”), the section is cleared: all health entries are deleted (see section 3.5).</li>
 <li>Reviewing messages about impersonation or abuse that people send to our email or Telegram, and stopping abuse — legitimate interest: protecting people from impersonation and abuse. There is no in-app complaint button.</li>
 </ul>
 <p>We do not sell contact lists, and we do not build a hidden profile of a person beyond what the card and sign-in need.</p>
@@ -272,6 +275,8 @@
 <p>في الإصدار 1 تقدر تحفظ مالك ومهامك في ملف منفصل.</p>
 <ul>
 <li>في الملف: مالك، ومهامك، وخططك، ويومياتك، وملاحظات التأشيرة، والرياضة، والصحة (الماء، والوزن، والأكل، والتمارين)، وصيانة السيارة. الملف يُضغط ويتشفّر على جهازك، وبعدها فقط يُرسل إلى الخادم.</li>
+<li>سجلات قسم «الصحة» (الماء، والوزن، والأكل والسعرات، والتمارين، والتاريخ وملاحظاتك) بيانات حساسة. قبل أول تسجيل، التطبيق يعرض لك مرة وحدة شاشة موافقة: وش نحفظ، وليش، وإنها ما تنشارك مع أحد. ما ينحفظ أي سجل صحة قبل ما تضغط «أسمح». موافقتك وتاريخها ينحفظون في نفس الملف المشفّر.</li>
+<li>تقدر تسحب موافقتك أي وقت: «سحب الموافقة» تحت في قسم «الصحة». بعد التأكيد تنحذف كل سجلات الصحة من الملف — على الجهاز فوراً، وعلى الخادم مع المزامنة الجاية. يبقى في الملف بس علامات تقنية بدون محتوى (رقم السجل ووقت الحذف)، عشان جهازك الثاني ما يرجّع السجلات. النسخ المشفّرة القديمة من الملف على الخادم (آخر 5) تتبدّل بنسخ جديدة مع الحفظ الجاي. ما تقدر تسجّل في الصحة مرة ثانية إلا بعد «أسمح» جديدة.</li>
 <li>الملف يتشفّر على الجهاز بمفتاح ما يُرسل إلى الخادم. على الخادم يبقى فقط الملف المشفّر.</li>
 <li>الخادم يشوف فقط حجم الملف، ووقت المزامنة، وأي حساب يتبع له الملف. الخادم يحفظ آخر 5 نسخ من الملف المشفّر.</li>
 <li>العامل الثاني عبر تلغرام ما يؤثر على مفتاح الملف: فقدان تلغرام يؤثر على الدخول، مو على بيانات الملف.</li>
@@ -296,7 +301,8 @@
 <li>إظهار جهات التواصل المفتوحة والصورة المرفوعة للزوار — موافقتك. تقدر في أي وقت تخفي جهة تواصل، أو تحذف الصورة، أو تسحب الموافقة.</li>
 <li>حفظ Telegram ID وإرسال رمز الدخول إلى تلغرام — تنفيذ الاتفاق وحماية الدخول.</li>
 <li>حفظ Google ID إذا اخترت بنفسك الدخول عبر Google — تنفيذ الاتفاق.</li>
-<li>حفظ ملف مالك ومهامك المشفّر والبيانات الخدمية عنه (الحجم، ووقت المزامنة، والحساب)، عشان يمكن مزامنة الملف — تنفيذ الاتفاق. المفتاح ما يُرسل إلى الخادم. هذا الملف ما نستخدمه للنصائح أو التقييم أو الإعلانات.</li>
+<li>حفظ ملف مالك ومهامك المشفّر والبيانات الخدمية عنه (الحجم، ووقت المزامنة، والحساب)، عشان يمكن مزامنة الملف — تنفيذ الاتفاق. المفتاح ما يُرسل إلى الخادم. هذا الملف ما نستخدمه للنصائح أو التقييم أو الإعلانات. سجلات «الصحة» في هذا الملف تنحفظ بس بموافقتك (البند الجاي).</li>
+<li>حفظ سجلات قسم «الصحة» — موافقتك الصريحة. تعطيها في شاشة منفصلة بزر «أسمح» قبل أول تسجيل، وينحفظ تاريخ الموافقة. بدون موافقة ما ينحفظ أي سجل صحة. إذا سحبت موافقتك («سحب الموافقة»)، القسم ينمسح: كل سجلات الصحة تنحذف (انظر القسم 3.5).</li>
 <li>النظر في الرسائل عن الانتحال أو إساءة الاستخدام اللي توصلنا على البريد أو تلغرام، وإيقاف إساءة الاستخدام — مصلحة مشروعة: حماية الناس من الانتحال وإساءة الاستخدام. ما في زر بلاغ داخل التطبيق.</li>
 </ul>
 <p>ما نبيع قواعد جهات التواصل، وما نبني ملفاً خفياً عن الشخص فوق اللي تحتاجه البطاقة والدخول.</p>
@@ -376,7 +382,13 @@
 </article>
 <article id="uz" class="lang" lang="uz">
 <h1>AMR ID maxfiylik siyosati</h1>
-<p>To&#x27;liq matn hozircha rus, ingliz va arab tillarida. Agar tarjima rus tilidagi matndan farq qilsa, rus tilidagi matn amal qiladi. Quyida — 17-noyabr 2026-da tasdiqlangan 3.6-bo&#x27;lim (Google orqali kirish).</p>
+<p>To&#x27;liq matn hozircha rus, ingliz va arab tillarida. Agar tarjima rus tilidagi matndan farq qilsa, rus tilidagi matn amal qiladi. Quyida — 3.5-bo&#x27;limdan «Salomatlik» qismi va 3.6-bo&#x27;lim (Google orqali kirish), 17-noyabr 2026-da tasdiqlangan.</p>
+<h3>3.5. «Salomatlik» bo&#x27;limi: rozilik</h3>
+<ul>
+<li>«Salomatlik» bo&#x27;limidagi yozuvlar (suv, vazn, ovqat va kaloriya, mashg&#x27;ulotlar, sana va izohlaringiz) — maxfiy ma&#x27;lumotlar. Birinchi yozuvdan oldin ilova bir marta rozilik ekranini ko&#x27;rsatadi: nima saqlanadi, nima uchun va hech kimga berilmasligi. «Ruxsat berish»ni bosmaguningizcha salomatlik yozuvlari saqlanmaydi. Roziligingiz va uning sanasi o&#x27;sha shifrlangan faylda saqlanadi.</li>
+<li>Rozilikni istalgan payt qaytarib olishingiz mumkin: «Salomatlik» bo&#x27;limi pastidagi «Rozilikni qaytarib olish». Tasdiqlaganingizdan keyin barcha salomatlik yozuvlari fayldan o&#x27;chiriladi — qurilmada darhol, serverda esa keyingi sinxronlashda. Faylda faqat mazmunsiz texnik belgilar qoladi (yozuv raqami va o&#x27;chirilgan vaqt), boshqa qurilmangiz yozuvlarni qaytarmasligi uchun. Serverdagi faylning eski shifrlangan versiyalari (oxirgi 5 tasi) keyingi saqlashlarda yangilari bilan almashadi. Salomatlikni qayta yuritish faqat yangi «Ruxsat berish»dan keyin mumkin.</li>
+<li>Asos (4-bo&#x27;lim): «Salomatlik» yozuvlarini saqlash — sizning aniq roziligingiz. Uni birinchi yozuvdan oldin alohida ekranda «Ruxsat berish» tugmasi bilan berasiz, rozilik sanasi saqlanadi. Roziliksiz salomatlik yozuvlari saqlanmaydi. Rozilik qaytarib olinsa, bo&#x27;lim tozalanadi: barcha salomatlik yozuvlari o&#x27;chiriladi.</li>
+</ul>
 <h3>3.6. Google orqali kirish</h3>
 <p>Agar Google orqali kirsangiz:</p>
 <ul>
@@ -389,7 +401,13 @@
 </article>
 <article id="tj" class="lang" lang="tj">
 <h1>Сиёсати махфияти AMR ID</h1>
-<p>Матни пурра ҳоло бо забонҳои русӣ, англисӣ ва арабӣ аст. Агар тарҷума аз матни русӣ фарқ кунад, матни русӣ амал мекунад. Дар зер — бахши 3.6 (даромадан тавассути Google), ки 17 ноябри 2026 тасдиқ шудааст.</p>
+<p>Матни пурра ҳоло бо забонҳои русӣ, англисӣ ва арабӣ аст. Агар тарҷума аз матни русӣ фарқ кунад, матни русӣ амал мекунад. Дар зер — қисми «Саломатӣ» аз бахши 3.5 ва бахши 3.6 (даромадан тавассути Google), ки 17 ноябри 2026 тасдиқ шудаанд.</p>
+<h3>3.5. Бахши «Саломатӣ»: розигӣ</h3>
+<ul>
+<li>Сабтҳои бахши «Саломатӣ» (об, вазн, хӯрок ва калория, машқҳо, сана ва қайдҳои шумо) маълумоти ҳассос мебошанд. Пеш аз сабти аввал барнома як бор экрани розигиро нишон медиҳад: чӣ нигоҳ дошта мешавад, барои чӣ ва ин ки ба касе дода намешавад. То шумо «Иҷозат додан»-ро пахш накунед, сабтҳои саломатӣ нигоҳ дошта намешаванд. Розигии шумо ва санаи он дар ҳамон файли рамзгузоришуда нигоҳ дошта мешаванд.</li>
+<li>Розигиро ҳар вақт бозпас гирифтан мумкин: «Бозпас гирифтани розигӣ» дар поёни бахши «Саломатӣ». Баъд аз тасдиқ ҳамаи сабтҳои саломатӣ аз файл нест мешаванд — дар дастгоҳ фавран, дар сервер ҳангоми ҳамоҳангсозии навбатӣ. Дар файл танҳо аломатҳои техникии бе мазмун (рақами сабт ва вақти несткунӣ) мемонанд, то дастгоҳи дигари шумо сабтҳоро барнагардонад. Версияҳои кӯҳнаи рамзгузоришудаи файл дар сервер (5-тои охирин) ҳангоми нигоҳдориҳои навбатӣ бо версияҳои нав иваз мешаванд. Саломатиро аз нав танҳо баъд аз «Иҷозат додан»-и нав пеш бурдан мумкин.</li>
+<li>Асос (бахши 4): нигоҳ доштани сабтҳои «Саломатӣ» — розигии ошкори шумо. Шумо онро пеш аз сабти аввал дар экрани алоҳида бо тугмаи «Иҷозат додан» медиҳед, санаи розигӣ нигоҳ дошта мешавад. Бе розигӣ сабтҳои саломатӣ нигоҳ дошта намешаванд. Агар розигиро бозпас гиред, бахш тоза мешавад: ҳамаи сабтҳои саломатӣ нест мешаванд.</li>
+</ul>
 <h3>3.6. Даромадан тавассути Google</h3>
 <p>Агар шумо тавассути Google ворид шавед:</p>
 <ul>
@@ -459,6 +477,8 @@
 <p>В версии 1 вы можете вести свои финансы и задачи в отдельном файле.</p>
 <ul>
 <li>В файле — ваши финансы, задачи, планы, дневник, записи о визе, спорт, здоровье (вода, вес, питание, тренировки) и обслуживание машины. Файл сжимается и шифруется на вашем устройстве, и только потом отправляется на сервер.</li>
+<li>Записи раздела «Здоровье» (вода, вес, еда и калории, тренировки, даты и ваши заметки) — чувствительные данные. Перед первой записью приложение один раз показывает экран согласия: что сохраняется, зачем, и что это никому не передаётся. Пока вы не нажали «Разрешить», записи здоровья не сохраняются. Ваше согласие и его дата хранятся в этом же зашифрованном файле.</li>
+<li>Отозвать согласие можно в любой момент: «Отозвать согласие» внизу раздела «Здоровье». После подтверждения все записи здоровья удаляются из файла — сразу на устройстве, а при следующей синхронизации и на сервере. В файле остаются только служебные метки без содержимого (номер записи и время удаления), чтобы другое ваше устройство не вернуло эти записи. Старые зашифрованные версии файла на сервере (последние 5) заменяются новыми при следующих сохранениях. Снова вести «Здоровье» можно только после нового «Разрешить».</li>
 <li>Файл шифруется на устройстве ключом, который не передаётся на сервер. На сервере лежит только зашифрованный файл.</li>
 <li>Сервер видит только размер файла, время синхронизации и то, к какому аккаунту файл относится. На сервере хранятся последние 5 версий зашифрованного файла.</li>
 <li>Второй фактор через Telegram на ключ файла не влияет: потеря Telegram бьёт по входу, не по данным в файле.</li>
@@ -483,7 +503,8 @@
 <li>Показать гостям открытые контакты и загруженное фото — ваше согласие. Вы можете в любой момент скрыть контакт, удалить фото или отозвать согласие.</li>
 <li>Хранить Telegram ID и отправлять код входа в Telegram — исполнение соглашения и защита входа.</li>
 <li>Хранить Google ID, если вы сами выбрали вход через Google, — исполнение соглашения.</li>
-<li>Хранить ваш зашифрованный файл финансов и задач и служебные сведения о нём (размер, время синхронизации, аккаунт), чтобы файл можно было синхронизировать — исполнение соглашения. Ключ на сервер не передаётся. Этот файл мы не используем для советов, оценки и рекламы.</li>
+<li>Хранить ваш зашифрованный файл финансов и задач и служебные сведения о нём (размер, время синхронизации, аккаунт), чтобы файл можно было синхронизировать — исполнение соглашения. Ключ на сервер не передаётся. Этот файл мы не используем для советов, оценки и рекламы. Записи «Здоровья» в этом файле — только по вашему согласию (следующий пункт).</li>
+<li>Хранить записи раздела «Здоровье» — ваше явное согласие. Вы даёте его на отдельном экране кнопкой «Разрешить» до первой записи; дата согласия сохраняется. Без согласия записи здоровья не сохраняются. Если вы отзываете согласие («Отозвать согласие»), раздел очищается: все записи здоровья удаляются (см. раздел 3.5).</li>
 <li>Разбирать сообщения о подделке или злоупотреблениях, которые нам присылают на почту или в Telegram, и останавливать злоупотребления — законный интерес: защищать людей от подделки и злоупотреблений. Отдельной кнопки жалобы в приложении нет.</li>
 </ul>
 <p>Мы не продаём базы контактов и не собираем скрытый профиль человека сверх того, что нужно для визитки и входа.</p>

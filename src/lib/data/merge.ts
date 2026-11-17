@@ -1,3 +1,4 @@
+import { clearHealthEntries, mergeHealthConsent } from "../health/consent.ts";
 import { emptyUserData, type DataRecord, type SalaryRecord, type UserData } from "./schema.ts";
 
 function isRecord<T extends DataRecord>(x: unknown): x is T {
@@ -34,6 +35,13 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
   const rh = r.health ?? empty.health!;
   const lc = l.car ?? empty.car!;
   const rc = r.car ?? empty.car!;
+  const healthConsent = mergeHealthConsent(l.healthConsent, r.healthConsent);
+  const health = {
+    water: mergeRecordList(lh.water ?? [], rh.water ?? []),
+    weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
+    nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
+    workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
+  };
   return {
     v: 1,
     finance: {
@@ -49,12 +57,9 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
     diary: { items: mergeRecordList(l.diary?.items ?? [], r.diary?.items ?? []) },
     sport: { sessions: mergeRecordList(l.sport?.sessions ?? [], r.sport?.sessions ?? []) },
     plans: { items: mergeRecordList(l.plans?.items ?? [], r.plans?.items ?? []) },
-    health: {
-      water: mergeRecordList(lh.water ?? [], rh.water ?? []),
-      weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
-      nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
-      workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
-    },
+    // Consent withdrawn on any device (and newer than any grant): nothing in Health may survive the merge.
+    health: healthConsent && !healthConsent.granted ? clearHealthEntries(health, healthConsent.at) : health,
+    ...(healthConsent ? { healthConsent } : {}),
     car: {
       vehicles: mergeRecordList(lc.vehicles ?? [], rc.vehicles ?? []),
       items: mergeRecordList(lc.items ?? [], rc.items ?? []),

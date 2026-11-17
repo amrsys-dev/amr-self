@@ -1,6 +1,11 @@
 # AMR ID maxfiylik siyosati
 
-To'liq matn hozircha rus, ingliz va arab tillarida. Agar tarjima rus tilidagi matndan farq qilsa, rus tilidagi matn amal qiladi. Quyida — 17-noyabr 2026-da tasdiqlangan 3.6-bo'lim (Google orqali kirish).
+To'liq matn hozircha rus, ingliz va arab tillarida. Agar tarjima rus tilidagi matndan farq qilsa, rus tilidagi matn amal qiladi. Quyida — 3.5-bo'limdan «Salomatlik» qismi va 3.6-bo'lim (Google orqali kirish), 17-noyabr 2026-da tasdiqlangan.
+
+### 3.5. «Salomatlik» bo'limi: rozilik
+- «Salomatlik» bo'limidagi yozuvlar (suv, vazn, ovqat va kaloriya, mashg'ulotlar, sana va izohlaringiz) — maxfiy ma'lumotlar. Birinchi yozuvdan oldin ilova bir marta rozilik ekranini ko'rsatadi: nima saqlanadi, nima uchun va hech kimga berilmasligi. «Ruxsat berish»ni bosmaguningizcha salomatlik yozuvlari saqlanmaydi. Roziligingiz va uning sanasi o'sha shifrlangan faylda saqlanadi.
+- Rozilikni istalgan payt qaytarib olishingiz mumkin: «Salomatlik» bo'limi pastidagi «Rozilikni qaytarib olish». Tasdiqlaganingizdan keyin barcha salomatlik yozuvlari fayldan o'chiriladi — qurilmada darhol, serverda esa keyingi sinxronlashda. Faylda faqat mazmunsiz texnik belgilar qoladi (yozuv raqami va o'chirilgan vaqt), boshqa qurilmangiz yozuvlarni qaytarmasligi uchun. Serverdagi faylning eski shifrlangan versiyalari (oxirgi 5 tasi) keyingi saqlashlarda yangilari bilan almashadi. Salomatlikni qayta yuritish faqat yangi «Ruxsat berish»dan keyin mumkin.
+- Asos (4-bo'lim): «Salomatlik» yozuvlarini saqlash — sizning aniq roziligingiz. Uni birinchi yozuvdan oldin alohida ekranda «Ruxsat berish» tugmasi bilan berasiz, rozilik sanasi saqlanadi. Roziliksiz salomatlik yozuvlari saqlanmaydi. Rozilik qaytarib olinsa, bo'lim tozalanadi: barcha salomatlik yozuvlari o'chiriladi.
 
 ### 3.6. Google orqali kirish
 Agar Google orqali kirsangiz:

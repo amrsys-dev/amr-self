@@ -6,6 +6,7 @@
  * The file is plain JSON on purpose: it must open even when the account is
  * lost. The app warns the user to keep it private.
  */
+import { isHealthConsent } from "../health/consent.ts";
 import { emptyUserData, type UserData } from "./schema.ts";
 
 export const BACKUP_FORMAT = "amr-self-backup";
@@ -58,7 +59,12 @@ export function parseBackup(text: string): ParseResult {
     health: { ...base.health!, ...(d.health ?? {}) },
     car: { ...base.car!, ...(d.car ?? {}) },
   };
-  for (const section of Object.values(merged) as unknown[]) {
+  if (d.healthConsent !== undefined) {
+    if (!isHealthConsent(d.healthConsent)) return { ok: false, reason: "broken" };
+    merged.healthConsent = d.healthConsent;
+  }
+  for (const [key, section] of Object.entries(merged) as [string, unknown][]) {
+    if (key === "healthConsent") continue;
     if (section && typeof section === "object") {
       for (const list of Object.values(section)) {
         if (list !== null && !Array.isArray(list) && typeof list !== "object") return { ok: false, reason: "broken" };

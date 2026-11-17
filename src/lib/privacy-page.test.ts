@@ -300,4 +300,21 @@ describe("privacy policy page", () => {
       assert.match(pick("privacy-policy.ar.md"), /بعد حذف الصورة نسخها المؤقتة تختفي خلال دقائق/);
     });
   });
+
+  it("describes explicit consent for Health data in 3.5 and 4, in every language and on the page", () => {
+    const need: Record<string, RegExp[]> = {
+      "privacy-policy.ru.md": [/экран согласия/, /«Разрешить»/, /дата/, /«Отозвать согласие»/, /раздел очищается/, /явное согласие/],
+      "privacy-policy.en.md": [/consent screen/, /“Allow”/, /date/, /“Withdraw consent”/, /section is cleared/, /explicit consent/],
+      "privacy-policy.ar.md": [/شاشة موافقة/, /«أسمح»/, /تاريخ/, /«سحب الموافقة»/, /القسم ينمسح/, /موافقتك الصريحة/],
+      "privacy-policy.uz.md": [/rozilik ekranini/, /«Ruxsat berish»/, /sanasi/, /«Rozilikni qaytarib olish»/, /bo'lim tozalanadi/],
+      "privacy-policy.tj.md": [/экрани розигиро/, /«Иҷозат додан»/, /санаи/, /«Бозпас гирифтани розигӣ»/, /бахш тоза мешавад/],
+    };
+    for (const [name, patterns] of Object.entries(need)) {
+      const text = policies.find((p) => p.name === name)!.text;
+      for (const re of patterns) assert.match(text, re, `${name} ${re}`);
+    }
+    for (const re of [/экран согласия/, /раздел очищается/, /consent screen/, /section is cleared/, /القسم ينمسح/, /bo&#x27;lim tozalanadi/, /бахш тоза мешавад/]) {
+      assert.match(html, re);
+    }
+  });
 });

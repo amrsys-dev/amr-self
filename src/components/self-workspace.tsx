@@ -18,6 +18,8 @@ import { CarPage, carOf, itemName } from "./self/car-page.tsx";
 import { groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
 import { groupTasks } from "@/lib/tasks/groups.ts";
 import { weekStreak, weekSummary } from "@/lib/health/week.ts";
+import { addHealthEntry, grantHealthConsent, hasHealthConsent, withdrawHealthConsent } from "@/lib/health/consent.ts";
+import { HealthConsentCard, HealthWithdrawDialog, healthConsentCopy } from "./self/health-consent.tsx";
 import { CurrencySign, useCurrency } from "./self/currency.tsx";
 import { parseAmount } from "@/lib/finance/currency.ts";
 import "./self-workspace.css";
@@ -246,6 +248,7 @@ export function SelfWorkspace({
   const [note, setNote] = useState("");
   const [date, setDate] = useState(todayKey());
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   useEffect(() => {
     if (!dataKey && !guestStore) {
@@ -266,7 +269,9 @@ export function SelfWorkspace({
   // A sub-page belongs to the tab it was opened from.
   useEffect(() => { setSubPage(null); }, [section]);
 
-  const health = data.health ?? emptyUserData().health!;
+  // Without consent the Health section shows nothing and accepts nothing (PDPL).
+  const healthOk = hasHealthConsent(data);
+  const health = healthOk ? data.health ?? emptyUserData().health! : emptyUserData().health!;
   // Amounts in the chosen currency; stored records keep their own currency.
   const finIn = useMemo(() => data.finance.income.map((r) => ({ ...r, amount: toCur(amountOf(r), r.currency) })), [data.finance.income, toCur]);
   const finEx = useMemo(() => data.finance.expense.map((r) => ({ ...r, amount: toCur(amountOf(r), r.currency) })), [data.finance.expense, toCur]);
@@ -345,6 +350,7 @@ export function SelfWorkspace({
       const record: TaskRecord = { id: recordId, updatedAt: now, title: title.trim(), dueDate: date, priority, completed: false };
       await persist({ ...data, work: { ...data.work, tasks: [...data.work.tasks, record] } });
     } else if (modal === "weight" || modal === "meal" || modal === "workout") {
+      if (!healthOk) { setModal(null); return; }
       const value = Number(amount.replace(",", "."));
       if (!Number.isFinite(value) || value <= 0) return;
       const kind = modal;
@@ -353,14 +359,24 @@ export function SelfWorkspace({
         date, amount: value, unit: kind === "weight" ? "kg" : kind === "meal" ? "kcal" : "min", calories: kind === "meal" ? value : undefined, note: note.trim() || undefined,
       };
       const field = kind === "weight" ? "weight" : kind === "meal" ? "nutrition" : "workouts";
-      await persist({ ...data, health: { ...health, [field]: [...health[field], record] } });
+      await persist(addHealthEntry(data, field, record));
     }
     setModal(null);
   }
 
   async function addWater() {
+    if (!healthOk) return;
     const record: HealthEntry = { id: makeId(), updatedAt: new Date().toISOString(), kind: "water", title: "Water", date: today, amount: 250, unit: "ml" };
-    await persist({ ...data, health: { ...health, water: [...health.water, record] } });
+    await persist(addHealthEntry(data, "water", record));
+  }
+
+  async function allowHealth() {
+    await persist(grantHealthConsent(data));
+  }
+
+  async function withdrawHealth() {
+    await persist(withdrawHealthConsent(data));
+    setWithdrawOpen(false);
   }
 
   async function toggleTask(task: TaskRecord) {
@@ -452,7 +468,7 @@ export function SelfWorkspace({
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => setSubPage("health")}>
               <span><CategoryIcon c="water" size={16} />{t("waterToday")}</span>
-              <strong>{waterToday}<i> ml</i></strong>
+              <strong>{healthOk ? waterToday : "—"}<i>{healthOk ? " ml" : ""}</i></strong>
               <div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div>
             </button>
           </div>
@@ -602,6 +618,9 @@ export function SelfWorkspace({
         <>
           <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {backLabel}</button>
           <header className="self-large"><h1>{t("health")}</h1></header>
+          {!healthOk ? (
+            <HealthConsentCard lang={lang} onAllow={() => void allowHealth()} onLater={() => setSubPage(null)} />
+          ) : (<>
           <div className="self-card self-week">
             <div className="self-week-head"><b>{tx(lang, "thisWeek")}</b><span>{tx(lang, "weekLine", { n: week.count, m: week.minutes })}</span></div>
             <div className="self-week-days">
@@ -626,6 +645,12 @@ export function SelfWorkspace({
               </div>
             ))}
           </div>
+          <div className="self-consent-foot">
+            {data.healthConsent?.at ? <small>{healthConsentCopy(lang).given.replace("{d}", localDate(data.healthConsent.at.slice(0, 10)))}</small> : null}
+            <button type="button" className="self-link-danger" onClick={() => setWithdrawOpen(true)}>{healthConsentCopy(lang).withdraw}</button>
+          </div>
+          </>)}
+          {withdrawOpen && <HealthWithdrawDialog lang={lang} onConfirm={() => void withdrawHealth()} onClose={() => setWithdrawOpen(false)} />}
         </>
       )}
 
