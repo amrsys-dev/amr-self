@@ -92,13 +92,21 @@ export function discardHealthWithoutConsent(data: UserData, now: Date = new Date
  */
 export function stripHealthWithoutConsent(data: UserData): UserData {
   if (hasHealthConsent(data)) return data;
+  return stripLiveHealth(data);
+}
+
+/** Drop every live health entry, keep bare deletion markers, whatever the consent flag says. */
+export function stripLiveHealth(data: UserData): UserData {
   const h = data.health ?? emptyHealth();
   const keep = (rows: HealthEntry[] | undefined): HealthEntry[] =>
     (rows ?? []).filter((r) => r.deleted).map((r) => ({ id: r.id, updatedAt: r.updatedAt, deleted: true }));
   return { ...data, health: { water: keep(h.water), weight: keep(h.weight), nutrition: keep(h.nutrition), workouts: keep(h.workouts) } };
 }
 
-/** A server copy with health entries but no consent must be re-uploaded stripped. */
-export function needsHealthCleanup(remote: Pick<UserData, "health" | "healthConsent">): boolean {
-  return !hasHealthConsent(remote) && hasLiveHealthEntries(remote);
+/**
+ * A server copy with live health entries must be re-uploaded stripped when the
+ * resulting local file has no consent (`merged` defaults to the remote itself).
+ */
+export function needsHealthCleanup(remote: Pick<UserData, "health">, merged: Pick<UserData, "healthConsent"> = remote as Pick<UserData, "healthConsent">): boolean {
+  return !hasHealthConsent(merged) && hasLiveHealthEntries(remote);
 }

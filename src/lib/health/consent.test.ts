@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { buildBackup, parseBackup } from "../data/backup.ts";
 import { readFileSync } from "node:fs";
 import { compressAndEncrypt, decryptAndDecompress, generateDataKey } from "../crypto.ts";
-import { keepDeviceOnlyHealth, mergeUserData } from "../data/merge.ts";
+import { keepDeviceOnlyHealth, mergeRemoteConflict, mergeUserData } from "../data/merge.ts";
 import { emptyUserData, type HealthEntry, type UserData } from "../data/schema.ts";
 import {
   HealthConsentRequired,
@@ -159,7 +159,7 @@ describe("old health entries without consent", () => {
 
   it("sync uploads only the stripped payload and re-uploads old server copies", () => {
     const src = readFileSync(new URL("../data/sync.ts", import.meta.url), "utf8");
-    assert.match(src, /if \(needsHealthCleanup\(remote\)\) \{[\s\S]*?dirty: true/);
+    assert.match(src, /if \(needsHealthCleanup\(remote, data\)\) \{[\s\S]*?dirty: true/);
     assert.match(src, /const upload = stripHealthWithoutConsent\(data\);\s*const encBlob = await compressAndEncrypt\(dataKey, upload,/);
   });
 
@@ -210,5 +210,81 @@ describe("restoring a backup", () => {
     assert.match(src, /saveLocalData\(key, accountIdOf\(session\), restored\)/);
     assert.match(src, /saveGuestData\(restored\)/);
     assert.doesNotMatch(src, /saveLocalData\([^)]*parsed\.data\)/);
+  });
+});
+
+describe("server copy without consent never brings health to a device", () => {
+  const ids = (d: UserData) => liveHealth(d).map((r) => r.id).sort();
+
+  it("pull to an empty (new) device takes no health entries from the server", () => {
+    const remote = legacyFile(); // old server copy: live health, no consent
+    const out = keepDeviceOnlyHealth(remote, null);
+    assert.deepEqual(ids(out), []);
+    assert.equal(JSON.stringify(out.health).includes("plov"), false);
+    assert.deepEqual(out.health!.workouts, [{ id: "gone", updatedAt: "2026-11-11T08:00:00.000Z", deleted: true }]);
+    assert.equal(out.finance.income.length, 1, "the rest of the file still syncs");
+    assert.equal(needsHealthCleanup(remote, out), true, "server copy gets replaced by a stripped one");
+  });
+
+  it("pull with local data keeps only this device's own entries, and server deletions still apply", () => {
+    const local = emptyUserData();
+    local.health!.water.push(water("mine"), water("deleted-elsewhere", "2026-11-17T08:00:00.000Z"));
+    const remote = legacyFile();
+    remote.health!.water.push({ id: "deleted-elsewhere", updatedAt: "2026-11-17T09:00:00.000Z", deleted: true });
+    const out = keepDeviceOnlyHealth(remote, local);
+    assert.deepEqual(ids(out), ["mine"]);
+    assert.equal(out.healthConsent, undefined);
+  });
+
+  it("server withdrawal is taken and clears this device", () => {
+    const local = emptyUserData();
+    local.health!.water.push(water("mine"));
+    const remote = { ...legacyFile(), healthConsent: { granted: false, at: "2026-11-17T10:00:00.000Z" } };
+    const out = keepDeviceOnlyHealth(remote, local);
+    assert.deepEqual(ids(out), []);
+    assert.deepEqual(out.healthConsent, remote.healthConsent);
+  });
+
+  it("server consent (newer) applies normally, with its health", () => {
+    const remote = grantHealthConsent(legacyFile(), new Date("2026-11-17T10:00:00Z"));
+    const out = keepDeviceOnlyHealth(remote, emptyUserData());
+    assert.equal(out, remote);
+    assert.deepEqual(ids(out), ["old-kg", "old-m", "old-w"]);
+  });
+
+  it("a newer local withdrawal beats an older server consent", () => {
+    const remote = grantHealthConsent(legacyFile(), new Date("2026-11-17T08:00:00Z"));
+    const local = withdrawHealthConsent(remote, new Date("2026-11-17T09:00:00Z"));
+    const out = keepDeviceOnlyHealth(remote, local);
+    assert.deepEqual(ids(out), []);
+    assert.equal(out.healthConsent!.granted, false);
+  });
+
+  it("409 conflict merge takes no health from the server, and the upload has none", () => {
+    const local = emptyUserData();
+    local.health!.weight.push(weight("mine"));
+    local.finance.expense.push({ id: "exp", updatedAt: "2026-11-17T08:00:00.000Z", amount: 3 });
+    const remote = legacyFile();
+    const merged = mergeRemoteConflict(local, remote);
+    assert.deepEqual(ids(merged), ["mine"], "local copy keeps only its own entries");
+    assert.equal(merged.finance.income.length, 1);
+    assert.equal(merged.finance.expense.length, 1);
+    assert.deepEqual(liveHealth(stripHealthWithoutConsent(merged)), [], "server gets the stripped file");
+  });
+
+  it("409 conflict with server consent merges health normally", () => {
+    const local = emptyUserData();
+    local.health!.weight.push(weight("mine"));
+    const remote = grantHealthConsent(legacyFile(), new Date("2026-11-17T10:00:00Z"));
+    const merged = mergeRemoteConflict(local, remote);
+    assert.deepEqual(ids(merged), ["mine", "old-kg", "old-m", "old-w"]);
+    assert.equal(merged.healthConsent!.granted, true);
+  });
+
+  it("sync uses the health-safe merge on 409", () => {
+    const src = readFileSync(new URL("../data/sync.ts", import.meta.url), "utf8");
+    assert.match(src, /data = mergeRemoteConflict\(data, remote\);/);
+    assert.doesNotMatch(src, /mergeUserData\(/);
+    assert.match(src, /needsHealthCleanup\(remote, data\)/);
   });
 });

@@ -1,4 +1,4 @@
-import { clearHealthEntries, hasHealthConsent, mergeHealthConsent } from "../health/consent.ts";
+import { clearHealthEntries, mergeHealthConsent, stripLiveHealth } from "../health/consent.ts";
 import { emptyUserData, type DataRecord, type SalaryRecord, type UserData } from "./schema.ts";
 
 function isRecord<T extends DataRecord>(x: unknown): x is T {
@@ -69,15 +69,30 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
 }
 
 /**
- * Health entries kept without consent stay on this device only: the server
- * copy never has them, so after a pull put this device's copies back.
- * A withdrawal on any device still wins (mergeUserData clears the section).
+ * What a device may take from a server copy. With consent (the newer decision
+ * of this device and the server is «Разрешить») the server copy is used as is.
+ * Without it, no health entry comes from the server: only deletion markers and
+ * the server's consent/withdrawal decision do. The device keeps only the health
+ * entries it already had.
  */
+export function healthSafeRemote(remote: UserData, local: UserData | null): UserData {
+  const consent = mergeHealthConsent(local?.healthConsent, remote.healthConsent);
+  if (consent?.granted) return remote;
+  return stripLiveHealth(remote);
+}
+
+/** Pull: the server copy for everything, health per healthSafeRemote, plus this device's own health. */
 export function keepDeviceOnlyHealth(remote: UserData, local: UserData | null): UserData {
-  if (!local || hasHealthConsent(remote) || hasHealthConsent(local)) return remote;
-  const both = mergeUserData(remote, local);
+  const consent = mergeHealthConsent(local?.healthConsent, remote.healthConsent);
+  if (consent?.granted) return consent === remote.healthConsent ? remote : { ...remote, healthConsent: consent };
+  const both = mergeUserData(stripLiveHealth(remote), local ?? { ...emptyUserData(), health: undefined });
   const out: UserData = { ...remote, health: both.health };
-  if (both.healthConsent) out.healthConsent = both.healthConsent;
+  if (consent) out.healthConsent = consent;
   else delete out.healthConsent;
   return out;
+}
+
+/** Push conflict (409): merge this device's file with the server copy without taking health from it. */
+export function mergeRemoteConflict(local: UserData, remote: UserData): UserData {
+  return mergeUserData(local, healthSafeRemote(remote, local));
 }

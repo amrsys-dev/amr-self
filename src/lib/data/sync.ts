@@ -1,7 +1,7 @@
 import { compressAndEncrypt, decryptAndDecompress, type EncryptedBlob } from "../crypto.ts";
 import { api } from "../client.ts";
 import { needsHealthCleanup, stripHealthWithoutConsent } from "../health/consent.ts";
-import { keepDeviceOnlyHealth, mergeUserData } from "./merge.ts";
+import { keepDeviceOnlyHealth, mergeRemoteConflict } from "./merge.ts";
 import { emptyUserData, type UserData } from "./schema.ts";
 
 const DB = "amrid";
@@ -150,7 +150,7 @@ export async function pullRemote(dataKey: Uint8Array, accountId: string): Promis
       try { localData = (await decryptAndDecompress(dataKey, local.blob, { accountId, version: local.version })) as UserData; } catch { localData = null; }
     }
     const data = keepDeviceOnlyHealth(remote, localData);
-    if (needsHealthCleanup(remote)) {
+    if (needsHealthCleanup(remote, data)) {
       // The server copy still has health entries from before consent existed:
       // mark the local copy dirty so the next sync replaces it with a stripped one.
       const version = res.data.version + 1;
@@ -196,7 +196,8 @@ export async function pushRemote(dataKey: Uint8Array, accountId: string, data: U
         accountId,
         version: res.data.version,
       })) as UserData;
-      data = mergeUserData(data, remote);
+      // Never take health entries from the server without consent.
+      data = mergeRemoteConflict(data, remote);
       base = res.data.version;
       const mergedBlob = await compressAndEncrypt(dataKey, data, { accountId, version: base + 1 });
       await writeRecord({ blob: mergedBlob, version: base + 1, dirty: true, accountId });

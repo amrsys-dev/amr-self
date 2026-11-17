@@ -303,8 +303,8 @@ describe("privacy policy page", () => {
 
   it("describes explicit consent for Health data in 3.5 and 4, in every language and on the page", () => {
     const need: Record<string, RegExp[]> = {
-      "privacy-policy.ru.md": [/экран согласия/, /«Разрешить»/, /дата/, /«Отозвать согласие»/, /раздел очищается/, /явное согласие/, /«Удалить старые записи»/, /не уходят на сервер/, /резервной копии без согласия/],
-      "privacy-policy.en.md": [/consent screen/, /“Allow”/, /date/, /“Withdraw consent”/, /section is cleared/, /explicit consent/, /“Delete old entries”/, /not sent to the server/, /backup without consent/],
+      "privacy-policy.ru.md": [/экран согласия/, /«Разрешить»/, /дата/, /«Отозвать согласие»/, /раздел очищается/, /явное согласие/, /«Удалить старые записи»/, /не уходят на сервер/, /резервной копии без согласия/, /новое устройство их не получит/],
+      "privacy-policy.en.md": [/consent screen/, /“Allow”/, /date/, /“Withdraw consent”/, /section is cleared/, /explicit consent/, /“Delete old entries”/, /not sent to the server/, /backup without consent/, /a new device will not get them/],
       "privacy-policy.ar.md": [/شاشة موافقة/, /«أسمح»/, /تاريخ/, /«سحب الموافقة»/, /القسم ينمسح/, /موافقتك الصريحة/, /«احذف السجلات القديمة»/, /ما تنرسل للخادم/, /نسخة احتياطية بدون موافقة/],
       "privacy-policy.uz.md": [/rozilik ekranini/, /«Ruxsat berish»/, /sanasi/, /«Rozilikni qaytarib olish»/, /bo'lim tozalanadi/, /«Eski yozuvlarni o'chirish»/, /serverga yuborilmaydi/, /Zaxira nusxadan/],
       "privacy-policy.tj.md": [/экрани розигиро/, /«Иҷозат додан»/, /санаи/, /«Бозпас гирифтани розигӣ»/, /бахш тоза мешавад/, /«Нест кардани сабтҳои кӯҳна»/, /ба сервер фиристода намешаванд/, /нусхаи эҳтиётӣ/],
