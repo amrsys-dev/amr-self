@@ -146,8 +146,12 @@ export function useIdApp() {
         }
         setSession(r.data);
         setAppearance(r.data.appearance);
-        setScreen("today");
+        const back = new URLSearchParams(window.location.search);
+        setScreen(back.get("delete") === "google" ? "account-delete" : "today");
       }
+      const g = new URLSearchParams(window.location.search).get("google");
+      if (g && g !== "ok" && g !== "linked") setErr(t(googleMsg(g)));
+      if (g || new URLSearchParams(window.location.search).has("delete")) window.history.replaceState(null, "", window.location.pathname);
     });
   }, []);
 
@@ -476,27 +480,79 @@ export function useIdApp() {
     }
   }
 
-  async function submitDeleteAccount() {
+  /**
+   * Delete account in ONE step, with the method this session signed in with:
+   * Telegram → a fresh code from the bot (sent on open, again after 60 s); AMR account → current password;
+   * Google → a fresh sign-in at Google, then «Удалить». No word lists, no chains.
+   */
+  const [deleteResendAt, setDeleteResendAt] = useState(0);
+  const [deleteMethod, setDeleteMethod] = useState<"" | "telegram" | "password" | "google">("");
+  const [deleteGoogleReady, setDeleteGoogleReady] = useState(false);
+  async function sendDeleteCode() {
     if (!session) return;
     setErr("");
     setBusy(true);
     try {
-      const authKey = await authKeyFrom(reauthPassword);
-      if (!otpId || code.replace(/\D/g, "").length < 6) {
-        const start = await api<{ otpId: string; testOtp?: string }>("/api/me/delete", {
-          method: "POST",
-          body: JSON.stringify({ phase: "start", authKey, lang }),
-        });
-        if (!start.ok) return fail(start.status, start.data as { error?: string });
-        setOtpId(start.data.otpId);
-        setTestOtp(start.data.testOtp);
+      const r = await api<{ method?: "telegram" | "password" | "google"; ready?: boolean; otpId?: string; testOtp?: string; retryAfterMs?: number; resendInMs?: number; error?: string }>("/api/me/delete", {
+        method: "POST",
+        body: JSON.stringify({ phase: "start", lang }),
+      });
+      if (r.data.method) setDeleteMethod(r.data.method);
+      if (r.data.method === "password") return;
+      if (r.data.method === "google") return setDeleteGoogleReady(Boolean(r.data.ready));
+      if (r.ok) {
+        setOtpId(r.data.otpId ?? "");
+        setTestOtp(r.data.testOtp);
+        setCode("");
+        setDeleteResendAt(Date.now() + (r.data.resendInMs ?? 60_000));
         return;
       }
-      const del = await api("/api/me/delete", {
-        method: "POST",
-        body: JSON.stringify({ phase: "confirm", authKey, otpId, code }),
-      });
-      if (!del.ok) return fail(del.status, del.data as { error?: string });
+      // A code was sent less than a minute ago: keep using it.
+      if (r.status === 429 && r.data.otpId) {
+        setOtpId(r.data.otpId);
+        setDeleteResendAt(Date.now() + (r.data.retryAfterMs ?? 60_000));
+        return;
+      }
+      if (r.data.error === "no_otp_dest") return setErr(t("delete_no_tg"));
+      return fail(r.status, r.data);
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  useEffect(() => {
+    if (screen === "account-delete" && session && !otpId) void sendDeleteCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
+
+  function startGoogle(purpose: "login" | "link" | "delete") {
+    window.location.assign(`/api/auth/google/start?purpose=${purpose}`);
+  }
+
+  async function submitDeleteAccount() {
+    if (!session) return;
+    let payload: Record<string, unknown>;
+    if (deleteMethod === "password") {
+      if (!reauthPassword) return setErr(t("wrong_login"));
+      payload = { phase: "confirm", authKey: await authKeyFrom(reauthPassword) };
+    } else if (deleteMethod === "google") {
+      if (!deleteGoogleReady) return startGoogle("delete");
+      payload = { phase: "confirm" };
+    } else {
+      if (!otpId) return void sendDeleteCode();
+      if (code.replace(/\D/g, "").length < 6) return setErr(t("invalid_code"));
+      payload = { phase: "confirm", otpId, code };
+    }
+    setErr("");
+    setBusy(true);
+    try {
+      const del = await api("/api/me/delete", { method: "POST", body: JSON.stringify(payload) });
+      if (!del.ok) {
+        if (deleteMethod === "google") setDeleteGoogleReady(false);
+        return fail(del.status, del.data as { error?: string });
+      }
+      setReauthPassword("");
       await afterWipe();
     } catch {
       setErr(t("error"));
@@ -819,6 +875,11 @@ export function useIdApp() {
     submitNickChange,
     submitChannelChange,
     submitDeleteAccount,
+    sendDeleteCode,
+    deleteResendAt,
+    deleteMethod,
+    deleteGoogleReady,
+    startGoogle,
     submitRebind,
     saveProfile,
     addContact,
@@ -876,4 +937,13 @@ export async function shrinkImage(file: Blob, max: number, quality: number, type
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** Message for a failed return from Google (?google=…). */
+export function googleMsg(code: string): MsgKey {
+  if (code === "not_linked") return "google_not_linked";
+  if (code === "taken") return "google_taken";
+  if (code === "wrong_account") return "google_wrong_account";
+  if (code === "not_fresh") return "google_not_fresh";
+  return "google_failed";
 }

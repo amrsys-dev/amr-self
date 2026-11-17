@@ -39,6 +39,7 @@ export type Meta = {
   emailOtp?: boolean;
   recoveryCodes?: number;
   telegramBot?: string;
+  googleLogin?: boolean;
 };
 
 export type SessionState = {
@@ -49,6 +50,7 @@ export type SessionState = {
   theme: CardTheme;
   appearance: "dark" | "light";
   contacts: Contact[];
+  googleLinked?: boolean;
   wrapPassword?: WrappedKey;
   kdf?: { password: KdfParams; recovery: KdfParams };
   cardPath: string;

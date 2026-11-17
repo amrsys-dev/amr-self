@@ -8,6 +8,10 @@ import { nickKey } from "../user.ts";
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { dataBlobKey } from "../user.ts";
 import { OTP_MAX_ATTEMPTS } from "./otp.ts";
+import { generateKeyPairSync, createSign } from "node:crypto";
+import { readSessionId } from "./session.ts";
+import { sessionKey } from "../user.ts";
+import { GOOGLE_CALLBACK, googleSubKey, resetGoogleKeysForTests } from "./google.ts";
 import {
   handleAddContact,
   handleDeleteMe,
@@ -25,6 +29,10 @@ import {
   handleReplaceRecoveryCodes,
   handleVerifyContact,
   handlePublicCard,
+  handleGoogleStart,
+  handleGoogleCallback,
+  handleMeta,
+  DELETE_RESEND_MS,
   PUBLIC_CARD_CACHE,
   reserveNick,
 } from "./handlers.ts";
@@ -469,19 +477,16 @@ describe("auth-key-only login and recovery", () => {
     );
     const bare = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie })));
     assert.equal(bare.status, 400);
-    const start = await json(
-      await handleDeleteMe(
-        req("/api/me/delete", { cookie: acc.cookie, body: { phase: "start", authKey: encodeAuthKey(acc.pwd.authKey) } }),
-      ),
-    );
+    // Signed in with nick + password → one step: the current password.
+    const start = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "start" } })));
     assert.equal(start.status, 200, JSON.stringify(start.data));
+    assert.equal(start.data.method, "password");
+    const bad = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm", authKey: encodeAuthKey(new Uint8Array(32).fill(7)) } })));
+    assert.equal(bad.status, 401);
+    const noPwd = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm" } })));
+    assert.equal(noPwd.status, 401);
     const del = await json(
-      await handleDeleteMe(
-        req("/api/me/delete", {
-          cookie: acc.cookie,
-          body: { phase: "confirm", authKey: encodeAuthKey(acc.pwd.authKey), otpId: start.data.otpId, code: start.data.testOtp },
-        }),
-      ),
+      await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm", authKey: encodeAuthKey(acc.pwd.authKey) } })),
     );
     assert.equal(del.status, 200, JSON.stringify(del.data));
     assert.equal(del.data.deleted, true);
@@ -494,6 +499,216 @@ describe("auth-key-only login and recovery", () => {
     const check = await json(await handleNickCheck(req(`/api/nick/check?nick=${encodeURIComponent(acc.nick)}`, { method: "GET" })));
     assert.equal(check.data.ok, false);
     assert.equal(check.data.reason, "taken");
+  });
+
+  async function asTelegramSession(cookie: string) {
+    const id = readSessionId(new Request("https://x.test", { headers: { cookie } }))!;
+    const raw = await getStores().kv.get(sessionKey(id));
+    await getStores().kv.put(sessionKey(id), JSON.stringify({ ...JSON.parse(raw!), method: "telegram" }));
+  }
+
+  it("Telegram session: delete with a fresh delete code only, no password", async () => {
+    const acc = await signup("@AMR-571-571", "correct-battery-horse");
+    await asTelegramSession(acc.cookie);
+    const ip = "198.51.100.71";
+    const start = await json(await handleDeleteMe(req("/api/me/delete", { ip, cookie: acc.cookie, body: { phase: "start" } })));
+    assert.equal(start.status, 200, JSON.stringify(start.data));
+    assert.equal(start.data.method, "telegram");
+    assert.equal(start.data.resendInMs, DELETE_RESEND_MS);
+    // Second send within 60 s: refused, same code stays valid.
+    const again = await json(await handleDeleteMe(req("/api/me/delete", { ip, cookie: acc.cookie, body: { phase: "start" } })));
+    assert.equal(again.status, 429);
+    assert.equal(again.data.otpId, start.data.otpId);
+    const wrongCode = String((Number(start.data.testOtp) + 1) % 1_000_000).padStart(6, "0");
+    const bad = await json(await handleDeleteMe(req("/api/me/delete", { ip, cookie: acc.cookie, body: { phase: "confirm", otpId: start.data.otpId, code: wrongCode } })));
+    assert.equal(bad.status, 401);
+    const del = await json(await handleDeleteMe(req("/api/me/delete", { ip, cookie: acc.cookie, body: { phase: "confirm", otpId: start.data.otpId, code: start.data.testOtp } })));
+    assert.equal(del.status, 200, JSON.stringify(del.data));
+    assert.equal(del.data.deleted, true);
+    assert.equal(await getStores().kv.get(nickKey(acc.nick)), null);
+  });
+
+  it("Telegram session: a login code cannot delete the account; a resend kills the old delete code", async () => {
+    const acc = await signup("@AMR-572-572", "correct-battery-horse");
+    await asTelegramSession(acc.cookie);
+    const login = await json(await handleLogin(req("/api/auth/login", { body: { nick: acc.nick, authKey: encodeAuthKey(acc.pwd.authKey) } })));
+    assert.equal(login.status, 200, JSON.stringify(login.data));
+    assert.ok(login.data.otpId && login.data.testOtp);
+    const viaLogin = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm", otpId: login.data.otpId, code: login.data.testOtp } })));
+    assert.equal(viaLogin.status, 401);
+    // Even if the pointer is aimed at a login code, the purpose check refuses it.
+    await getStores().kv.put(`delpending:${acc.nick.toLowerCase()}`, JSON.stringify({ otpId: login.data.otpId, at: Date.now() - DELETE_RESEND_MS - 1 }));
+    const aimed = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm", otpId: login.data.otpId, code: login.data.testOtp } })));
+    assert.equal(aimed.status, 401);
+    await getStores().kv.delete(`delpending:${acc.nick.toLowerCase()}`);
+    const first = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "start" } })));
+    assert.equal(first.status, 200, JSON.stringify(first.data));
+    const ptr = JSON.parse((await getStores().kv.get(`delpending:${acc.nick.toLowerCase()}`))!);
+    await getStores().kv.put(`delpending:${acc.nick.toLowerCase()}`, JSON.stringify({ ...ptr, at: Date.now() - DELETE_RESEND_MS - 1 }));
+    const second = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "start" } })));
+    assert.equal(second.status, 200, JSON.stringify(second.data));
+    assert.notEqual(second.data.otpId, first.data.otpId);
+    const old = await json(await handleDeleteMe(req("/api/me/delete", { cookie: acc.cookie, body: { phase: "confirm", otpId: first.data.otpId, code: first.data.testOtp } })));
+    assert.equal(old.status, 401);
+    assert.ok(await getStores().kv.get(nickKey(acc.nick)));
+  });
+
+  describe("«Войти через Google»", () => {
+    const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const jwk = { ...(publicKey.export({ format: "jwk" }) as Record<string, string>), kid: "test-kid", alg: "RS256", use: "sig" };
+    const CLIENT = "client-123.apps.googleusercontent.com";
+    function idToken(claims: Record<string, unknown>, kid = "test-kid", key = privateKey) {
+      const h = Buffer.from(JSON.stringify({ alg: "RS256", kid, typ: "JWT" })).toString("base64url");
+      const p = Buffer.from(JSON.stringify(claims)).toString("base64url");
+      const sig = createSign("RSA-SHA256").update(`${h}.${p}`).sign(key).toString("base64url");
+      return `${h}.${p}.${sig}`;
+    }
+    let tokenCalls: URLSearchParams[] = [];
+    function fakeGoogle(claims: (nonce: string) => Record<string, unknown>, nonce: () => string, opts: { kid?: string; key?: typeof privateKey } = {}): typeof fetch {
+      return (async (input: string | URL | Request, init?: RequestInit) => {
+        const url = String(input);
+        if (url.startsWith("https://www.googleapis.com/oauth2/v3/certs")) return new Response(JSON.stringify({ keys: [jwk] }));
+        if (url === "https://oauth2.googleapis.com/token") {
+          tokenCalls.push(new URLSearchParams(String(init?.body)));
+          return new Response(JSON.stringify({ id_token: idToken(claims(nonce()), opts.kid, opts.key) }));
+        }
+        return new Response("no", { status: 404 });
+      }) as typeof fetch;
+    }
+    const now = () => Math.floor(Date.now() / 1000);
+    const base = (nonce: string, sub = "g-sub-1") => ({ iss: "https://accounts.google.com", aud: CLIENT, sub, email: "x@example.com", email_verified: true, iat: now(), exp: now() + 600, auth_time: now(), nonce });
+
+    async function start(purpose: string, cookie?: string) {
+      const res = await handleGoogleStart(req(`/api/auth/google/start?purpose=${purpose}`, { method: "GET", cookie }));
+      const loc = new URL(res.headers.get("location")!, "https://self.amrsys.net");
+      const gs = res.headers.getSetCookie().find((c) => c.startsWith("amr_gs="))?.split(";")[0];
+      return { res, loc, gs, state: loc.searchParams.get("state") ?? "", nonce: loc.searchParams.get("nonce") ?? "" };
+    }
+    function callback(state: string, cookies: (string | undefined)[], f: typeof fetch, code = "auth-code") {
+      return handleGoogleCallback(req(`/api/auth/google/callback?state=${state}&code=${code}`, { method: "GET", cookie: cookies.filter(Boolean).join("; ") }), f);
+    }
+    const sessionCookie = (res: Response) => res.headers.getSetCookie().find((c) => c.startsWith("amrid_session=") && !c.includes("Max-Age=0"))?.split(";")[0];
+
+    beforeEach(() => {
+      process.env.GOOGLE_CLIENT_ID = CLIENT;
+      process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+      resetGoogleKeysForTests();
+      tokenCalls = [];
+    });
+    after(() => {
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+    });
+
+    it("is off (and the button hidden) without GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET", async () => {
+      delete process.env.GOOGLE_CLIENT_SECRET;
+      const meta = await json(await handleMeta(req("/api/meta", { method: "GET" })));
+      assert.equal(meta.data.googleLogin, false);
+      const s = await start("login");
+      assert.equal(s.res.status, 302);
+      assert.equal(s.loc.pathname, "/");
+      assert.equal(s.loc.searchParams.get("google"), "off");
+      process.env.GOOGLE_CLIENT_SECRET = "test-secret";
+      assert.equal((await json(await handleMeta(req("/api/meta", { method: "GET" })))).data.googleLogin, true);
+    });
+
+    it("start sends state + PKCE S256 + nonce and the exact callback address", async () => {
+      const s = await start("login");
+      assert.equal(s.loc.origin + s.loc.pathname, "https://accounts.google.com/o/oauth2/v2/auth");
+      assert.equal(s.loc.searchParams.get("redirect_uri"), "https://self.amrsys.net/api/auth/google/callback");
+      assert.equal(GOOGLE_CALLBACK, "https://self.amrsys.net/api/auth/google/callback");
+      assert.equal(s.loc.searchParams.get("code_challenge_method"), "S256");
+      assert.ok((s.loc.searchParams.get("code_challenge") ?? "").length >= 43);
+      assert.ok(s.state.length >= 20 && s.nonce.length >= 20);
+      assert.equal(s.gs, `amr_gs=${s.state}`);
+      assert.equal(s.loc.searchParams.get("scope"), "openid email");
+      const del = await start("delete");
+      assert.equal(del.loc.searchParams.get("google"), "signin_first"); // delete/link need a session
+    });
+
+    it("link only while signed in, then sign in with Google into that nick", async () => {
+      const acc = await signup("@AMR-581-581", "correct-battery-horse");
+      const link = await start("link", acc.cookie);
+      const linked = await callback(link.state, [acc.cookie, link.gs], fakeGoogle(base, () => link.nonce));
+      assert.equal(linked.headers.get("location"), "/?google=linked");
+      assert.equal(tokenCalls[0].get("redirect_uri"), GOOGLE_CALLBACK);
+      assert.ok((tokenCalls[0].get("code_verifier") ?? "").length >= 43);
+      assert.equal(await getStores().kv.get(googleSubKey("g-sub-1")), acc.nick);
+      const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: acc.cookie })));
+      assert.equal(me.data.googleLinked, true);
+      // Another nick can't take the same Google.
+      const other = await signup("@AMR-582-582", "correct-battery-horse");
+      const l2 = await start("link", other.cookie);
+      const taken = await callback(l2.state, [other.cookie, l2.gs], fakeGoogle(base, () => l2.nonce));
+      assert.equal(taken.headers.get("location"), "/?google=taken");
+      // Sign-in on a device signed in as the other nick: the old session ends, the new one is for the linked nick.
+      const login = await start("login");
+      const res = await callback(login.state, [other.cookie, login.gs], fakeGoogle(base, () => login.nonce));
+      assert.equal(res.headers.get("location"), "/?google=ok");
+      const cookie = sessionCookie(res)!;
+      const who = await json(await handleMe(req("/api/me", { method: "GET", cookie })));
+      assert.equal(who.data.nick, acc.nick);
+      assert.equal((await json(await handleMe(req("/api/me", { method: "GET", cookie: other.cookie })))).status, 401);
+    });
+
+    it("callback rejects a bad state, a missing state cookie, replay, wrong nonce, aud, iss, signature and expiry", async () => {
+      const acc = await signup("@AMR-583-583", "correct-battery-horse");
+      const link = await start("link", acc.cookie);
+      await callback(link.state, [acc.cookie, link.gs], fakeGoogle(base, () => link.nonce));
+      const loc = async (r: Response) => r.headers.get("location");
+      const bad = async (mut: (n: string) => Record<string, unknown>, opts: { kid?: string; key?: typeof privateKey } = {}) => {
+        const s = await start("login");
+        return loc(await callback(s.state, [s.gs], fakeGoogle(mut, () => s.nonce, opts)));
+      };
+      const s1 = await start("login");
+      assert.equal(await loc(await callback(s1.state, [], fakeGoogle(base, () => s1.nonce))), "/?google=failed"); // no state cookie
+      assert.equal(await loc(await callback("x".repeat(32), [`amr_gs=${"x".repeat(32)}`], fakeGoogle(base, () => s1.nonce))), "/?google=failed"); // unknown state
+      assert.equal(await loc(await callback(s1.state, [s1.gs], fakeGoogle(base, () => s1.nonce))), "/?google=ok");
+      assert.equal(await loc(await callback(s1.state, [s1.gs], fakeGoogle(base, () => s1.nonce))), "/?google=failed"); // replay
+      assert.equal(await bad(() => base("other-nonce")), "/?google=failed");
+      assert.equal(await bad((n) => ({ ...base(n), aud: "someone-else" })), "/?google=failed");
+      assert.equal(await bad((n) => ({ ...base(n), iss: "https://evil.example" })), "/?google=failed");
+      assert.equal(await bad((n) => ({ ...base(n), exp: now() - 120 })), "/?google=failed");
+      assert.equal(await bad(base, { kid: "unknown-kid" }), "/?google=failed");
+      const { privateKey: otherKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+      assert.equal(await bad(base, { key: otherKey }), "/?google=failed");
+      assert.equal(await bad((n) => base(n, "g-sub-unknown")), "/?google=not_linked");
+    });
+
+    it("Google session: delete after a fresh Google sign-in only (prompt=login, max_age=0, auth_time checked)", async () => {
+      const acc = await signup("@AMR-584-584", "correct-battery-horse");
+      const link = await start("link", acc.cookie);
+      await callback(link.state, [acc.cookie, link.gs], fakeGoogle(base, () => link.nonce));
+      const login = await start("login");
+      const res = await callback(login.state, [acc.cookie, login.gs], fakeGoogle(base, () => login.nonce));
+      const cookie = sessionCookie(res)!;
+      const st = await json(await handleDeleteMe(req("/api/me/delete", { cookie, body: { phase: "start" } })));
+      assert.equal(st.data.method, "google");
+      assert.equal(st.data.ready, false);
+      const early = await json(await handleDeleteMe(req("/api/me/delete", { cookie, body: { phase: "confirm" } })));
+      assert.equal(early.status, 401);
+      assert.equal(early.data.error, "reauth_required");
+      // Old Google sign-in (auth_time 10 min ago) is not enough.
+      const stale = await start("delete", cookie);
+      assert.equal(stale.loc.searchParams.get("prompt"), "login");
+      assert.equal(stale.loc.searchParams.get("max_age"), "0");
+      const r1 = await callback(stale.state, [cookie, stale.gs], fakeGoogle((n) => ({ ...base(n), auth_time: now() - 600 }), () => stale.nonce));
+      assert.equal(r1.headers.get("location"), "/?google=not_fresh");
+      // Another Google account is refused.
+      const wrong = await start("delete", cookie);
+      const r2 = await callback(wrong.state, [cookie, wrong.gs], fakeGoogle((n) => base(n, "g-sub-2"), () => wrong.nonce));
+      assert.equal(r2.headers.get("location"), "/?google=wrong_account");
+      // Fresh sign-in → «Удалить».
+      const fresh = await start("delete", cookie);
+      const r3 = await callback(fresh.state, [cookie, fresh.gs], fakeGoogle(base, () => fresh.nonce));
+      assert.equal(r3.headers.get("location"), "/?delete=google");
+      const ready = await json(await handleDeleteMe(req("/api/me/delete", { cookie, body: { phase: "start" } })));
+      assert.equal(ready.data.ready, true);
+      const del = await json(await handleDeleteMe(req("/api/me/delete", { cookie, body: { phase: "confirm" } })));
+      assert.equal(del.status, 200, JSON.stringify(del.data));
+      assert.equal(await getStores().kv.get(nickKey(acc.nick)), null);
+      assert.equal(await getStores().kv.get(googleSubKey("g-sub-1")), null);
+    });
   });
 
   it("returns a deterministic dummy KDF and a dummy-timed 401 for an unknown nick", async () => {

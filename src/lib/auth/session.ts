@@ -8,7 +8,9 @@ import { json } from "../http.ts";
 const COOKIE = "amrid_session";
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
-export type Session = { id: string; nick: string; exp: number };
+/** How this session was signed in; deleting the account asks again with the same method. Old sessions: "password". */
+export type SignInMethod = "password" | "telegram" | "google";
+export type Session = { id: string; nick: string; exp: number; method?: SignInMethod; authAt?: number };
 
 function sign(id: string): string {
   return createHmac("sha256", sessionSecret()).update(id).digest("base64url");
@@ -49,9 +51,9 @@ export async function readSession(request: Request): Promise<Session | null> {
   return s;
 }
 
-export async function createSession(nick: string): Promise<{ cookie: string; session: Session }> {
+export async function createSession(nick: string, method: SignInMethod = "password"): Promise<{ cookie: string; session: Session }> {
   const id = randomBytes(18).toString("base64url");
-  const session: Session = { id, nick, exp: Date.now() + TTL_MS };
+  const session: Session = { id, nick, exp: Date.now() + TTL_MS, method, authAt: Date.now() };
   const kv = getStores().kv;
   await kv.put(sessionKey(id), JSON.stringify(session));
   const listRaw = await kv.get(sessionsOfKey(nick));

@@ -103,7 +103,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, startGoogle } = app;
   return (
     <>
     {inShell && (
@@ -245,6 +245,9 @@ export function ShellScreens({ app }: { app: App }) {
           )}
           {screen === "profile" && session && (
             <div className="card pad0 set-list">
+              {meta?.googleLogin ? (
+                <LinkRow label={session.googleLinked ? t("google_linked") : t("google_link")} onClick={() => startGoogle("link")} />
+              ) : null}
               <LinkRow label={t("sign_out")} tone="accent" onClick={() => void logout()} />
               <LinkRow
                 label={t("delete_my_data")}

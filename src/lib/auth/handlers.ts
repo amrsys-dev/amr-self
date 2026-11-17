@@ -29,7 +29,8 @@ import {
   type TelegramLinkRecord,
 } from "./telegram-link.ts";
 import { dummyVerifyAuthKey, hashAuthKey, verifyAuthKey } from "./password.ts";
-import { createSession, destroySession, requireUser, revokeAllSessions } from "./session.ts";
+import { createSession, destroySession, readSession, requireUser, revokeAllSessions } from "./session.ts";
+import { GOOGLE_FRESH_SEC, GOOGLE_STATE_TTL_SEC, exchangeGoogleCode, googleConfig, googleStateKey, googleSubKey, newGoogleRequest, verifyGoogleIdToken, type GooglePurpose, type GoogleState } from "./google.ts";
 
 const kdfSchema = z.object({
   alg: z.literal("argon2id"),
@@ -365,6 +366,7 @@ function sessionPayload(user: UserRecord) {
     passwordReset: "recovery_code_only" as const,
     nickChanged: Boolean(user.nickChanged),
     recoveryLeft: (user.recoveryHashes ?? (user.recoveryHash ? [user.recoveryHash] : [])).length,
+    googleLinked: Boolean(user.google),
   };
 }
 
@@ -383,6 +385,7 @@ export async function handleMeta(request: Request): Promise<Response> {
     env: vercelEnv(),
     cardOrigin: publicCardOrigin(request),
     telegramBot: telegramOtpLive() ? `@${telegramBotUsername()}` : undefined,
+    googleLogin: Boolean(googleConfig()),
   });
 }
 
@@ -564,7 +567,7 @@ export async function handleOtp(request: Request): Promise<Response> {
   }
   await getStores().kv.delete(otpKey(body.data.otpId));
   await destroySession(request); // a new sign-in never keeps the previous account's session on this device
-  const { cookie } = await createSession(user.nick);
+  const { cookie } = await createSession(user.nick, "telegram");
   return jsonWithCookie(sessionPayload(user), cookie);
 }
 
@@ -717,7 +720,7 @@ async function handleRebind(
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
   await getStores().kv.delete(otpKey(data.otpId));
   await revokeAllSessions(user.nick);
-  const { cookie } = await createSession(user.nick);
+  const { cookie } = await createSession(user.nick, "telegram");
   return jsonWithCookie({ ...sessionPayload(user), recoveryBurned: true, sessionsRevoked: true, rebound: true, recoveryLeft: recoverySlots(user).hashes.length }, cookie);
 }
 
@@ -910,6 +913,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   const stores = getStores();
   const nick = user.nick;
   await clearOtpsForNick(nick);
+  if (user.google?.sub) await stores.kv.delete(googleSubKey(user.google.sub));
   await revokeAllSessions(nick);
   await deleteAllDataBlobs(stores.blobs, nick);
   if (user.photo) await stores.blobs.delete(user.photo.key);
@@ -920,47 +924,182 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   return jsonWithCookie({ ok: true, deleted: true, nickReserved: true }, cookie);
 }
 
+const deleteSchema = z.object({
+  phase: z.enum(["start", "confirm"]).optional(),
+  authKey: z.string().max(200).optional(),
+  otpId: z.string().min(8).max(64).optional(),
+  code: z.string().min(4).max(12).optional(),
+  lang: z.string().max(8).optional(),
+});
+
+/** One active delete code per account; a new one may be sent after this pause. */
+export const DELETE_RESEND_MS = 60_000;
+const deletePendingKey = (nick: string) => `delpending:${nick.toLowerCase()}`;
+const deleteGrantKey = (sessionId: string) => `delgrant:${sessionId}`;
+
+/**
+ * «Удалить аккаунт» in ONE step, with the method this session signed in with (Murad, 17.11.2026). No word lists, no chains.
+ * - telegram: a fresh code from the bot (purpose=delete, bound to this account; a new one every 60 s replaces the old one).
+ * - password (AMR account): the current password.
+ * - google: a fresh sign-in at Google (prompt=login, max_age=0, auth_time ≤ 5 min) done via /api/auth/google/start?purpose=delete.
+ * start tells the client which one and, for Telegram, sends the code. confirm deletes.
+ */
 export async function handleDeleteMe(request: Request): Promise<Response> {
   const user = await requireUser(request);
   if (user instanceof Response) return user;
-  const body = stepUpSchema.safeParse(await readJson(request));
-  if (!body.success) return json({ error: "reauth_required" }, 400);
-  if (!(await requirePassword(user, body.data.authKey))) {
-    return json({ error: "invalid_credentials" }, 401);
+  const session = await readSession(request);
+  if (!session) return json({ error: "unauthorized" }, 401);
+  const body = deleteSchema.safeParse(await readJson(request));
+  if (!body.success) return json({ error: "invalid" }, 400);
+  const kv = getStores().kv;
+  const method = session.method ?? "password";
+  const phase = body.data.phase ?? (body.data.otpId || body.data.authKey ? "confirm" : "start");
+
+  if (method === "password") {
+    if (phase === "start") return json({ method });
+    if (!body.data.authKey || !(await requirePassword(user, body.data.authKey))) return json({ error: "invalid_credentials" }, 401);
+    return wipeAccount(request, user);
   }
-  const phase = body.data.phase ?? (body.data.otpId && body.data.code ? "confirm" : "start");
+
+  if (method === "google") {
+    const grantRaw = await kv.get(deleteGrantKey(session.id));
+    const grant = grantRaw ? (JSON.parse(grantRaw) as { nick: string; exp: number }) : null;
+    const ok = Boolean(grant && grant.nick === user.nick && grant.exp > Date.now());
+    if (phase === "start") return json({ method, ready: ok, start: "/api/auth/google/start?purpose=delete" });
+    if (!ok) return json({ error: "reauth_required" }, 401);
+    await kv.delete(deleteGrantKey(session.id));
+    return wipeAccount(request, user);
+  }
+
+  // telegram
+  const pointerRaw = await kv.get(deletePendingKey(user.nick));
+  const pointer = pointerRaw ? (JSON.parse(pointerRaw) as { otpId: string; at: number }) : null;
   if (phase === "start") {
+    if (pointer && Date.now() - pointer.at < DELETE_RESEND_MS) {
+      return json({ method, error: "rate_limited", retryAfterMs: DELETE_RESEND_MS - (Date.now() - pointer.at), otpId: pointer.otpId }, 429);
+    }
     const stored = verifiedOtpDest(user);
-    if (!stored) return json({ error: "no_otp_dest" }, 400);
-    const issued = await issueOtp(request, {
-      nick: user.nick,
-      purpose: "delete",
-      channel: stored.channel,
-      dest: stored.dest,
-      lang: body.data.lang,
-    });
+    if (!stored) return json({ method, error: "no_otp_dest" }, 400);
+    const issued = await issueOtp(request, { nick: user.nick, purpose: "delete", channel: stored.channel, dest: stored.dest, lang: body.data.lang });
     if (issued instanceof Response) return issued;
+    if (pointer) await kv.delete(otpKey(pointer.otpId)); // the previous delete code stops working
     const pending: PendingStepUp = { kind: "delete", nick: user.nick, otp: issued.otp, authOk: true };
-    await getStores().kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+    await kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+    await kv.put(deletePendingKey(user.nick), JSON.stringify({ otpId: issued.otpId, at: Date.now() }), otpPutTtl());
     const test = isTestMode() ? { testOtp: issued.code } : {};
-    return json({ otpId: issued.otpId, channel: stored.channel, ...test });
+    return json({ method, otpId: issued.otpId, channel: stored.channel, resendInMs: DELETE_RESEND_MS, ...test });
   }
-  if (!body.data.otpId || !body.data.code) return json({ error: "reauth_required" }, 400);
-  const raw = await getStores().kv.get(otpKey(body.data.otpId));
+  if (!body.data.otpId || !body.data.code) return json({ error: "invalid_code" }, 400);
+  if (!pointer || pointer.otpId !== body.data.otpId) return json({ error: "invalid_code" }, 401);
+  const raw = await kv.get(otpKey(body.data.otpId));
   if (!raw) return json({ error: "invalid_code" }, 401);
   const pending = JSON.parse(raw) as PendingStepUp;
-  if (pending.kind !== "delete" || pending.nick !== user.nick) return json({ error: "invalid_code" }, 401);
+  if (pending.kind !== "delete" || pending.otp?.purpose !== "delete" || pending.nick !== user.nick || pending.otp.nick !== user.nick) {
+    return json({ error: "invalid_code" }, 401);
+  }
   if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
-    await getStores().kv.delete(otpKey(body.data.otpId));
+    await kv.delete(otpKey(body.data.otpId));
+    await kv.delete(deletePendingKey(user.nick));
     return json({ error: "too_many_attempts" }, 429);
   }
   if (!otpMatches(body.data.code, pending.otp)) {
     pending.otp.attempts += 1;
-    await getStores().kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
+    await kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
     return json({ error: "invalid_code" }, 401);
   }
-  await getStores().kv.delete(otpKey(body.data.otpId));
+  await kv.delete(otpKey(body.data.otpId));
+  await kv.delete(deletePendingKey(user.nick));
   return wipeAccount(request, user);
+}
+
+/* ---------- «Войти через Google» ---------- */
+
+const GOOGLE_STATE_COOKIE = "amr_gs";
+function redirect(location: string, cookies: string[] = []): Response {
+  const h = new Headers({ Location: location, "Cache-Control": "private, no-store" });
+  for (const c of cookies) h.append("Set-Cookie", c);
+  return new Response(null, { status: 302, headers: h });
+}
+function stateCookie(value: string, maxAge: number): string {
+  const secure = process.env.VERCEL || process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${GOOGLE_STATE_COOKIE}=${value}; Path=/api/auth/google; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+}
+
+/** GET /api/auth/google/start?purpose=login|link|delete → Google. link and delete need the current session. */
+export async function handleGoogleStart(request: Request): Promise<Response> {
+  const cfg = googleConfig();
+  if (!cfg) return redirect("/?google=off");
+  const raw = new URL(request.url).searchParams.get("purpose");
+  const purpose: GooglePurpose = raw === "link" || raw === "delete" ? raw : "login";
+  const st: Omit<GoogleState, "verifier" | "nonce" | "exp"> = { purpose };
+  if (purpose !== "login") {
+    const s = await readSession(request);
+    if (!s) return redirect("/?google=signin_first");
+    st.sessionId = s.id;
+    st.nick = s.nick;
+  }
+  const hit = await limits.login.take(`google:${clientIp(request)}`);
+  if (!hit.ok) return redirect("/?google=rate_limited");
+  const g = newGoogleRequest(purpose, cfg.clientId);
+  const rec: GoogleState = { ...st, verifier: g.verifier, nonce: g.nonce, exp: Date.now() + GOOGLE_STATE_TTL_SEC * 1000 };
+  await getStores().kv.put(googleStateKey(g.state), JSON.stringify(rec), { expirationTtl: GOOGLE_STATE_TTL_SEC });
+  return redirect(g.url, [stateCookie(g.state, GOOGLE_STATE_TTL_SEC)]);
+}
+
+/** GET /api/auth/google/callback — exactly https://self.amrsys.net/api/auth/google/callback. */
+export async function handleGoogleCallback(request: Request, fetchImpl: typeof fetch = fetch): Promise<Response> {
+  const clear = stateCookie("", 0);
+  const back = (q: string, extra: string[] = []) => redirect(`/?google=${q}`, [clear, ...extra]);
+  const cfg = googleConfig();
+  if (!cfg) return back("off");
+  const url = new URL(request.url);
+  const state = url.searchParams.get("state") ?? "";
+  const code = url.searchParams.get("code") ?? "";
+  const cookieState = (request.headers.get("cookie") ?? "").split(";").map((c) => c.trim()).find((c) => c.startsWith(`${GOOGLE_STATE_COOKIE}=`))?.slice(GOOGLE_STATE_COOKIE.length + 1) ?? "";
+  if (!state || !code || !/^[A-Za-z0-9_-]{20,64}$/.test(state) || state !== cookieState) return back("failed");
+  const kv = getStores().kv;
+  const raw = await kv.get(googleStateKey(state));
+  await kv.delete(googleStateKey(state)); // one-time
+  if (!raw) return back("failed");
+  const st = JSON.parse(raw) as GoogleState;
+  if (st.exp < Date.now()) return back("failed");
+  const idToken = await exchangeGoogleCode(code, st.verifier, cfg, fetchImpl).catch(() => null);
+  if (!idToken) return back("failed");
+  const claims = await verifyGoogleIdToken(idToken, { clientId: cfg.clientId, nonce: st.nonce, fetchImpl });
+  if (!claims) return back("failed");
+  const linkedNick = await kv.get(googleSubKey(claims.sub));
+
+  if (st.purpose === "login") {
+    if (!linkedNick) return back("not_linked");
+    const userRaw = await kv.get(nickKey(linkedNick));
+    if (!userRaw) return back("not_linked");
+    await destroySession(request);
+    const { cookie } = await createSession(linkedNick, "google");
+    return back("ok", [cookie]);
+  }
+
+  // link / delete: only for the session that started it
+  const s = await readSession(request);
+  if (!s || s.id !== st.sessionId || s.nick !== st.nick) return back("signin_first");
+  const userRaw = await kv.get(nickKey(s.nick));
+  if (!userRaw) return back("failed");
+  const user = JSON.parse(userRaw) as UserRecord;
+
+  if (st.purpose === "link") {
+    if (linkedNick && linkedNick !== user.nick) return back("taken");
+    if (user.google?.sub && user.google.sub !== claims.sub) await kv.delete(googleSubKey(user.google.sub));
+    user.google = { sub: claims.sub, email: claims.email, linkedAt: new Date().toISOString() };
+    await kv.put(nickKey(user.nick), JSON.stringify(user));
+    await kv.put(googleSubKey(claims.sub), user.nick);
+    return back("linked");
+  }
+
+  // delete: the same Google account, signed in at Google just now
+  const now = Math.floor(Date.now() / 1000);
+  if (user.google?.sub !== claims.sub) return back("wrong_account");
+  if (!claims.authTime || now - claims.authTime > GOOGLE_FRESH_SEC) return back("not_fresh");
+  await kv.put(deleteGrantKey(s.id), JSON.stringify({ nick: user.nick, exp: Date.now() + GOOGLE_FRESH_SEC * 1000 }), { expirationTtl: GOOGLE_FRESH_SEC });
+  return redirect("/?delete=google", [clear]);
 }
 
 function maskDest(dest: string): string {
@@ -1057,6 +1196,8 @@ export async function handleChangeNick(request: Request): Promise<Response> {
   if (!(await claimNick(next, JSON.stringify(user)))) {
     return json({ error: "nick_taken" }, 409);
   }
+  if (user.google?.sub) await stores.kv.put(googleSubKey(user.google.sub), next);
+
   const version = await readDataVersion(stores.kv, oldNick);
   if (version > 0) {
     await stores.kv.put(dataVersionKey(next), String(version));
@@ -1204,7 +1345,7 @@ export async function handleTelegramLink(request: Request): Promise<Response> {
     });
     await getStores().kv.delete(otpKey(rec.pendingOtpId));
     await destroySession(request); // a new sign-in never keeps the previous account's session on this device
-    const { cookie } = await createSession(user.nick);
+    const { cookie } = await createSession(user.nick, "telegram");
     return jsonWithCookie({ status: "linked", ...sessionPayload(user) }, cookie);
   }
   return json({ status: "linked", nick: rec.nick });
