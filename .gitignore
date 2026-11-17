@@ -12,6 +12,6 @@ dist
 .DS_Store
 
 
-# Draft legal texts from IDENTITY/SECURITY — do not publish until approved.
-legal/
+# Privacy policy source is in legal/; the site page is public/privacy.html.
+# Do not merge until SECURITY review and Murad's «выкатывай».
 

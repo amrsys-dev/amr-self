@@ -21,6 +21,7 @@ import {
 import { loadLocalData, saveLocalData, startSyncLoop, wipeLocalData } from "@/lib/data/sync.ts";
 import { loadGuestData, recallDataKey, rememberDataKey, requestPersistentStorage, saveGuestData, wipeDeviceStore } from "@/lib/data/device-store.ts";
 import { backupFileName, buildBackup, parseBackup } from "@/lib/data/backup.ts";
+import { stripHealthWithoutConsent } from "@/lib/health/consent.ts";
 import type { UserData } from "@/lib/data/schema.ts";
 import { checkPassword } from "@/lib/password-policy.ts";
 import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
@@ -889,6 +890,8 @@ export function useIdApp() {
       setBackupMsg(parsed.reason === "newer_version" ? "backup_newer" : "backup_bad_file");
       return;
     }
+    // Same rule as sync: no health entries without consent (parseBackup already strips them).
+    const restored = stripHealthWithoutConsent(parsed.data);
     if (session) {
       const key = dataKeyRef.current;
       if (!key) {
@@ -896,9 +899,9 @@ export function useIdApp() {
         return;
       }
       // Marked dirty, so the sync loop uploads it on the next tick.
-      await saveLocalData(key, accountIdOf(session), parsed.data);
+      await saveLocalData(key, accountIdOf(session), restored);
     } else {
-      await saveGuestData(parsed.data);
+      await saveGuestData(restored);
     }
     setKeyVersion((v) => v + 1); // reload the workspace with the restored data
     setBackupMsg("backup_restored");

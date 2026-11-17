@@ -1,3 +1,4 @@
+import { clearHealthEntries, mergeHealthConsent, stripLiveHealth } from "../health/consent.ts";
 import { emptyUserData, type DataRecord, type SalaryRecord, type UserData } from "./schema.ts";
 
 function isRecord<T extends DataRecord>(x: unknown): x is T {
@@ -34,6 +35,13 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
   const rh = r.health ?? empty.health!;
   const lc = l.car ?? empty.car!;
   const rc = r.car ?? empty.car!;
+  const healthConsent = mergeHealthConsent(l.healthConsent, r.healthConsent);
+  const health = {
+    water: mergeRecordList(lh.water ?? [], rh.water ?? []),
+    weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
+    nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
+    workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
+  };
   return {
     v: 1,
     finance: {
@@ -49,16 +57,42 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
     diary: { items: mergeRecordList(l.diary?.items ?? [], r.diary?.items ?? []) },
     sport: { sessions: mergeRecordList(l.sport?.sessions ?? [], r.sport?.sessions ?? []) },
     plans: { items: mergeRecordList(l.plans?.items ?? [], r.plans?.items ?? []) },
-    health: {
-      water: mergeRecordList(lh.water ?? [], rh.water ?? []),
-      weight: mergeRecordList(lh.weight ?? [], rh.weight ?? []),
-      nutrition: mergeRecordList(lh.nutrition ?? [], rh.nutrition ?? []),
-      workouts: mergeRecordList(lh.workouts ?? [], rh.workouts ?? []),
-    },
+    // Consent withdrawn on any device (and newer than any grant): nothing in Health may survive the merge.
+    health: healthConsent && !healthConsent.granted ? clearHealthEntries(health, healthConsent.at) : health,
+    ...(healthConsent ? { healthConsent } : {}),
     car: {
       vehicles: mergeRecordList(lc.vehicles ?? [], rc.vehicles ?? []),
       items: mergeRecordList(lc.items ?? [], rc.items ?? []),
       log: mergeRecordList(lc.log ?? [], rc.log ?? []),
     },
   };
+}
+
+/**
+ * What a device may take from a server copy. With consent (the newer decision
+ * of this device and the server is «Разрешить») the server copy is used as is.
+ * Without it, no health entry comes from the server: only deletion markers and
+ * the server's consent/withdrawal decision do. The device keeps only the health
+ * entries it already had.
+ */
+export function healthSafeRemote(remote: UserData, local: UserData | null): UserData {
+  const consent = mergeHealthConsent(local?.healthConsent, remote.healthConsent);
+  if (consent?.granted) return remote;
+  return stripLiveHealth(remote);
+}
+
+/** Pull: the server copy for everything, health per healthSafeRemote, plus this device's own health. */
+export function keepDeviceOnlyHealth(remote: UserData, local: UserData | null): UserData {
+  const consent = mergeHealthConsent(local?.healthConsent, remote.healthConsent);
+  if (consent?.granted) return consent === remote.healthConsent ? remote : { ...remote, healthConsent: consent };
+  const both = mergeUserData(stripLiveHealth(remote), local ?? { ...emptyUserData(), health: undefined });
+  const out: UserData = { ...remote, health: both.health };
+  if (consent) out.healthConsent = consent;
+  else delete out.healthConsent;
+  return out;
+}
+
+/** Push conflict (409): merge this device's file with the server copy without taking health from it. */
+export function mergeRemoteConflict(local: UserData, remote: UserData): UserData {
+  return mergeUserData(local, healthSafeRemote(remote, local));
 }

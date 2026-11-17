@@ -1,6 +1,7 @@
 /** Personal data model. Sensitive user data is encrypted before it leaves the device. */
 import type { CarProfile, MaintenanceItem, ServiceEntry } from "../car/maintenance.ts";
 import type { BillRecord } from "../finance/categories.ts";
+import type { HealthConsent } from "../health/consent.ts";
 
 export type DataRecord = {
   id: string;
@@ -60,6 +61,12 @@ export type UserData = {
     nutrition: HealthEntry[];
     workouts: HealthEntry[];
   };
+  /**
+   * Explicit consent for the Health section (PDPL sensitive data), with its date.
+   * Optional: older data has none, which means "not asked yet". Health entries
+   * can be added only while `granted` is true.
+   */
+  healthConsent?: HealthConsent;
   /** Car upkeep by odometer. Optional: older data has none. */
   car?: {
     vehicles: CarProfile[];

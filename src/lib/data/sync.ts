@@ -1,6 +1,7 @@
 import { compressAndEncrypt, decryptAndDecompress, type EncryptedBlob } from "../crypto.ts";
 import { api } from "../client.ts";
-import { mergeUserData } from "./merge.ts";
+import { needsHealthCleanup, stripHealthWithoutConsent } from "../health/consent.ts";
+import { keepDeviceOnlyHealth, mergeRemoteConflict } from "./merge.ts";
 import { emptyUserData, type UserData } from "./schema.ts";
 
 const DB = "amrid";
@@ -143,8 +144,21 @@ export async function pullRemote(dataKey: Uint8Array, accountId: string): Promis
     }
     if (!res.data.blob) return loadLocalData(dataKey, accountId);
     const parsed = decodeBlob(res.data.blob);
-    const data = (await decryptAndDecompress(dataKey, parsed, { accountId, version: res.data.version })) as UserData;
-    await writeRecord({ blob: parsed, version: res.data.version, dirty: false, accountId });
+    const remote = (await decryptAndDecompress(dataKey, parsed, { accountId, version: res.data.version })) as UserData;
+    let localData: UserData | null = null;
+    if (local?.accountId === accountId) {
+      try { localData = (await decryptAndDecompress(dataKey, local.blob, { accountId, version: local.version })) as UserData; } catch { localData = null; }
+    }
+    const data = keepDeviceOnlyHealth(remote, localData);
+    if (needsHealthCleanup(remote, data)) {
+      // The server copy still has health entries from before consent existed:
+      // mark the local copy dirty so the next sync replaces it with a stripped one.
+      const version = res.data.version + 1;
+      await writeRecord({ blob: await compressAndEncrypt(dataKey, data, { accountId, version }), version, dirty: true, accountId });
+      return data;
+    }
+    const blob = data === remote ? parsed : await compressAndEncrypt(dataKey, data, { accountId, version: res.data.version });
+    await writeRecord({ blob, version: res.data.version, dirty: false, accountId });
     return data;
   });
 }
@@ -160,14 +174,19 @@ export async function pushRemote(dataKey: Uint8Array, accountId: string, data: U
     let base = await loadLocalVersion(accountId);
     for (let attempt = 0; attempt < 4; attempt++) {
       const nextVersion = base + 1;
-      const encBlob = await compressAndEncrypt(dataKey, data, { accountId, version: nextVersion });
+      // Without consent, health entries are left out of what goes to the server.
+      const upload = stripHealthWithoutConsent(data);
+      const encBlob = await compressAndEncrypt(dataKey, upload, { accountId, version: nextVersion });
       const res = await api<{ ok?: boolean; version?: number; blob?: string | null; error?: string }>("/api/me/data", {
         method: "PUT",
         headers: { "If-Match": String(base), "Content-Type": "application/json" },
         body: JSON.stringify({ blob: encodeBlob(encBlob), version: base }),
       });
       if (res.ok) {
-        await writeRecord({ blob: encBlob, version: res.data.version ?? nextVersion, dirty: false, accountId });
+        const version = res.data.version ?? nextVersion;
+        // The local copy keeps device-only health entries; the server copy does not.
+        const localBlob = upload === data && version === nextVersion ? encBlob : await compressAndEncrypt(dataKey, data, { accountId, version });
+        await writeRecord({ blob: localBlob, version, dirty: false, accountId });
         return;
       }
       if (res.status !== 409 || res.data.blob == null || res.data.version == null) {
@@ -177,7 +196,8 @@ export async function pushRemote(dataKey: Uint8Array, accountId: string, data: U
         accountId,
         version: res.data.version,
       })) as UserData;
-      data = mergeUserData(data, remote);
+      // Never take health entries from the server without consent.
+      data = mergeRemoteConflict(data, remote);
       base = res.data.version;
       const mergedBlob = await compressAndEncrypt(dataKey, data, { accountId, version: base + 1 });
       await writeRecord({ blob: mergedBlob, version: base + 1, dirty: true, accountId });
