@@ -27,6 +27,7 @@ import { Route as ApiConnectTokenRouteImport } from './routes/api/connect/token'
 import { Route as ApiMeIndexRouteImport } from './routes/api/me/index'
 import { Route as ApiMeDataRouteImport } from './routes/api/me/data'
 import { Route as ApiMeDeleteRouteImport } from './routes/api/me/delete'
+import { Route as ApiMeGoogleRouteImport } from './routes/api/me/google'
 import { Route as ApiMeNickRouteImport } from './routes/api/me/nick'
 import { Route as ApiMeOtpChannelRouteImport } from './routes/api/me/otp-channel'
 import { Route as ApiMePhotoRouteImport } from './routes/api/me/photo'
@@ -128,6 +129,11 @@ const ApiMeDeleteRoute = ApiMeDeleteRouteImport.update({
   path: '/api/me/delete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeGoogleRoute = ApiMeGoogleRouteImport.update({
+  id: '/api/me/google',
+  path: '/api/me/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeNickRoute = ApiMeNickRouteImport.update({
   id: '/api/me/nick',
   path: '/api/me/nick',
@@ -197,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/api/connect/token': typeof ApiConnectTokenRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/google': typeof ApiMeGoogleRoute
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/api/connect/token': typeof ApiConnectTokenRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/google': typeof ApiMeGoogleRoute
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
@@ -258,6 +266,7 @@ export interface FileRoutesById {
   '/api/connect/token': typeof ApiConnectTokenRoute
   '/api/me/data': typeof ApiMeDataRoute
   '/api/me/delete': typeof ApiMeDeleteRoute
+  '/api/me/google': typeof ApiMeGoogleRoute
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/connect/token'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/google'
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/api/connect/token'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/google'
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/api/connect/token'
     | '/api/me/data'
     | '/api/me/delete'
+    | '/api/me/google'
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   ApiConnectTokenRoute: typeof ApiConnectTokenRoute
   ApiMeDataRoute: typeof ApiMeDataRoute
   ApiMeDeleteRoute: typeof ApiMeDeleteRoute
+  ApiMeGoogleRoute: typeof ApiMeGoogleRoute
   ApiMeNickRoute: typeof ApiMeNickRoute
   ApiMeOtpChannelRoute: typeof ApiMeOtpChannelRoute
   ApiMePhotoRoute: typeof ApiMePhotoRoute
@@ -522,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMeDeleteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/google': {
+      id: '/api/me/google'
+      path: '/api/me/google'
+      fullPath: '/api/me/google'
+      preLoaderRoute: typeof ApiMeGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/nick': {
       id: '/api/me/nick'
       path: '/api/me/nick'
@@ -613,6 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiConnectTokenRoute: ApiConnectTokenRoute,
   ApiMeDataRoute: ApiMeDataRoute,
   ApiMeDeleteRoute: ApiMeDeleteRoute,
+  ApiMeGoogleRoute: ApiMeGoogleRoute,
   ApiMeNickRoute: ApiMeNickRoute,
   ApiMeOtpChannelRoute: ApiMeOtpChannelRoute,
   ApiMePhotoRoute: ApiMePhotoRoute,

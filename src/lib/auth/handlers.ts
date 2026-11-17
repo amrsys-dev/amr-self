@@ -17,7 +17,7 @@ import { getStores } from "../storage/index.ts";
 import { isTelegramUserId, telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
 import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, sessionKey, sessionsOfKey, type OtpChannel, type UserRecord } from "../user.ts";
 import { generateOtpDigits, hashOtp, otpMatches, OTP_MAX_ATTEMPTS, OTP_TTL_MS, type OtpRecord } from "./otp.ts";
-import { sendOtp } from "./otp-providers.ts";
+import { sendNotice, sendOtp } from "./otp-providers.ts";
 import {
   hashLinkToken,
   newLinkToken,
@@ -29,7 +29,7 @@ import {
   type TelegramLinkRecord,
 } from "./telegram-link.ts";
 import { dummyVerifyAuthKey, hashAuthKey, verifyAuthKey } from "./password.ts";
-import { createSession, destroySession, readSession, requireUser, revokeAllSessions } from "./session.ts";
+import { createSession, destroySession, readSession, requireUser, revokeAllSessions, type SignInMethod } from "./session.ts";
 import { GOOGLE_FRESH_SEC, GOOGLE_STATE_TTL_SEC, exchangeGoogleCode, googleConfig, googleStateKey, googleSubKey, newGoogleRequest, verifyGoogleIdToken, type GooglePurpose, type GoogleState } from "./google.ts";
 
 const kdfSchema = z.object({
@@ -111,6 +111,8 @@ type PendingLogin = {
   kind: "login";
   nick: string;
   otp: OtpRecord;
+  /** "google": Google sign-in, finished with the Telegram code (2FA is never skipped). */
+  method?: SignInMethod;
 };
 
 function fmt() {
@@ -535,6 +537,9 @@ export async function handleOtp(request: Request): Promise<Response> {
   const raw = await getStores().kv.get(otpKey(body.data.otpId));
   if (!raw) return json({ error: "invalid_code" }, 401);
   const pending = JSON.parse(raw) as PendingSignup | PendingLogin;
+  // Only sign-up and sign-in codes open a session here; delete / link / channel codes never do.
+  if (pending.kind !== "signup" && pending.kind !== "login") return json({ error: "invalid_code" }, 401);
+  if (pending.otp && pending.otp.purpose !== pending.kind) return json({ error: "invalid_code" }, 401);
   if (!pending.otp) return json({ error: "telegram_link_required" }, 409);
   if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
     await getStores().kv.delete(otpKey(body.data.otpId));
@@ -567,8 +572,9 @@ export async function handleOtp(request: Request): Promise<Response> {
   }
   await getStores().kv.delete(otpKey(body.data.otpId));
   await destroySession(request); // a new sign-in never keeps the previous account's session on this device
-  const { cookie } = await createSession(user.nick, "telegram");
-  return jsonWithCookie(sessionPayload(user), cookie);
+  const method: SignInMethod = pending.kind === "login" && pending.method === "google" ? "google" : "telegram";
+  const { cookie } = await createSession(user.nick, method);
+  return jsonWithCookie({ ...sessionPayload(user), method }, cookie);
 }
 
 export async function handleLogout(request: Request): Promise<Response> {
@@ -631,6 +637,7 @@ export async function handleRecovery(request: Request): Promise<Response> {
   user.passwordHash = await hashAuthKey(newAuth);
   user.wrapPassword = body.data.wrapPassword as WrappedKey;
   user.kdf = { password: body.data.kdfPassword, recovery: replacement.kdfs[0] ?? user.kdf.recovery };
+  await dropGoogle(user); // recovery = someone may have had access: unlink Google too
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
   await revokeAllSessions(user.nick);
   await destroySession(request); // a new sign-in never keeps the previous account's session on this device
@@ -717,6 +724,7 @@ async function handleRebind(
   );
   if (pending.channel === "telegram") user.otp.telegram = telegramFromUserInput(pending.dest, true);
   else user.otp.email = { address: pending.dest, verified: true };
+  await dropGoogle(user); // new 2FA channel after recovery: unlink Google too
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
   await getStores().kv.delete(otpKey(data.otpId));
   await revokeAllSessions(user.nick);
@@ -893,7 +901,7 @@ const stepUpSchema = z.object({
 });
 
 type PendingStepUp = {
-  kind: "delete" | "otp-channel";
+  kind: "delete" | "otp-channel" | "google-link";
   nick: string;
   otp: import("./otp.ts").OtpRecord;
   contactId?: string;
@@ -932,17 +940,67 @@ const deleteSchema = z.object({
   lang: z.string().max(8).optional(),
 });
 
-/** One active delete code per account; a new one may be sent after this pause. */
+/** One active step-up code per account and purpose; a new one may be sent after this pause. */
 export const DELETE_RESEND_MS = 60_000;
-const deletePendingKey = (nick: string) => `delpending:${nick.toLowerCase()}`;
+export const STEP_RESEND_MS = DELETE_RESEND_MS;
+type StepPurpose = "delete" | "google-link";
+const stepPendingKey = (purpose: StepPurpose, nick: string) => `${purpose === "delete" ? "delpending" : "glpending"}:${nick.toLowerCase()}`;
 const deleteGrantKey = (sessionId: string) => `delgrant:${sessionId}`;
+const googleLinkGrantKey = (sessionId: string) => `glgrant:${sessionId}`;
+
+/** Send a fresh Telegram code for a step-up action (60 s resend, server rate limit, old code killed, bound to the nick). */
+async function stepCodeStart(request: Request, user: UserRecord, purpose: StepPurpose, lang?: string): Promise<Response> {
+  const kv = getStores().kv;
+  const pointerRaw = await kv.get(stepPendingKey(purpose, user.nick));
+  const pointer = pointerRaw ? (JSON.parse(pointerRaw) as { otpId: string; at: number }) : null;
+  if (pointer && Date.now() - pointer.at < STEP_RESEND_MS) {
+    return json({ proof: "telegram", error: "rate_limited", retryAfterMs: STEP_RESEND_MS - (Date.now() - pointer.at), otpId: pointer.otpId }, 429);
+  }
+  const stored = verifiedOtpDest(user);
+  if (!stored) return json({ proof: "password", error: "no_otp_dest" }, 400);
+  const issued = await issueOtp(request, { nick: user.nick, purpose, channel: stored.channel, dest: stored.dest, lang });
+  if (issued instanceof Response) return issued;
+  if (pointer) await kv.delete(otpKey(pointer.otpId)); // the previous code stops working
+  const pending: PendingStepUp = { kind: purpose, nick: user.nick, otp: issued.otp, authOk: true };
+  await kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+  await kv.put(stepPendingKey(purpose, user.nick), JSON.stringify({ otpId: issued.otpId, at: Date.now() }), otpPutTtl());
+  const test = isTestMode() ? { testOtp: issued.code } : {};
+  return json({ proof: "telegram", otpId: issued.otpId, channel: stored.channel, resendInMs: STEP_RESEND_MS, ...test });
+}
+
+/** Check a step-up code; null = ok (code spent). Only a code of this purpose for this nick passes. */
+async function stepCodeConfirm(user: UserRecord, purpose: StepPurpose, otpId?: string, code?: string): Promise<Response | null> {
+  const kv = getStores().kv;
+  if (!otpId || !code) return json({ error: "invalid_code" }, 400);
+  const pointerRaw = await kv.get(stepPendingKey(purpose, user.nick));
+  const pointer = pointerRaw ? (JSON.parse(pointerRaw) as { otpId: string; at: number }) : null;
+  if (!pointer || pointer.otpId !== otpId) return json({ error: "invalid_code" }, 401);
+  const raw = await kv.get(otpKey(otpId));
+  if (!raw) return json({ error: "invalid_code" }, 401);
+  const pending = JSON.parse(raw) as PendingStepUp;
+  if (pending.kind !== purpose || pending.otp?.purpose !== purpose || pending.nick !== user.nick || pending.otp.nick !== user.nick) {
+    return json({ error: "invalid_code" }, 401);
+  }
+  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
+    await kv.delete(otpKey(otpId));
+    await kv.delete(stepPendingKey(purpose, user.nick));
+    return json({ error: "too_many_attempts" }, 429);
+  }
+  if (!otpMatches(code, pending.otp)) {
+    pending.otp.attempts += 1;
+    await kv.put(otpKey(otpId), JSON.stringify(pending), otpPutTtl());
+    return json({ error: "invalid_code" }, 401);
+  }
+  await kv.delete(otpKey(otpId));
+  await kv.delete(stepPendingKey(purpose, user.nick));
+  return null;
+}
 
 /**
  * «Удалить аккаунт» in ONE step, with the method this session signed in with (Murad, 17.11.2026). No word lists, no chains.
  * - telegram: a fresh code from the bot (purpose=delete, bound to this account; a new one every 60 s replaces the old one).
  * - password (AMR account): the current password.
- * - google: a fresh sign-in at Google (prompt=login, max_age=0, auth_time ≤ 5 min) done via /api/auth/google/start?purpose=delete.
- * start tells the client which one and, for Telegram, sends the code. confirm deletes.
+ * - google: a fresh sign-in at Google (prompt=login, max_age=0, auth_time ≤ 5 min) started with POST /api/auth/google/start.
  */
 export async function handleDeleteMe(request: Request): Promise<Response> {
   const user = await requireUser(request);
@@ -965,83 +1023,155 @@ export async function handleDeleteMe(request: Request): Promise<Response> {
     const grantRaw = await kv.get(deleteGrantKey(session.id));
     const grant = grantRaw ? (JSON.parse(grantRaw) as { nick: string; exp: number }) : null;
     const ok = Boolean(grant && grant.nick === user.nick && grant.exp > Date.now());
-    if (phase === "start") return json({ method, ready: ok, start: "/api/auth/google/start?purpose=delete" });
+    if (phase === "start") return json({ method, ready: ok });
     if (!ok) return json({ error: "reauth_required" }, 401);
     await kv.delete(deleteGrantKey(session.id));
     return wipeAccount(request, user);
   }
 
-  // telegram
-  const pointerRaw = await kv.get(deletePendingKey(user.nick));
-  const pointer = pointerRaw ? (JSON.parse(pointerRaw) as { otpId: string; at: number }) : null;
   if (phase === "start") {
-    if (pointer && Date.now() - pointer.at < DELETE_RESEND_MS) {
-      return json({ method, error: "rate_limited", retryAfterMs: DELETE_RESEND_MS - (Date.now() - pointer.at), otpId: pointer.otpId }, 429);
-    }
-    const stored = verifiedOtpDest(user);
-    if (!stored) return json({ method, error: "no_otp_dest" }, 400);
-    const issued = await issueOtp(request, { nick: user.nick, purpose: "delete", channel: stored.channel, dest: stored.dest, lang: body.data.lang });
-    if (issued instanceof Response) return issued;
-    if (pointer) await kv.delete(otpKey(pointer.otpId)); // the previous delete code stops working
-    const pending: PendingStepUp = { kind: "delete", nick: user.nick, otp: issued.otp, authOk: true };
-    await kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
-    await kv.put(deletePendingKey(user.nick), JSON.stringify({ otpId: issued.otpId, at: Date.now() }), otpPutTtl());
-    const test = isTestMode() ? { testOtp: issued.code } : {};
-    return json({ method, otpId: issued.otpId, channel: stored.channel, resendInMs: DELETE_RESEND_MS, ...test });
+    const r = await stepCodeStart(request, user, "delete", body.data.lang);
+    const data = (await r.json()) as Record<string, unknown>;
+    return json({ method, ...data }, r.status);
   }
-  if (!body.data.otpId || !body.data.code) return json({ error: "invalid_code" }, 400);
-  if (!pointer || pointer.otpId !== body.data.otpId) return json({ error: "invalid_code" }, 401);
-  const raw = await kv.get(otpKey(body.data.otpId));
-  if (!raw) return json({ error: "invalid_code" }, 401);
-  const pending = JSON.parse(raw) as PendingStepUp;
-  if (pending.kind !== "delete" || pending.otp?.purpose !== "delete" || pending.nick !== user.nick || pending.otp.nick !== user.nick) {
-    return json({ error: "invalid_code" }, 401);
-  }
-  if (pending.otp.attempts >= OTP_MAX_ATTEMPTS) {
-    await kv.delete(otpKey(body.data.otpId));
-    await kv.delete(deletePendingKey(user.nick));
-    return json({ error: "too_many_attempts" }, 429);
-  }
-  if (!otpMatches(body.data.code, pending.otp)) {
-    pending.otp.attempts += 1;
-    await kv.put(otpKey(body.data.otpId), JSON.stringify(pending), otpPutTtl());
-    return json({ error: "invalid_code" }, 401);
-  }
-  await kv.delete(otpKey(body.data.otpId));
-  await kv.delete(deletePendingKey(user.nick));
+  const bad = await stepCodeConfirm(user, "delete", body.data.otpId, body.data.code);
+  if (bad) return bad;
   return wipeAccount(request, user);
 }
 
 /* ---------- «Войти через Google» ---------- */
 
+const NOTICE: Record<"linked" | "unlinked", Record<string, string>> = {
+  linked: {
+    ru: "AMR ID: Google привязан к вашему нику. Если это не вы — войдите и отвяжите Google, смените пароль.",
+    ar: "AMR ID: تم ربط Google باسمك. إذا ما كنت أنت — ادخل وافصل Google وغيّر كلمة المرور.",
+    uz: "AMR ID: Google nikingizga ulandi. Bu siz bo‘lmasangiz — kirib Googleni uzing va parolni almashtiring.",
+    tj: "AMR ID: Google ба ники шумо пайваст шуд. Агар шумо набошед — ворид шуда Google-ро ҷудо кунед ва паролро иваз кунед.",
+    en: "AMR ID: Google was linked to your nick. Not you? Sign in, unlink Google and change your password.",
+  },
+  unlinked: {
+    ru: "AMR ID: Google отвязан от вашего ника.",
+    ar: "AMR ID: تم فصل Google عن اسمك.",
+    uz: "AMR ID: Google nikingizdan uzildi.",
+    tj: "AMR ID: Google аз ники шумо ҷудо шуд.",
+    en: "AMR ID: Google was unlinked from your nick.",
+  },
+};
+async function noticeGoogle(user: UserRecord, kind: "linked" | "unlinked", lang?: string): Promise<void> {
+  const dest = verifiedOtpDest(user);
+  if (!dest || dest.channel !== "telegram") return;
+  const texts = NOTICE[kind];
+  await sendNotice({ channel: dest.channel, to: dest.dest, text: texts[lang ?? "ru"] ?? texts.ru });
+}
+
+/** Remove Google from the account (record + index, index only if it still points here). */
+async function dropGoogle(user: UserRecord): Promise<boolean> {
+  const sub = user.google?.sub;
+  if (!sub) return false;
+  const kv = getStores().kv;
+  const owner = await kv.get(googleSubKey(sub));
+  if (owner && owner.toLowerCase() === user.nick.toLowerCase()) await kv.delete(googleSubKey(sub));
+  delete user.google;
+  return true;
+}
+
+const googleProofSchema = z.object({
+  action: z.enum(["link", "unlink"]),
+  phase: z.enum(["start", "confirm"]),
+  authKey: z.string().max(200).optional(),
+  otpId: z.string().min(8).max(64).optional(),
+  code: z.string().min(4).max(12).optional(),
+  lang: z.string().max(8).optional(),
+});
+
+/**
+ * POST /api/me/google — fresh proof before linking or unlinking Google:
+ * the current password, or a Telegram code with purpose=google-link (same 60 s / rate limit rules as delete).
+ * link → a 5-minute grant for this session; POST /api/auth/google/start?purpose=link then needs it.
+ * unlink → done here.
+ */
+export async function handleGoogleProof(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const session = await readSession(request);
+  if (!session) return json({ error: "unauthorized" }, 401);
+  const body = googleProofSchema.safeParse(await readJson(request));
+  if (!body.success) return json({ error: "invalid" }, 400);
+  const { action, phase } = body.data;
+  if (action === "link" && !googleConfig()) return json({ error: "google_off" }, 404);
+  if (action === "unlink" && !user.google) return json({ error: "not_linked" }, 400);
+  if (phase === "start") {
+    if (!verifiedOtpDest(user)) return json({ proof: "password" });
+    return stepCodeStart(request, user, "google-link", body.data.lang);
+  }
+  if (body.data.authKey) {
+    const hit = await limits.login.take(`gproof:${user.nick.toLowerCase()}`);
+    if (!hit.ok) return json({ error: "rate_limited" }, 429);
+    if (!(await requirePassword(user, body.data.authKey))) return json({ error: "invalid_credentials" }, 401);
+  } else {
+    const bad = await stepCodeConfirm(user, "google-link", body.data.otpId, body.data.code);
+    if (bad) return bad;
+  }
+  const kv = getStores().kv;
+  if (action === "unlink") {
+    await dropGoogle(user);
+    await kv.put(nickKey(user.nick), JSON.stringify(user));
+    await noticeGoogle(user, "unlinked", body.data.lang);
+    return json({ ok: true, googleLinked: false });
+  }
+  await kv.put(googleLinkGrantKey(session.id), JSON.stringify({ nick: user.nick, lang: body.data.lang, exp: Date.now() + 300_000 }), { expirationTtl: 300 });
+  return json({ ok: true, next: "google" });
+}
+
 const GOOGLE_STATE_COOKIE = "amr_gs";
 function redirect(location: string, cookies: string[] = []): Response {
   const h = new Headers({ Location: location, "Cache-Control": "private, no-store" });
   for (const c of cookies) h.append("Set-Cookie", c);
-  return new Response(null, { status: 302, headers: h });
+  return new Response(null, { status: 303, headers: h });
 }
 function stateCookie(value: string, maxAge: number): string {
   const secure = process.env.VERCEL || process.env.NODE_ENV === "production" ? "; Secure" : "";
   return `${GOOGLE_STATE_COOKIE}=${value}; Path=/api/auth/google; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
 }
+/** Same-site POST only: the Origin header must be this app. */
+function sameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+  return origin === new URL(request.url).origin || origin === "https://self.amrsys.net";
+}
 
-/** GET /api/auth/google/start?purpose=login|link|delete → Google. link and delete need the current session. */
+/** POST /api/auth/google/start (form: purpose=login|link|delete) → Google. link needs a fresh proof grant; delete needs the session. */
 export async function handleGoogleStart(request: Request): Promise<Response> {
+  if (request.method !== "POST") return redirect("/?google=failed");
+  if (!sameOrigin(request)) return redirect("/?google=failed");
   const cfg = googleConfig();
   if (!cfg) return redirect("/?google=off");
-  const raw = new URL(request.url).searchParams.get("purpose");
+  let raw = "";
+  try {
+    raw = String((await request.formData()).get("purpose") ?? "");
+  } catch {
+    raw = "";
+  }
   const purpose: GooglePurpose = raw === "link" || raw === "delete" ? raw : "login";
-  const st: Omit<GoogleState, "verifier" | "nonce" | "exp"> = { purpose };
+  const st: Omit<GoogleState, "verifier" | "nonce" | "exp"> & { lang?: string } = { purpose };
   if (purpose !== "login") {
     const s = await readSession(request);
     if (!s) return redirect("/?google=signin_first");
     st.sessionId = s.id;
     st.nick = s.nick;
+    if (purpose === "link") {
+      const kv = getStores().kv;
+      const grantRaw = await kv.get(googleLinkGrantKey(s.id));
+      const grant = grantRaw ? (JSON.parse(grantRaw) as { nick: string; lang?: string; exp: number }) : null;
+      if (!grant || grant.nick !== s.nick || grant.exp < Date.now()) return redirect("/?google=proof_required");
+      await kv.delete(googleLinkGrantKey(s.id));
+      st.lang = grant.lang;
+    }
   }
   const hit = await limits.login.take(`google:${clientIp(request)}`);
   if (!hit.ok) return redirect("/?google=rate_limited");
   const g = newGoogleRequest(purpose, cfg.clientId);
-  const rec: GoogleState = { ...st, verifier: g.verifier, nonce: g.nonce, exp: Date.now() + GOOGLE_STATE_TTL_SEC * 1000 };
+  const rec = { ...st, verifier: g.verifier, nonce: g.nonce, exp: Date.now() + GOOGLE_STATE_TTL_SEC * 1000 };
   await getStores().kv.put(googleStateKey(g.state), JSON.stringify(rec), { expirationTtl: GOOGLE_STATE_TTL_SEC });
   return redirect(g.url, [stateCookie(g.state, GOOGLE_STATE_TTL_SEC)]);
 }
@@ -1061,7 +1191,7 @@ export async function handleGoogleCallback(request: Request, fetchImpl: typeof f
   const raw = await kv.get(googleStateKey(state));
   await kv.delete(googleStateKey(state)); // one-time
   if (!raw) return back("failed");
-  const st = JSON.parse(raw) as GoogleState;
+  const st = JSON.parse(raw) as GoogleState & { lang?: string };
   if (st.exp < Date.now()) return back("failed");
   const idToken = await exchangeGoogleCode(code, st.verifier, cfg, fetchImpl).catch(() => null);
   if (!idToken) return back("failed");
@@ -1073,8 +1203,20 @@ export async function handleGoogleCallback(request: Request, fetchImpl: typeof f
     if (!linkedNick) return back("not_linked");
     const userRaw = await kv.get(nickKey(linkedNick));
     if (!userRaw) return back("not_linked");
+    const user = JSON.parse(userRaw) as UserRecord;
+    if (user.google?.sub !== claims.sub) return back("not_linked");
+    // Telegram 2FA is never skipped: with Telegram linked, Google only gets as far as the login code.
+    const dest = verifiedOtpDest(user);
+    if (dest) {
+      const issued = await issueOtp(request, { nick: user.nick, purpose: "login", channel: dest.channel, dest: dest.dest, lang: st.lang });
+      if (issued instanceof Response) return back("rate_limited");
+      const pending: PendingLogin = { kind: "login", nick: user.nick, otp: issued.otp, method: "google" };
+      await kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+      const test = isTestMode() ? `&t=${issued.code}` : "";
+      return redirect(`/#google-otp=${issued.otpId}${test}`, [clear]);
+    }
     await destroySession(request);
-    const { cookie } = await createSession(linkedNick, "google");
+    const { cookie } = await createSession(user.nick, "google");
     return back("ok", [cookie]);
   }
 
@@ -1086,11 +1228,16 @@ export async function handleGoogleCallback(request: Request, fetchImpl: typeof f
   const user = JSON.parse(userRaw) as UserRecord;
 
   if (st.purpose === "link") {
-    if (linkedNick && linkedNick !== user.nick) return back("taken");
-    if (user.google?.sub && user.google.sub !== claims.sub) await kv.delete(googleSubKey(user.google.sub));
-    user.google = { sub: claims.sub, email: claims.email, linkedAt: new Date().toISOString() };
+    if (linkedNick && linkedNick.toLowerCase() !== user.nick.toLowerCase()) return back("taken");
+    // Atomic: one Google = one nick, even with two links racing (Durable Object CAS like claimNick).
+    if (!linkedNick && !(await kv.compareAndSet(googleSubKey(claims.sub), null, user.nick))) return back("taken");
+    if (user.google?.sub && user.google.sub !== claims.sub) {
+      const owner = await kv.get(googleSubKey(user.google.sub));
+      if (owner && owner.toLowerCase() === user.nick.toLowerCase()) await kv.delete(googleSubKey(user.google.sub));
+    }
+    user.google = { sub: claims.sub, linkedAt: new Date().toISOString() }; // PDPL: only the Google id, no email
     await kv.put(nickKey(user.nick), JSON.stringify(user));
-    await kv.put(googleSubKey(claims.sub), user.nick);
+    await noticeGoogle(user, "linked", st.lang);
     return back("linked");
   }
 

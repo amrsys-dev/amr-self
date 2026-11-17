@@ -6,7 +6,7 @@ import type { App } from "./use-id-app.ts";
 
 /** Nick change, 2FA channel change, account deletion, 2FA rebind. */
 export function SecurityScreens({ app }: { app: App }) {
-  const { t, screen, setScreen, session, err, busy, testOtp, nick, setNick, password, setPassword, otpId, code, setCode, recovery, setRecovery, reauthPassword, setReauthPassword, newNick, setNewNick, newNickStatus, rebindDest, setRebindDest, checkNickStatus, submitNickChange, submitChannelChange, submitDeleteAccount, submitRebind, sendDeleteCode, deleteResendAt, deleteMethod, deleteGoogleReady } = app;
+  const { t, screen, setScreen, session, err, busy, testOtp, nick, setNick, password, setPassword, otpId, code, setCode, recovery, setRecovery, reauthPassword, setReauthPassword, newNick, setNewNick, newNickStatus, rebindDest, setRebindDest, checkNickStatus, submitNickChange, submitChannelChange, submitDeleteAccount, submitRebind, sendDeleteCode, deleteResendAt, deleteMethod, deleteGoogleReady, googleAction, googleProof, googleResendAt, sendGoogleCode, submitGoogleLink } = app;
   return (
     <>
     {session && screen === "nick-change" && (
@@ -134,6 +134,39 @@ export function SecurityScreens({ app }: { app: App }) {
             <button className="btn g" type="button" onClick={() => setScreen("profile")}>{t("cancel")}</button>
             <button className={`btn bad ${busy ? "off" : ""}`} type="button" onClick={() => void submitDeleteAccount()}>
               {deleteMethod === "google" && !deleteGoogleReady ? t("delete_google_btn") : t("delete_action")}
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+
+    {session && screen === "google-link" && (
+      <>
+        <Header title={googleAction === "link" ? t("google_link") : t("google_unlink")} onBack={() => setScreen("profile")} />
+        <div className="page auth center-copy">
+          <p className="sub">{googleAction === "link" ? t("google_link_hint") : t("google_unlink_hint")}</p>
+          {googleProof === "password" ? (
+            <div className="field" style={{ textAlign: "start" }}>
+              <label>{t("delete_password")}</label>
+              <div className="box">
+                <input type="password" autoComplete="current-password" value={reauthPassword} onChange={(e) => setReauthPassword(e.target.value)} />
+              </div>
+            </div>
+          ) : googleProof === "telegram" ? (
+            <>
+              <div className="field" style={{ textAlign: "start" }}>
+                <label>{t("code_from_tg")}</label>
+                <CodeBoxes value={code} onChange={setCode} />
+              </div>
+              {testOtp ? <TestBanner code={testOtp} t={t} /> : otpId ? <div className="note">{t("delete_code_sent")}</div> : null}
+              <ResendButton at={googleResendAt} busy={busy} onClick={() => void sendGoogleCode()} t={t} />
+            </>
+          ) : null}
+          {err ? <div className="err">{err}</div> : null}
+          <div className="btns">
+            <button className="btn g" type="button" onClick={() => setScreen("profile")}>{t("cancel")}</button>
+            <button className={`btn p ${busy ? "off" : ""}`} type="button" onClick={() => void submitGoogleLink()}>
+              {googleAction === "link" ? t("google_continue") : t("google_unlink")}
             </button>
           </div>
         </div>

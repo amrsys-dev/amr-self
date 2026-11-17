@@ -28,7 +28,8 @@ export type Screen =
   | "sec-2fa-change"
   | "account-delete"
   | "nick-change"
-  | "rebind-2fa";
+  | "rebind-2fa"
+  | "google-link";
 
 export type Meta = {
   testMode: boolean;

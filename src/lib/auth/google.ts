@@ -15,7 +15,8 @@ export const GOOGLE_STATE_TTL_SEC = 600;
 
 export type GooglePurpose = "login" | "link" | "delete";
 export type GoogleState = { purpose: GooglePurpose; verifier: string; nonce: string; sessionId?: string; nick?: string; exp: number };
-export type GoogleClaims = { sub: string; email?: string; authTime?: number };
+/** Only the stable Google id is kept (PDPL: no email, no name). */
+export type GoogleClaims = { sub: string; authTime?: number };
 
 export function googleConfig(): { clientId: string; clientSecret: string } | null {
   const clientId = (process.env.GOOGLE_CLIENT_ID ?? "").trim();
@@ -37,7 +38,7 @@ export function newGoogleRequest(purpose: GooglePurpose, clientId: string) {
   u.searchParams.set("client_id", clientId);
   u.searchParams.set("redirect_uri", GOOGLE_CALLBACK);
   u.searchParams.set("response_type", "code");
-  u.searchParams.set("scope", "openid email");
+  u.searchParams.set("scope", "openid");
   u.searchParams.set("state", state);
   u.searchParams.set("nonce", nonce);
   u.searchParams.set("code_challenge", challenge);
@@ -54,11 +55,17 @@ export function newGoogleRequest(purpose: GooglePurpose, clientId: string) {
 
 type Jwk = { kid: string; kty: string; n: string; e: string; alg?: string };
 let jwksCache: { at: number; keys: Jwk[] } | null = null;
+/** Google rotates keys: an unknown kid triggers one refetch, at most every 30 s. */
+const JWKS_REFETCH_MIN_MS = 30_000;
 export function resetGoogleKeysForTests() {
   jwksCache = null;
 }
-async function googleKeys(f: typeof fetch): Promise<Jwk[]> {
-  if (jwksCache && Date.now() - jwksCache.at < 3600_000) return jwksCache.keys;
+export function ageGoogleKeysForTests(ms: number) {
+  if (jwksCache) jwksCache.at -= ms;
+}
+async function googleKeys(f: typeof fetch, force = false): Promise<Jwk[]> {
+  if (jwksCache && !force && Date.now() - jwksCache.at < 3600_000) return jwksCache.keys;
+  if (jwksCache && force && Date.now() - jwksCache.at < JWKS_REFETCH_MIN_MS) return jwksCache.keys;
   const r = await f(GOOGLE_JWKS);
   if (!r.ok) throw new Error("jwks");
   const d = (await r.json()) as { keys?: Jwk[] };
@@ -82,8 +89,10 @@ export async function verifyGoogleIdToken(
     return null;
   }
   if (header.alg !== "RS256" || !header.kid) return null;
-  const keys = await googleKeys(opts.fetchImpl ?? fetch).catch(() => []);
-  const jwk = keys.find((k) => k.kid === header.kid && k.kty === "RSA");
+  const f = opts.fetchImpl ?? fetch;
+  const pick = (keys: Jwk[]) => keys.find((k) => k.kid === header.kid && k.kty === "RSA");
+  let jwk = pick(await googleKeys(f).catch(() => []));
+  if (!jwk) jwk = pick(await googleKeys(f, true).catch(() => []));
   if (!jwk) return null;
   const key = createPublicKey({ key: { kty: "RSA", n: jwk.n, e: jwk.e }, format: "jwk" });
   const ok = createVerify("RSA-SHA256").update(`${parts[0]}.${parts[1]}`).verify(key, Buffer.from(parts[2], "base64url"));
@@ -98,7 +107,6 @@ export async function verifyGoogleIdToken(
   if (typeof p.sub !== "string" || !p.sub || p.sub.length > 255) return null;
   return {
     sub: p.sub,
-    email: typeof p.email === "string" && p.email_verified === true ? p.email : undefined,
     authTime: typeof p.auth_time === "number" ? p.auth_time : undefined,
   };
 }

@@ -40,7 +40,7 @@ export type UserRecord = {
   previousNick?: string;
   ageConfirmedAt?: string;
   /** «Войти через Google» linked to this nick (only while signed in to it). */
-  google?: { sub: string; email?: string; linkedAt: string };
+  google?: { sub: string; linkedAt: string };
 };
 
 export function nickKey(nick: string): string {

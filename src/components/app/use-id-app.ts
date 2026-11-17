@@ -150,7 +150,17 @@ export function useIdApp() {
         setScreen(back.get("delete") === "google" ? "account-delete" : "today");
       }
       const g = new URLSearchParams(window.location.search).get("google");
+      if (g === "ok") markGoogleSignIn();
       if (g && g !== "ok" && g !== "linked") setErr(t(googleMsg(g)));
+      // Google sign-in on an account with Telegram: finish with the Telegram login code.
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const gOtp = hash.get("google-otp");
+      if (!r.ok && gOtp) {
+        setOtpId(gOtp);
+        setTestOtp(hash.get("t") ?? undefined);
+        setScreen("login-2fa");
+        window.history.replaceState(null, "", window.location.pathname);
+      }
       if (g || new URLSearchParams(window.location.search).has("delete")) window.history.replaceState(null, "", window.location.pathname);
     });
   }, []);
@@ -264,7 +274,8 @@ export function useIdApp() {
         body: JSON.stringify({ otpId, code }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
-      if (kind === "login" && r.data.wrapPassword && r.data.kdf) {
+      if ((r.data as { method?: string }).method === "google") markGoogleSignIn();
+      if (kind === "login" && password && r.data.wrapPassword && r.data.kdf) {
         try {
           const { salt, opts } = keysFromParams(r.data.kdf.password);
           const pwd = await derivePasswordKeys(password, salt, opts);
@@ -486,6 +497,23 @@ export function useIdApp() {
    * Google → a fresh sign-in at Google, then «Удалить». No word lists, no chains.
    */
   const [deleteResendAt, setDeleteResendAt] = useState(0);
+  /** After «Войти через Google» the data key is not known yet: the lock screen asks for the password. */
+  const [googleSignIn, setGoogleSignIn] = useState(false);
+  function markGoogleSignIn() {
+    setGoogleSignIn(true);
+    try {
+      sessionStorage.setItem("amr-google-signin", "1");
+    } catch {
+      /* private mode */
+    }
+  }
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("amr-google-signin") === "1") setGoogleSignIn(true);
+    } catch {
+      /* private mode */
+    }
+  }, []);
   const [deleteMethod, setDeleteMethod] = useState<"" | "telegram" | "password" | "google">("");
   const [deleteGoogleReady, setDeleteGoogleReady] = useState(false);
   async function sendDeleteCode() {
@@ -526,8 +554,93 @@ export function useIdApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
 
+  /** Google is started with a same-site form POST (the server checks Origin). */
   function startGoogle(purpose: "login" | "link" | "delete") {
-    window.location.assign(`/api/auth/google/start?purpose=${purpose}`);
+    const f = document.createElement("form");
+    f.method = "POST";
+    f.action = "/api/auth/google/start";
+    const i = document.createElement("input");
+    i.type = "hidden";
+    i.name = "purpose";
+    i.value = purpose;
+    f.appendChild(i);
+    document.body.appendChild(f);
+    f.submit();
+  }
+
+  /** Link / unlink Google: fresh proof first (Telegram code with purpose=google-link, or the current password). */
+  const [googleAction, setGoogleAction] = useState<"link" | "unlink">("link");
+  const [googleProof, setGoogleProof] = useState<"" | "telegram" | "password">("");
+  const [googleResendAt, setGoogleResendAt] = useState(0);
+  function openGoogleLink(action: "link" | "unlink") {
+    setGoogleAction(action);
+    setGoogleProof("");
+    setReauthPassword("");
+    setCode("");
+    setOtpId("");
+    setTestOtp(undefined);
+    setErr("");
+    setScreen("google-link");
+    void sendGoogleCode(action);
+  }
+  async function sendGoogleCode(action = googleAction) {
+    if (!session) return;
+    setErr("");
+    setBusy(true);
+    try {
+      const r = await api<{ proof?: "telegram" | "password"; otpId?: string; testOtp?: string; retryAfterMs?: number; resendInMs?: number; error?: string }>("/api/me/google", {
+        method: "POST",
+        body: JSON.stringify({ action, phase: "start", lang }),
+      });
+      if (r.data.proof) setGoogleProof(r.data.proof);
+      if (r.ok && r.data.otpId) {
+        setOtpId(r.data.otpId);
+        setTestOtp(r.data.testOtp);
+        setGoogleResendAt(Date.now() + (r.data.resendInMs ?? 60_000));
+        return;
+      }
+      if (r.status === 429 && r.data.otpId) {
+        setOtpId(r.data.otpId);
+        setGoogleResendAt(Date.now() + (r.data.retryAfterMs ?? 60_000));
+        return;
+      }
+      if (!r.ok) return fail(r.status, r.data);
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function submitGoogleLink() {
+    if (!session) return;
+    let proof: Record<string, unknown>;
+    if (googleProof === "password") {
+      if (!reauthPassword) return setErr(t("wrong_login"));
+      proof = { authKey: await authKeyFrom(reauthPassword) };
+    } else {
+      if (!otpId || code.replace(/\D/g, "").length < 6) return setErr(t("invalid_code"));
+      proof = { otpId, code };
+    }
+    setErr("");
+    setBusy(true);
+    try {
+      const r = await api<{ ok?: boolean; next?: string; error?: string }>("/api/me/google", {
+        method: "POST",
+        body: JSON.stringify({ action: googleAction, phase: "confirm", lang, ...proof }),
+      });
+      if (!r.ok) return fail(r.status, r.data);
+      setReauthPassword("");
+      setCode("");
+      setOtpId("");
+      if (googleAction === "link") return startGoogle("link");
+      const me = await api<SessionState>("/api/me");
+      if (me.ok) setSession(me.data);
+      setScreen("profile");
+    } catch {
+      setErr(t("error"));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function submitDeleteAccount() {
@@ -880,6 +993,13 @@ export function useIdApp() {
     deleteMethod,
     deleteGoogleReady,
     startGoogle,
+    googleAction,
+    googleProof,
+    googleResendAt,
+    openGoogleLink,
+    sendGoogleCode,
+    submitGoogleLink,
+    googleSignIn,
     submitRebind,
     saveProfile,
     addContact,
@@ -945,5 +1065,6 @@ export function googleMsg(code: string): MsgKey {
   if (code === "taken") return "google_taken";
   if (code === "wrong_account") return "google_wrong_account";
   if (code === "not_fresh") return "google_not_fresh";
+  if (code === "proof_required") return "google_proof_required";
   return "google_failed";
 }
