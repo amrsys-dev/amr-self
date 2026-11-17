@@ -18,7 +18,7 @@ test("только белый список адресов и приложени�
 });
 
 test("токен: подпись, срок 5 минут, только ник и имя", () => {
-  const t = signConnectToken({ sub: "id-1", nick: "murad.amr", name: "murad", aud: "bazar", state: STATE }, "s".repeat(32), 1000, "j1");
+  const t = signConnectToken({ sub: "id-1", nick: "name.amr", name: "name", aud: "bazar", state: STATE }, "s".repeat(32), 1000, "j1");
   const [body, sig] = t.split(".");
   assert.equal(sig, createHmac("sha256", "s".repeat(32)).update(body).digest("base64url"));
   const p = JSON.parse(Buffer.from(body, "base64url").toString());
@@ -33,5 +33,5 @@ test("адрес возврата и имя", () => {
   assert.equal(u.origin + u.pathname, RET);
   assert.equal(u.searchParams.get("token"), "a.b");
   assert.equal(u.searchParams.get("state"), STATE);
-  assert.equal(displayNameOf("Murad.amr"), "Murad");
+  assert.equal(displayNameOf("Name.amr"), "Name");
 });

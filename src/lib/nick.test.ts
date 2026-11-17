@@ -5,12 +5,12 @@ import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "./
 describe("AMR human-readable nicknames", () => {
   const fmt = parseNickFormat();
   it("normalizes supported forms to one canonical .amr handle", () => {
-    assert.equal(normalizeNick("@Murad", fmt), "murad.amr");
-    assert.equal(normalizeNick("murad.amr", fmt), "murad.amr");
-    assert.equal(normalizeNick("@murad@amr", fmt), "murad.amr");
-    assert.equal(normalizeNick("murad@amr", fmt), "murad.amr");
-    assert.equal(normalizeNick("Murad_Design", fmt), "murad_design.amr");
-    assert.equal(normalizeNick("@murad-design", fmt), "murad-design.amr");
+    assert.equal(normalizeNick("@Name", fmt), "name.amr");
+    assert.equal(normalizeNick("name.amr", fmt), "name.amr");
+    assert.equal(normalizeNick("@name@amr", fmt), "name.amr");
+    assert.equal(normalizeNick("name@amr", fmt), "name.amr");
+    assert.equal(normalizeNick("Name_Design", fmt), "name_design.amr");
+    assert.equal(normalizeNick("@name-design", fmt), "name-design.amr");
   });
   it("preserves legacy AMR numeric IDs for existing accounts", () => {
     assert.equal(normalizeNick("@AMR-417-283", fmt), "@AMR-417-283");
@@ -21,10 +21,10 @@ describe("AMR human-readable nicknames", () => {
     assert.equal(normalizeNick("@admin", fmt), null);
     assert.equal(normalizeNick("@bad name", fmt), null);
     assert.equal(normalizeNick("@bad/name", fmt), null);
-    assert.equal(normalizeNick("@murad..x", fmt), null);
+    assert.equal(normalizeNick("@name..x", fmt), null);
   });
   it("uses the canonical handle in public card paths", () => {
-    assert.equal(publicCardPath("murad.amr"), "/u/murad.amr");
+    assert.equal(publicCardPath("name.amr"), "/u/name.amr");
     assert.equal(publicCardPath("@AMR-417-283"), "/u/AMR-417-283");
   });
   it("generates valid fallback suggestions", () => {

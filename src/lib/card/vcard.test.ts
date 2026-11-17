@@ -4,8 +4,8 @@ import { buildVcard, vcardFileName } from "./vcard.ts";
 
 describe("vcard", () => {
   const v = buildVcard({
-    nick: "murad.amr",
-    url: "https://self.example/u/murad.amr",
+    nick: "name.amr",
+    url: "https://self.example/u/name.amr",
     contacts: [
       { id: "1", kind: "telegram", href: "https://t.me/amr_userb", action: "write", display: "@amr_userb", verified: true },
       { id: "2", kind: "whatsapp", href: "https://wa.me/966500000000", action: "write", display: "", verified: false },
@@ -15,8 +15,8 @@ describe("vcard", () => {
   });
 
   it("names the contact by nick and links the card", () => {
-    assert.match(v, /^BEGIN:VCARD\r\nVERSION:3\.0\r\nFN:murad\.amr\r\n/);
-    assert.match(v, /URL;TYPE=AMR ID:https:\/\/self\.example\/u\/murad\.amr/);
+    assert.match(v, /^BEGIN:VCARD\r\nVERSION:3\.0\r\nFN:name\.amr\r\n/);
+    assert.match(v, /URL;TYPE=AMR ID:https:\/\/self\.example\/u\/name\.amr/);
   });
   it("turns contacts into phone, email and profile fields", () => {
     assert.match(v, /TEL;TYPE=CELL:\+966500000000/);
@@ -26,6 +26,6 @@ describe("vcard", () => {
     assert.match(v, /END:VCARD\r\n$/);
   });
   it("makes a safe file name", () => {
-    assert.equal(vcardFileName("@murad.amr"), "murad.amr.vcf");
+    assert.equal(vcardFileName("@name.amr"), "name.amr.vcf");
   });
 });

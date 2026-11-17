@@ -19,7 +19,7 @@ export function AuthScreens({ app }: { app: App }) {
           <div className="card hero" style={{ textAlign: "center" }}>
             <div className="tiny">{t("example_nick")}</div>
             <div className="nick" style={{ fontSize: 28 }}>
-              murad.amr
+              name.amr
             </div>
           </div>
           <div className="btns">
@@ -338,7 +338,7 @@ export function NickInput({ value, onChange }: { value: string; onChange: (v: st
     <span className="nick-input">
       <input
         value={handle}
-        placeholder="murad"
+        placeholder="name"
         autoCapitalize="off"
         autoCorrect="off"
         autoComplete="username"

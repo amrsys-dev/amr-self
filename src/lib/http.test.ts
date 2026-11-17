@@ -43,3 +43,16 @@ describe("security headers", () => {
     assert.equal(vercelCsp, csp);
   });
 });
+
+describe("JSON answers are private by default", () => {
+  it("sends Cache-Control: private, no-store and Vary: Cookie unless a route opts into public caching", async () => {
+    const { json } = await import("./http.ts");
+    const r = json({ nick: "name.amr" });
+    assert.equal(r.headers.get("cache-control"), "private, no-store");
+    assert.equal(r.headers.get("vary"), "Cookie");
+    const pub = json({}, 200, { "cache-control": "public, max-age=30, s-maxage=30" });
+    assert.equal(pub.headers.get("cache-control"), "public, max-age=30, s-maxage=30");
+    assert.equal(pub.headers.get("vary"), null);
+    assert.equal(r.headers.get("x-frame-options"), "DENY");
+  });
+});
