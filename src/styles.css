@@ -648,3 +648,8 @@ p{margin:0;line-height:1.4}
 .connect-primary{min-height:48px;border:0;border-radius:12px;font:inherit;font-weight:600;font-size:16px;background:var(--accent, #075B40);color:#fff;cursor:pointer}
 .connect-primary:disabled{opacity:.6}
 .connect-secondary{min-height:44px;display:grid;place-items:center;border-radius:12px;font-size:15px;opacity:.85}
+
+/* Название приложения — главное в шапке, монограмма — меньше рядом */
+.hd .appname{font-size:30px;font-weight:800;letter-spacing:-.6px}
+.monopl .mono-svg,.hd .mono-svg{height:18px}
+.monopl{height:18px}
