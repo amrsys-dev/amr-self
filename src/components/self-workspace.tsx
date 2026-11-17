@@ -21,6 +21,7 @@ import { weekStreak, weekSummary } from "@/lib/health/week.ts";
 import { CurrencySign, useCurrency } from "./self/currency.tsx";
 import { parseAmount } from "@/lib/finance/currency.ts";
 import "./self-workspace.css";
+import { INSTALL_LABEL, installUrl } from "@/lib/pwa-install.ts";
 
 type Section = "today" | "finance" | "work" | "more";
 type SubPage = "health" | "car" | null;
@@ -585,13 +586,16 @@ export function SelfWorkspace({
           </div>
           <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[1] ?? SVC_GROUPS.en[1]}</h3></div>
           <div className="self-card self-menu">
-            <a className="self-menu-row" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
+            <div className="self-menu-row">
               <span className="self-menu-icon bazar" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
               </span>
               <span className="self-menu-copy"><b>AMR Bazar</b><small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small></span>
-              <span className="self-chevron" aria-hidden="true">↗</span>
-            </a>
+              <span className="self-menu-acts">
+                <a className="btn sm g" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">{OPEN_LABEL[lang] ?? OPEN_LABEL.en}</a>
+                <a className="btn sm p" href={installUrl("https://bazar.amrsys.net/")} target="_blank" rel="noopener">{INSTALL_LABEL[lang] ?? INSTALL_LABEL.en}</a>
+              </span>
+            </div>
           </div>
         </>
       )}
@@ -681,6 +685,13 @@ const SVC_GROUPS: Record<string, [string, string]> = {
   ar: ["أقسام SELF", "الوحدات المتصلة"],
   uz: ["SELF bo‘limlari", "Ulangan modullar"],
   tj: ["Бахшҳои SELF", "Модулҳои пайвастшуда"],
+};
+const OPEN_LABEL: Record<string, string> = {
+  ru: "Открыть",
+  en: "Open",
+  ar: "فتح",
+  uz: "Ochish",
+  tj: "Кушодан",
 };
 const BAZAR_SUB: Record<string, string> = {
   ru: "Мини-маркетплейс: товары продавцов вашего города",

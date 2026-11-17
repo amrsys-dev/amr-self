@@ -1,4 +1,5 @@
 import { Header, TestBanner, LangPicker } from "./ui.tsx";
+import { InstallButton } from "./install-button.tsx";
 import { RecoveryForm } from "./recovery-form.tsx";
 import { checkPassword } from "@/lib/password-policy.ts";
 import type { App } from "./use-id-app.ts";
@@ -10,7 +11,7 @@ export function AuthScreens({ app }: { app: App }) {
     <>
     {screen === "welcome" && (
       <>
-        <Header />
+        <Header tool={<InstallButton t={t} />} />
         <div className="page auth">
           <div className="kicker">{t("kicker")}</div>
           <h1>{t("welcome_title")}</h1>

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
+import { InstallButton } from "./install-button.tsx";
 import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
@@ -109,7 +110,7 @@ export function ShellScreens({ app }: { app: App }) {
     {inShell && (
       <>
         {/* Tabs show only the product mark; each screen carries its own large title. */}
-        <Header />
+        <Header tool={<InstallButton t={t} />} />
         <div className="page withnav">
           {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && !session && guest && (
             <SelfWorkspace
