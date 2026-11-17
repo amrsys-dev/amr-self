@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, it } from "node:test";
+import { DEFAULT_TG_BOT } from "./auth/telegram-link.ts";
 
 const root = new URL("../../", import.meta.url);
 const html = readFileSync(new URL("public/privacy.html", root), "utf8");
@@ -74,5 +75,24 @@ describe("privacy policy page", () => {
     assert.match(html, /Версия 1\.0, 17\.11\.2026/);
     assert.match(html, /Version 1\.0, 17\.11\.2026/);
     assert.match(html, /النسخة 1\.0، 17\.11\.2026/);
+  });
+
+  it("has no placeholder markers left in the sources or the published page", () => {
+    const files = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    for (const { name, text } of files) {
+      assert.doesNotMatch(text, /УТОЧНИТЬ/, name);
+      assert.doesNotMatch(text, /TO CONFIRM/i, name);
+      assert.doesNotMatch(text, /يلزم التأكيد/, name);
+    }
+  });
+
+  it("names the real Telegram bot and the SDAIA site in RU, EN and AR", () => {
+    for (const name of ["privacy-policy.ru.md", "privacy-policy.en.md", "privacy-policy.ar.md"]) {
+      const text = policies.find((p) => p.name === name)!.text;
+      assert.ok(text.includes(`[@${DEFAULT_TG_BOT}](https://t.me/${DEFAULT_TG_BOT})`), name);
+      assert.ok(text.includes("(https://sdaia.gov.sa)"), name);
+    }
+    assert.equal([...html.matchAll(new RegExp(`href="https://t\\.me/${DEFAULT_TG_BOT}"`, "g"))].length, 3);
+    assert.equal([...html.matchAll(/href="https:\/\/sdaia\.gov\.sa"/g)].length, 3);
   });
 });
