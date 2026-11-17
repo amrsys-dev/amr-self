@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
+import { InstallButton } from "./install-button.tsx";
 import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
@@ -169,6 +170,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
+                <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
@@ -218,6 +220,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
+                <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
               </div>
             </>
           )}

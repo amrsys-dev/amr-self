@@ -4,12 +4,14 @@ import { CardScreens } from "./app/card-screens.tsx";
 import { ContactSheet } from "./app/contact-sheet.tsx";
 import { SecurityScreens } from "./app/security-screens.tsx";
 import { ShellScreens } from "./app/shell-screens.tsx";
+import { InstallHero } from "./app/install-button.tsx";
 import { useIdApp } from "./app/use-id-app.ts";
 
 export function IdApp() {
   const app = useIdApp();
   return (
     <div className={app.cls} dir={isRtl(app.lang) ? "rtl" : "ltr"} lang={app.lang}>
+      <InstallHero t={app.t} />
       <AuthScreens app={app} />
       <ShellScreens app={app} />
       <SecurityScreens app={app} />
