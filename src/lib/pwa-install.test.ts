@@ -70,3 +70,25 @@ test("openSiteForInstall uses openLink with a clean URL and does not call addToH
   assert.equal(parsed.hash, "");
   assert.deepEqual([...parsed.searchParams.keys()], ["install"]);
 });
+
+test("?install=1 only reveals the Install button — no openLink, prompt, or addToHomeScreen without a tap", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../components/app/install-button.tsx", import.meta.url), "utf8");
+  const effects = [...src.matchAll(/useEffect\(([\s\S]*?)\n  \},/g)].map((m) => m[0]).filter((e) => e.includes("takeInstallFlag"));
+  assert.ok(effects.length, "expected a takeInstallFlag effect");
+  for (const effect of effects) {
+    assert.doesNotMatch(effect, /openSiteForInstall\s*\(/);
+    assert.doesNotMatch(effect, /addToHomeScreen\s*\(/);
+    assert.doesNotMatch(effect, /openLink\s*\(/);
+    assert.doesNotMatch(effect, /\.prompt\s*\(/);
+  }
+});
+
+test("Install is not in the SELF header", async () => {
+  const { readFileSync } = await import("node:fs");
+  for (const rel of ["../components/app/shell-screens.tsx", "../components/app/auth-screens.tsx"]) {
+    const src = readFileSync(new URL(rel, import.meta.url), "utf8");
+    assert.doesNotMatch(src, /Header[^>]*tool=\{<InstallButton/);
+    assert.doesNotMatch(src, /tool=\{<InstallButton/);
+  }
+});

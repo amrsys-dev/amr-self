@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { MsgKey } from "@/lib/i18n.ts";
 import {
-  isIos,
   isStandalone,
   isTelegramWebView,
   openSiteForInstall,
@@ -9,8 +8,9 @@ import {
   type BeforeInstallPromptEvent,
 } from "@/lib/pwa-install.ts";
 
-export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) => string; className?: string }) {
+function usePwaInstall(opts: { consumeFlag: boolean }) {
   const [hidden, setHidden] = useState(true);
+  const [wanted, setWanted] = useState(false);
   const [hint, setHint] = useState<"ios" | "tg" | "none">("none");
   const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
@@ -27,24 +27,25 @@ export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) =>
     const onInstalled = () => {
       promptRef.current = null;
       setHidden(true);
+      setWanted(false);
       setHint("none");
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
-    const flag = takeInstallFlag(window.location.search);
-    if (flag.install) {
-      const url = `${window.location.pathname}${flag.nextSearch}${window.location.hash}`;
-      window.history.replaceState(null, "", url);
-      if (isTelegramWebView()) setHint("tg");
-      else if (isIos() || !promptRef.current) setHint(isIos() ? "ios" : "none");
+    if (opts.consumeFlag) {
+      const flag = takeInstallFlag(window.location.search);
+      if (flag.install) {
+        // Reveal the big Install button only. Never prompt or openLink without a tap.
+        const url = `${window.location.pathname}${flag.nextSearch}${window.location.hash}`;
+        window.history.replaceState(null, "", url);
+        setWanted(true);
+      }
     }
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, []);
-
-  if (hidden) return null;
+  }, [opts.consumeFlag]);
 
   const onClick = async () => {
     if (isTelegramWebView()) {
@@ -57,17 +58,22 @@ export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) =>
       await pending.prompt();
       const choice = await pending.userChoice;
       promptRef.current = null;
-      if (choice.outcome === "accepted") setHidden(true);
+      if (choice.outcome === "accepted") {
+        setHidden(true);
+        setWanted(false);
+      }
       return;
     }
     setHint("ios");
   };
 
-  const openBrowser = () => {
-    openSiteForInstall();
-    setHint("none");
-  };
+  return { hidden, wanted, hint, setHint, onClick };
+}
 
+/** Profile (and other non-header) install item. In Telegram: openLink to the site. */
+export function InstallButton({ t, className = "set-label" }: { t: (k: MsgKey) => string; className?: string }) {
+  const { hidden, hint, onClick } = usePwaInstall({ consumeFlag: false });
+  if (hidden) return null;
   return (
     <div className="pwa-install">
       <button type="button" className={className} onClick={() => void onClick()}>
@@ -78,11 +84,22 @@ export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) =>
           {t("install_ios")}
         </div>
       ) : null}
-      {hint === "tg" ? (
+    </div>
+  );
+}
+
+/** Shown on the website when the page was opened with ?install=1. Needs a user tap. */
+export function InstallHero({ t }: { t: (k: MsgKey) => string }) {
+  const { hidden, wanted, hint, onClick } = usePwaInstall({ consumeFlag: true });
+  if (hidden || !wanted) return null;
+  return (
+    <div className="pwa-hero" role="region" aria-label={t("install")}>
+      <button type="button" className="btn p" onClick={() => void onClick()}>
+        {t("install")}
+      </button>
+      {hint === "ios" ? (
         <div className="pwa-hint" role="status">
-          <button type="button" className="btn sm g" onClick={openBrowser}>
-            {t("install_browser")}
-          </button>
+          {t("install_ios")}
         </div>
       ) : null}
     </div>

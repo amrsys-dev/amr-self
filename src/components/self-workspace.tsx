@@ -592,8 +592,8 @@ export function SelfWorkspace({
               </span>
               <span className="self-menu-copy"><b>AMR Bazar</b><small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small></span>
               <span className="self-menu-acts">
-                <a className="btn sm g" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">{OPEN_LABEL[lang] ?? OPEN_LABEL.en}</a>
-                <a className="btn sm p" href={installUrl("https://bazar.amrsys.net/")} target="_blank" rel="noopener">{INSTALL_LABEL[lang] ?? INSTALL_LABEL.en}</a>
+                <a className="btn g" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">{OPEN_LABEL[lang] ?? OPEN_LABEL.en}</a>
+                <a className="btn p" href={installUrl("https://bazar.amrsys.net/")} target="_blank" rel="noopener">{INSTALL_LABEL[lang] ?? INSTALL_LABEL.en}</a>
               </span>
             </div>
           </div>

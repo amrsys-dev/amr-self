@@ -110,7 +110,7 @@ export function ShellScreens({ app }: { app: App }) {
     {inShell && (
       <>
         {/* Tabs show only the product mark; each screen carries its own large title. */}
-        <Header tool={<InstallButton t={t} />} />
+        <Header />
         <div className="page withnav">
           {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && !session && guest && (
             <SelfWorkspace

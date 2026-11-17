@@ -656,8 +656,13 @@ p{margin:0;line-height:1.4}
 
 .pwa-install{position:relative;flex:none}
 .pwa-hint{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:30;max-width:240px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.16);font-size:13px;font-weight:500;line-height:1.35;color:var(--t);white-space:normal}
-.self-menu-row .self-menu-acts{display:flex;gap:6px;flex:none}
-.self-menu-row .self-menu-acts a{flex:none}
+.self-menu-row{flex-wrap:wrap}
+.self-menu-row .self-menu-acts{display:flex;gap:8px;flex:1 1 100%;margin-top:4px}
+.self-menu-row .self-menu-acts a{flex:1;min-width:0}
 
 .set-row.pwa-set{justify-content:flex-start}
 .set-row.pwa-set .pwa-install,.set-row.pwa-set .set-label{width:100%;text-align:start}
+
+.pwa-hero{margin:12px 16px 0;padding:16px;border-radius:16px;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:10px}
+.pwa-hero .btn{width:100%}
+.pwa-hero .pwa-hint{position:static;max-width:none;inset:auto;box-shadow:none}
