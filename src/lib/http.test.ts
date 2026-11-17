@@ -56,3 +56,15 @@ describe("JSON answers are private by default", () => {
     assert.equal(r.headers.get("x-frame-options"), "DENY");
   });
 });
+
+describe("unauthorized answers are not cached either", () => {
+  it("requireUser 401/403 go out private, no-store", async () => {
+    const { requireUser } = await import("./auth/session.ts");
+    const r = (await requireUser(new Request("https://self.amrsys.net/api/me"))) as Response;
+    assert.equal(r.status, 401);
+    assert.equal(r.headers.get("cache-control"), "private, no-store");
+    const f = (await requireUser(new Request("https://self.amrsys.net/api/me", { method: "POST", headers: { origin: "https://evil.example", host: "self.amrsys.net" } }))) as Response;
+    assert.equal(f.status, 403);
+    assert.equal(f.headers.get("cache-control"), "private, no-store");
+  });
+});
