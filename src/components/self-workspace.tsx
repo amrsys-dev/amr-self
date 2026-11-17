@@ -45,7 +45,7 @@ type Props = {
 const COPY = {
   ru: {
     welcome: "Ваш день под контролем", overview: "Обзор дня", todayTasks: "Задачи на сегодня",
-    health: "Здоровье", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Ещё",
+    health: "Здоровье", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Сервисы",
     vault: "Сейф", nutrition: "Питание", activity: "Активность", income: "Доходы", expense: "Расходы",
     balance: "Баланс месяца", addIncome: "Добавить доход", addExpense: "Добавить расход",
     all: "Все", saved: "Сохранено на устройстве", syncing: "Ожидает синхронизации", loading: "Загрузка данных…",
@@ -71,7 +71,7 @@ const COPY = {
   },
   en: {
     welcome: "Your day, in control", overview: "Daily overview", todayTasks: "Today's tasks",
-    health: "Health", finance: "Finance", work: "Planner", identity: "Digital identity", more: "More",
+    health: "Health", finance: "Finance", work: "Planner", identity: "Digital identity", more: "Services",
     vault: "Vault", nutrition: "Nutrition", activity: "Activity", income: "Income", expense: "Expenses",
     balance: "Monthly balance", addIncome: "Add income", addExpense: "Add expense",
     all: "All", saved: "Saved on this device", syncing: "Waiting to sync", loading: "Loading your data…",
@@ -97,7 +97,7 @@ const COPY = {
   },
   ar: {
     welcome: "يومك تحت السيطرة", overview: "ملخص اليوم", todayTasks: "مهام اليوم",
-    health: "الصحة", finance: "المالية", work: "المخطط", identity: "الهوية الرقمية", more: "المزيد",
+    health: "الصحة", finance: "المالية", work: "المخطط", identity: "الهوية الرقمية", more: "الخدمات",
     vault: "الخزنة", nutrition: "التغذية", activity: "النشاط", income: "الدخل", expense: "المصروفات",
     balance: "رصيد الشهر", addIncome: "إضافة دخل", addExpense: "إضافة مصروف",
     all: "الكل", saved: "حُفظ على هذا الجهاز", syncing: "بانتظار المزامنة", loading: "جارٍ تحميل البيانات…",
@@ -123,7 +123,7 @@ const COPY = {
   },
   uz: {
     welcome: "Kuningiz nazorat ostida", overview: "Kunlik umumiy holat", todayTasks: "Bugungi vazifalar",
-    health: "Salomatlik", finance: "Moliya", work: "Reja", identity: "Raqamli shaxsiyat", more: "Yana",
+    health: "Salomatlik", finance: "Moliya", work: "Reja", identity: "Raqamli shaxsiyat", more: "Xizmatlar",
     vault: "Seyf", nutrition: "Ovqatlanish", activity: "Faollik", income: "Daromad", expense: "Xarajatlar",
     balance: "Oylik balans", addIncome: "Daromad qo‘shish", addExpense: "Xarajat qo‘shish",
     all: "Barchasi", saved: "Qurilmada saqlandi", syncing: "Sinxronlash kutilmoqda", loading: "Ma’lumotlar yuklanmoqda…",
@@ -149,7 +149,7 @@ const COPY = {
   },
   tj: {
     welcome: "Рӯзи шумо зери назорат", overview: "Хулосаи рӯз", todayTasks: "Вазифаҳои имрӯз",
-    health: "Саломатӣ", finance: "Молия", work: "Нақша", identity: "Шиносномаи рақамӣ", more: "Бештар",
+    health: "Саломатӣ", finance: "Молия", work: "Нақша", identity: "Шиносномаи рақамӣ", more: "Хидматҳо",
     vault: "Сейф", nutrition: "Ғизо", activity: "Фаъолият", income: "Даромад", expense: "Хароҷот",
     balance: "Тавозуни моҳ", addIncome: "Иловаи даромад", addExpense: "Иловаи хароҷот",
     all: "Ҳама", saved: "Дар дастгоҳ нигоҳ дошта шуд", syncing: "Интизори ҳамоҳангсозӣ", loading: "Маълумот бор мешавад…",
@@ -573,6 +573,7 @@ export function SelfWorkspace({
       {section === "more" && !subPage && (
         <>
           <header className="self-large"><h1>{t("more")}</h1></header>
+          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[0] ?? SVC_GROUPS.en[0]}</h3></div>
           <div className="self-card self-menu">
             {modules.map((m) => (
               <button key={m.key} type="button" className="self-menu-row" onClick={() => (m.key === "identity" ? onOpenCard() : setSubPage(m.key))}>
@@ -581,6 +582,16 @@ export function SelfWorkspace({
                 <span className="self-chevron" aria-hidden="true">›</span>
               </button>
             ))}
+          </div>
+          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[1] ?? SVC_GROUPS.en[1]}</h3></div>
+          <div className="self-card self-menu">
+            <a className="self-menu-row" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
+              <span className="self-menu-icon bazar" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
+              </span>
+              <span className="self-menu-copy"><b>AMR Bazar</b><small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small></span>
+              <span className="self-chevron" aria-hidden="true">↗</span>
+            </a>
           </div>
         </>
       )}
@@ -662,3 +673,19 @@ function FlowSplit({ flow, money, labelIn, labelOut }: { flow: { in: number; out
     </div>
   );
 }
+
+/** Вкладка «Сервисы»: встроенные разделы SELF и подключённые модули AMR (брендбук §8). */
+const SVC_GROUPS: Record<string, [string, string]> = {
+  ru: ["Разделы SELF", "Подключённые модули"],
+  en: ["SELF sections", "Connected modules"],
+  ar: ["أقسام SELF", "الوحدات المتصلة"],
+  uz: ["SELF bo‘limlari", "Ulangan modullar"],
+  tj: ["Бахшҳои SELF", "Модулҳои пайвастшуда"],
+};
+const BAZAR_SUB: Record<string, string> = {
+  ru: "Мини-маркетплейс: товары продавцов вашего города",
+  en: "Mini marketplace: goods from sellers in your city",
+  ar: "سوق صغير: منتجات البائعين في مدينتك",
+  uz: "Mini-bozor: shahringiz sotuvchilarining mahsulotlari",
+  tj: "Мини-бозор: молҳои фурӯшандагони шаҳри шумо",
+};

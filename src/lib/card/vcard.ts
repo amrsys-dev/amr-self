@@ -4,7 +4,7 @@
  */
 import type { PublicContact } from "./visibility.ts";
 
-const esc = (v: string) => v.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+const esc = (v: string) => v.replace(/\r/g, "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
 
 export function buildVcard(card: { nick: string; url: string; contacts: readonly PublicContact[] }): string {
   const lines = ["BEGIN:VCARD", "VERSION:3.0", `FN:${esc(card.nick)}`, `N:${esc(card.nick)};;;;`, `NICKNAME:${esc(card.nick)}`];

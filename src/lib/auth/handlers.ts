@@ -8,6 +8,9 @@ import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/v
 import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
 import { photoUrl } from "./photo.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
+
+/** Contact values are single-line text: no control characters (blocks header/vCard/link injection). */
+const NO_CONTROL = /^[^\u0000-\u001f\u007f]*$/;
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
 import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
 import { getStores } from "../storage/index.ts";
@@ -734,13 +737,14 @@ const patchSchema = z.object({
   contacts: z
     .array(
       z.object({
-        id: z.string(),
+        id: z.string().min(1).max(40).regex(/^[\w-]+$/),
         kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
-        value: z.string().max(200),
+        value: z.string().max(200).regex(NO_CONTROL),
         visible: z.boolean(),
         label: z.string().max(80).optional(),
       }),
     )
+    .max(30)
     .optional(),
 });
 
@@ -775,7 +779,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
 
 const addContactSchema = z.object({
   kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
-  value: z.string().min(1).max(200),
+  value: z.string().min(1).max(200).regex(NO_CONTROL),
   visible: z.boolean().optional(),
   label: z.string().max(80).optional(),
   lang: z.string().optional(),

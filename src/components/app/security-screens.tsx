@@ -1,3 +1,4 @@
+import { NickInput } from "./auth-screens.tsx";
 import { Header, TestBanner, CodeBoxes } from "./ui.tsx";
 import type { App } from "./use-id-app.ts";
 
@@ -16,15 +17,12 @@ export function SecurityScreens({ app }: { app: App }) {
           <div className="field">
             <label>{t("new_nick_label")}</label>
             <div className="box">
-              <input
-                placeholder="murad"
-                value={newNick.replace(/^@/, "")}
-                onChange={(e) => {
-                  const v = e.target.value;
+              <NickInput
+                value={newNick}
+                onChange={(v) => {
                   setNewNick(v);
                   void checkNickStatus(v);
                 }}
-                autoCapitalize="off"
               />
             </div>
             {newNickStatus ? (
@@ -140,7 +138,7 @@ export function SecurityScreens({ app }: { app: App }) {
           <div className="field">
             <label>{t("nick")}</label>
             <div className="box">
-              <input value={nick} onChange={(e) => setNick(e.target.value)} autoCapitalize="off" />
+              <NickInput value={nick} onChange={setNick} />
             </div>
           </div>
           <div className="field">

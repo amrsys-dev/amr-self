@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { UI_MODES, UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
+import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import type { Lang } from "@/lib/i18n.ts";
@@ -38,19 +38,37 @@ function PickRow({ label, value, children, onPick, current }: { label: string; v
   );
 }
 
-function ThemeRow({ theme, chooseTheme, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; t: (k: MsgKey) => string }) {
-  return (
-    <PickRow label={t("ui_theme")} value={t(`fam_${theme.replace("-", "_")}` as MsgKey)} current={theme} onPick={(v) => chooseTheme(v as UiTheme)}>
-      {UI_THEMES.map((k) => <option key={k} value={k}>{t(`fam_${k.replace("-", "_")}` as MsgKey)}</option>)}
-    </PickRow>
-  );
-}
+const THEME_SWATCH: Record<UiTheme, string> = {
+  emerald: "linear-gradient(135deg,#0F2B21 0 50%,#2BD49E 50% 100%)",
+  graphite: "linear-gradient(135deg,#18202A 0 50%,#5AA9FF 50% 100%)",
+  bronze: "linear-gradient(135deg,#241A13 0 50%,#D9A26A 50% 100%)",
+};
 
-function ModeRow({ mode, chooseMode, t }: { mode: UiMode; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
+/** Light / Dark / Auto as a segmented switch, then theme swatches. */
+function AppearanceRows({ theme, chooseTheme, mode, chooseMode, t }: { theme: UiTheme; chooseTheme: (v: UiTheme) => void; mode: UiMode; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
+  const MODES: [UiMode, MsgKey][] = [["light", "mode_light"], ["dark", "mode_dark"], ["system", "mode_auto"]];
   return (
-    <PickRow label={t("ui_mode")} value={t(`mode_${mode}` as MsgKey)} current={mode} onPick={(v) => chooseMode(v as UiMode)}>
-      {UI_MODES.map((k) => <option key={k} value={k}>{t(`mode_${k}` as MsgKey)}</option>)}
-    </PickRow>
+    <>
+      <div className="set-seg">
+        <span className="set-label">{t("ui_mode")}</span>
+        <div className="seg" role="radiogroup" aria-label={t("ui_mode")}>
+          {MODES.map(([m, k]) => (
+            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? "on" : ""} onClick={() => chooseMode(m)}>{t(k)}</button>
+          ))}
+        </div>
+      </div>
+      <div className="set-seg">
+        <span className="set-label">{t("ui_theme")}</span>
+      </div>
+      <div className="swatches" role="radiogroup" aria-label={t("ui_theme")}>
+        {UI_THEMES.map((k) => (
+          <button key={k} type="button" role="radio" aria-checked={theme === k} className={"swatch" + (theme === k ? " on" : "")} onClick={() => chooseTheme(k)}>
+            <i style={{ background: THEME_SWATCH[k] }} />
+            {t(`fam_${k}` as MsgKey)}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -147,8 +165,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
-                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
-                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
@@ -197,8 +214,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
-                <ModeRow mode={uiMode} chooseMode={chooseMode} t={t} />
-                <ThemeRow theme={theme} chooseTheme={chooseTheme} t={t} />
+                <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
               </div>

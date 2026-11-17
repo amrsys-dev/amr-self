@@ -129,20 +129,32 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     const s = SERVICE[c.kind] ?? SERVICE.other;
     const ix = lx + 12;
     const iy = y + 12;
-    ctx.fillStyle = s.bg;
-    rr(ctx, ix, iy, 40, 40, 11);
-    ctx.fill();
+    if (s.bg !== "none") {
+      ctx.fillStyle = s.bg;
+      rr(ctx, ix, iy, 40, 40, 11);
+      ctx.fill();
+    }
     ctx.save();
-    ctx.translate(ix + 8, iy + 8);
-    ctx.lineWidth = 1.9;
+    const k = s.full ? 40 / 24 : 25 / 24;
+    ctx.translate(ix + (40 - 24 * k) / 2, iy + (40 - 24 * k) / 2);
+    ctx.scale(k, k);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.strokeStyle = s.fg;
-    ctx.fillStyle = s.fg;
-    for (const path of s.paths) {
-      const p2 = new Path2D(path.d);
-      if (path.fill) ctx.fill(p2);
-      else ctx.stroke(p2);
+    for (const layer of s.layers) {
+      const p2 = new Path2D(layer.d);
+      if (layer.stroke) {
+        ctx.lineWidth = 1.9;
+        ctx.strokeStyle = layer.color;
+        ctx.stroke(p2);
+      } else {
+        if (layer.outline) {
+          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = layer.outline;
+          ctx.stroke(p2);
+        }
+        ctx.fillStyle = layer.color;
+        ctx.fill(p2);
+      }
     }
     ctx.restore();
     const tx = ix + 52;

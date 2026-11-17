@@ -3,7 +3,7 @@
  * as a blob under a random key that does not change when the nick changes.
  */
 import { randomBytes } from "node:crypto";
-import { json } from "../http.ts";
+import { json, limits } from "../http.ts";
 import { getStores } from "../storage/index.ts";
 import { normalizeNick } from "../nick.ts";
 import { nickKey, type UserRecord } from "../user.ts";
@@ -26,6 +26,9 @@ export function photoType(bytes: Uint8Array): "image/jpeg" | "image/webp" | null
 export async function handlePhotoPut(request: Request): Promise<Response> {
   const user = await requireUser(request);
   if (user instanceof Response) return user;
+  if (Number(request.headers.get("content-length") ?? "0") > PHOTO_MAX_BYTES) return json({ error: "invalid", hint: "too_large" }, 413);
+  const hit = await limits.otp.take(`photo:${user.nick}`);
+  if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
   const bytes = new Uint8Array(await request.arrayBuffer());
   if (bytes.length === 0 || bytes.length > PHOTO_MAX_BYTES) return json({ error: "invalid", hint: "too_large" }, 413);
   const type = photoType(bytes);

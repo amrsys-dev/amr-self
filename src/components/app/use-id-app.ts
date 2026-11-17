@@ -30,12 +30,16 @@ const GUEST_FLAG = "amrself.guest";
 const THEME_KEY = "self.theme";
 const MODE_KEY = "self.mode";
 /** AMR Design System v1.0 theme families; each has a Light and a Dark mode. */
-export const UI_THEMES = ["emerald-saudi", "wood-metal", "carbon-red", "cream-lavender", "rose-champagne", "digital-creator", "digital-tactical"] as const;
+export const UI_THEMES = ["emerald", "graphite", "bronze"] as const;
 export type UiTheme = (typeof UI_THEMES)[number];
 export const UI_MODES = ["system", "light", "dark"] as const;
 export type UiMode = (typeof UI_MODES)[number];
 /** Old device settings (before the design system) mapped to family + mode. */
-const LEGACY_THEME: Record<string, [UiTheme, UiMode]> = { saudi: ["emerald-saudi", "dark"], light: ["emerald-saudi", "light"], graphite: ["carbon-red", "dark"] };
+const LEGACY_THEME: Record<string, [UiTheme, UiMode | null]> = {
+  saudi: ["emerald", "dark"], light: ["emerald", "light"],
+  "emerald-saudi": ["emerald", null], "carbon-red": ["graphite", null], "digital-creator": ["graphite", null], "digital-tactical": ["graphite", null],
+  "wood-metal": ["bronze", null], "cream-lavender": ["bronze", null], "rose-champagne": ["bronze", null],
+};
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
 
 /** All app state and actions. Screens read what they need from the returned object. */
@@ -49,6 +53,19 @@ export function useIdApp() {
   const [systemDark, setSystemDark] = useState(true);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [session, setSession] = useState<SessionState | null>(null);
+  // «Войти через AMR ID»: после входа вернуть пользователя на экран согласия (/connect).
+  useEffect(() => {
+    if (!session) return;
+    try {
+      const pending = sessionStorage.getItem("amr-connect-pending");
+      if (pending) {
+        sessionStorage.removeItem("amr-connect-pending");
+        if (/^\/connect\?[\w=&%.-]+$/.test(pending)) location.assign(pending);
+      }
+    } catch {
+      /* storage blocked */
+    }
+  }, [session]);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [testOtp, setTestOtp] = useState<string | undefined>();
@@ -95,9 +112,11 @@ export function useIdApp() {
     else if (LEGACY_THEME[savedTheme]) {
       const [fam, mode] = LEGACY_THEME[savedTheme]!;
       setUiTheme(fam);
-      setUiMode(mode);
       localStorage.setItem(THEME_KEY, fam);
-      localStorage.setItem(MODE_KEY, mode);
+      if (mode && !savedMode) {
+        setUiMode(mode);
+        localStorage.setItem(MODE_KEY, mode);
+      }
     }
     if ((UI_MODES as readonly string[]).includes(savedMode)) setUiMode(savedMode as UiMode);
     const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
@@ -149,7 +168,8 @@ export function useIdApp() {
 
   function fail(status: number, data: { error?: string }) {
     if (status === 429) setErr(t("rate_limited"));
-    else if (data.error === "invalid_code" || data.error === "invalid_credentials") setErr(t("invalid_code"));
+    else if (data.error === "invalid_credentials") setErr(screen === "recovery" ? t("invalid_code") : t("wrong_login"));
+    else if (data.error === "invalid_code") setErr(t("invalid_code"));
     else if (data.error === "nick_taken") setErr(t("nick_taken_hint"));
     else if (data.error === "password_short") setErr(t("password_short"));
     else if (data.error === "password_weak" || data.error === "same_as_nick") setErr(t("password_weak"));
@@ -609,11 +629,13 @@ export function useIdApp() {
     downloadBlob(blob, file.name);
   }
 
-  /** Cover photo for the card: shrunk on the phone to ~1000 px JPEG before upload. */
+  /** Cover photo for the card: shrunk on the phone to ~1000 px WebP (JPEG fallback) before upload. */
   async function uploadPhoto(file: File) {
     if (!session) return;
-    const blob = await shrinkImage(file, 1080, 0.8);
-    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+    // WebP for photos (smaller); browsers that cannot encode it (older Safari) fall back to JPEG.
+    let blob = await shrinkImage(file, 1080, 0.8, "image/webp");
+    if (blob.type !== "image/webp") blob = await shrinkImage(file, 1080, 0.8, "image/jpeg");
+    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": blob.type }, body: blob });
     if (!res.ok) return;
     const data = (await res.json()) as { photo: string | null };
     setSession({ ...session, photo: data.photo });
@@ -633,7 +655,7 @@ export function useIdApp() {
 
   const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
   /** Device-level look: theme family + Light/Dark/System. The public card keeps its own theme. */
-  const theme: UiTheme = uiTheme ?? "emerald-saudi";
+  const theme: UiTheme = uiTheme ?? "emerald";
   const mode: "light" | "dark" = uiMode === "system" ? (systemDark ? "dark" : "light") : uiMode;
   const cls = skin ? `app ${appearance} ${skin}` : `app ${mode} ds ds-${theme}`;
 
@@ -832,7 +854,7 @@ export function downloadBlob(blob: Blob, name: string) {
 }
 
 /** Downscale a picked photo so the longest side is at most `max` px and encode as JPEG. */
-export async function shrinkImage(file: Blob, max: number, quality: number): Promise<Blob> {
+export async function shrinkImage(file: Blob, max: number, quality: number, type = "image/jpeg"): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -846,7 +868,7 @@ export async function shrinkImage(file: Blob, max: number, quality: number): Pro
     canvas.width = Math.round(img.naturalWidth * k);
     canvas.height = Math.round(img.naturalHeight * k);
     canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), "image/jpeg", quality));
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), type, quality));
   } finally {
     URL.revokeObjectURL(url);
   }

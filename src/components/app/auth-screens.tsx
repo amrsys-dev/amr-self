@@ -58,7 +58,7 @@ export function AuthScreens({ app }: { app: App }) {
           <div className="field">
             <label>{t("nick")}</label>
             <div className="box">
-              <input value={nick} placeholder="murad" onChange={(e) => void checkNick(e.target.value)} autoCapitalize="off" autoCorrect="off" autoComplete="username" />
+              <NickInput value={nick} onChange={(v) => void checkNick(v)} />
             </div>
           </div>
           {nickStatus === "free" && (
@@ -235,7 +235,7 @@ export function AuthScreens({ app }: { app: App }) {
           <div className="field">
             <label>{t("nick")}</label>
             <div className="box">
-              <input value={nick} placeholder="yourname.amr" onChange={(e) => setNick(e.target.value)} autoCapitalize="off" />
+              <NickInput value={nick} onChange={setNick} />
             </div>
           </div>
           <div className="field">
@@ -328,5 +328,27 @@ export function AuthScreens({ app }: { app: App }) {
     )}
 
     </>
+  );
+}
+
+/** Nick field: the user types only the name, ".amr" is always shown and added. */
+export function NickInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const handle = value.replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "");
+  return (
+    <span className="nick-input">
+      <input
+        value={handle}
+        placeholder="murad"
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoComplete="username"
+        spellCheck={false}
+        onChange={(e) => {
+          const clean = e.target.value.trim().toLowerCase().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").replace(/[^a-z0-9._-]/g, "");
+          onChange(clean ? `${clean}.amr` : "");
+        }}
+      />
+      <span className="nick-suffix" aria-hidden="true">.amr</span>
+    </span>
   );
 }
