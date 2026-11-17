@@ -4,8 +4,6 @@
 
 The Russian text is the primary version (`privacy-policy.ru.md`). If a translation differs from the Russian text, the Russian text prevails. English and Arabic versions are in `privacy-policy.en.md` and `privacy-policy.ar.md`. Uzbek and Tajik translations will come later.
 
-Until a lawyer gives a written opinion on SDAIA registration and on the legal basis and safeguards for transferring data outside Saudi Arabia, the service may run only as a preview on test data. We do not collect real people’s data.
-
 ---
 
 ## 1. Who we are
@@ -25,7 +23,7 @@ The service website is [self.amrsys.net](https://self.amrsys.net).
 
 AMR ID version 1 is a separate web app (PWA) on Vercel. It is your nickname and a digital card with a QR code. The card may show contacts you added yourself. You decide what is public and what is hidden.
 
-Sign-in uses a nickname, a password, and a second factor: a one-time code sent to the official Telegram bot.
+Sign-in uses a nickname and a password. If you linked Telegram, you also enter a one-time code from the official Telegram bot after the password. See section 3.1.
 
 Version 1 has **no password vault**. We do not store your documents, messenger passwords, or secrets from other services. There is a separate finances and tasks file: it is encrypted on your device, and the key stays only with you (see section 3.5). Email is not used for sign-in in this version — that comes later.
 
@@ -37,8 +35,9 @@ We only collect what is needed for sign-in, the card, and syncing your encrypted
 
 - Your nick of the form @AMR-… (the exact format is not yet approved).
 - Your password — stored only as a hash. We do not store or see the password itself.
-- Your Telegram ID — so we can deliver the second-factor code. You cannot sign in without a linked Telegram account.
-- You link Telegram through the official bot [@amr_id_bot](https://t.me/amr_id_bot). The app gives you a one-time link to the bot that works for 10 minutes. You open it and tap «Start», and the bot saves your Telegram ID.
+- Ways to sign in: nickname and password; Google sign-in works only when it is turned on in the service and you linked Google to your account beforehand. You create an account with a nickname and a password; Telegram is not needed for that.
+- Your Telegram ID — only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.
+- You can link or change Telegram on the sign-in screen with «I lost Telegram»: you need the password and one recovery code. You enter your Telegram ID, the official bot [@amr_id_bot](https://t.me/amr_id_bot) sends a code, and you enter it in the app.
 - Besides the Telegram ID, we store only your public Telegram username (@username), if you have one. We do not take your name, phone number, or profile photo from Telegram.
 - One-time sign-in codes are issued by a Cloudflare Worker and sent to Telegram. We do not store the code in readable form: it is short-lived and single-use.
 - Ten one-time recovery codes. They are created on your device and shown once on the screen when you register. Copy them, save them to a file, or print them. Recovery codes are not sent through Telegram. Only verification hashes and wraps go to the server, not the codes themselves. After a password reset with a code, a new set of 10 codes is likewise created on the device and shown once on the screen; the old codes no longer work. Version 1 has no other way to get access back: if you lose the password and all the codes, access cannot be restored. If you lose access to Telegram, your password plus one recovery code let you link a new Telegram account. All open sessions are then closed, and the code you used is consumed.
@@ -137,7 +136,7 @@ Processors and recipients in version 1:
 
 Long-term storage with Cloudflare is in Europe (EU). Cloudflare data is stored in the European Union. That is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
 
-Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this version: **to be formalised**. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below). Until there is a written opinion from counsel, we do not collect real people’s data, and the service may only be a preview on test data.
+Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this version: **to be formalised**. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).
 
 Vercel, Cloudflare, Telegram, and Google keep their own technical logs under their own rules: [Vercel](https://vercel.com/legal/privacy-policy), [Cloudflare](https://www.cloudflare.com/privacypolicy/), [Telegram](https://telegram.org/privacy), [Google](https://policies.google.com/privacy). Our periods are in section 7.
 

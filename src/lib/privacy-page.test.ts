@@ -95,4 +95,33 @@ describe("privacy policy page", () => {
     assert.equal([...html.matchAll(new RegExp(`href="https://t\\.me/${DEFAULT_TG_BOT}"`, "g"))].length, 3);
     assert.equal([...html.matchAll(/href="https:\/\/sdaia\.gov\.sa"/g)].length, 3);
   });
+
+  it("has no lawyer-pending or preview-only claims left", () => {
+    const files = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    for (const { name, text } of files) {
+      assert.doesNotMatch(text, /юрист/i, name);
+      assert.doesNotMatch(text, /preview на тестовых данных|Реальные данные людей не собираем|реальные данные людей не собираем/, name);
+      assert.doesNotMatch(text, /lawyer|counsel/i, name);
+      assert.doesNotMatch(text, /preview on test data|do not collect real people/i, name);
+      assert.doesNotMatch(text, /المحامي/, name);
+      assert.doesNotMatch(text, /بيانات تجريبية|ما نجمع بيانات ناس حقيقية/, name);
+    }
+  });
+
+  it("does not say Telegram is required to sign in, and lists the sign-in methods", () => {
+    const files = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    for (const { name, text } of files) {
+      assert.doesNotMatch(text, /Без привязанного Telegram войти в сервис нельзя/, name);
+      assert.doesNotMatch(text, /cannot sign in without a linked Telegram/i, name);
+      assert.doesNotMatch(text, /بدون تلغرام مربوط ما تقدر تدخل/, name);
+      assert.doesNotMatch(text, /одноразовую ссылку на бота|one-time link to the bot|رابطاً للبوت لمرة/, name);
+    }
+    const ru = policies.find((p) => p.name === "privacy-policy.ru.md")!.text;
+    const en = policies.find((p) => p.name === "privacy-policy.en.md")!.text;
+    const ar = policies.find((p) => p.name === "privacy-policy.ar.md")!.text;
+    assert.match(ru, /Аккаунт создаётся по нику и паролю, Telegram для этого не нужен/);
+    assert.match(en, /Telegram is not needed for that/);
+    assert.match(ar, /وما يحتاج تلغرام/);
+    for (const t of [ru, en, ar]) assert.match(t, /Google/);
+  });
 });
