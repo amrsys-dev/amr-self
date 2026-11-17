@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { MsgKey } from "@/lib/i18n.ts";
 import {
-  browserInstallUrl,
   isIos,
   isStandalone,
   isTelegramWebView,
+  openSiteForInstall,
   takeInstallFlag,
-  telegramWebApp,
   type BeforeInstallPromptEvent,
 } from "@/lib/pwa-install.ts";
 
@@ -48,6 +47,10 @@ export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) =>
   if (hidden) return null;
 
   const onClick = async () => {
+    if (isTelegramWebView()) {
+      openSiteForInstall();
+      return;
+    }
     const pending = promptRef.current;
     if (pending) {
       setHint("none");
@@ -57,27 +60,11 @@ export function InstallButton({ t, className = "tool txt" }: { t: (k: MsgKey) =>
       if (choice.outcome === "accepted") setHidden(true);
       return;
     }
-    const tg = telegramWebApp();
-    if (isTelegramWebView()) {
-      if (typeof tg?.addToHomeScreen === "function") {
-        try {
-          tg.addToHomeScreen();
-          return;
-        } catch {
-          /* older clients */
-        }
-      }
-      setHint("tg");
-      return;
-    }
     setHint("ios");
   };
 
   const openBrowser = () => {
-    const tg = telegramWebApp();
-    const href = browserInstallUrl();
-    if (tg?.openLink) tg.openLink(href);
-    else window.open(href, "_blank", "noopener");
+    openSiteForInstall();
     setHint("none");
   };
 

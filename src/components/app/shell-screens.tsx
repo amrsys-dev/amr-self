@@ -169,6 +169,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
+                <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
@@ -218,6 +219,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <AppearanceRows theme={theme} chooseTheme={chooseTheme} mode={uiMode} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
+                <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
               </div>
             </>
           )}

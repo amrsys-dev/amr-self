@@ -75,3 +75,17 @@ export function browserInstallUrl(loc?: { origin: string; pathname: string }): s
   const l = loc ?? (globalThis as unknown as Window).location;
   return `${l.origin}${l.pathname}?install=1`;
 }
+
+/** In Telegram, open the site in the external browser so the PWA can be installed there. Never add Telegram query/hash. */
+export function openSiteForInstall(
+  loc?: { origin: string; pathname: string },
+  tg?: { openLink?: (url: string) => void },
+  openWindow?: (url: string) => void,
+): string {
+  const href = browserInstallUrl(loc);
+  const wa = tg ?? telegramWebApp();
+  if (wa?.openLink) wa.openLink(href);
+  else if (openWindow) openWindow(href);
+  else if (typeof window !== "undefined") window.open(href, "_blank", "noopener");
+  return href;
+}

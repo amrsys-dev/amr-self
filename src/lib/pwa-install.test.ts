@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { INSTALL_LABEL, browserInstallUrl, installUrl, isStandalone, takeInstallFlag } from "./pwa-install.ts";
+import { INSTALL_LABEL, browserInstallUrl, installUrl, isStandalone, openSiteForInstall, takeInstallFlag } from "./pwa-install.ts";
 
 test("installUrl adds ?install=1 and keeps other query params", () => {
   assert.equal(installUrl("https://bazar.amrsys.net/"), "https://bazar.amrsys.net/?install=1");
@@ -55,4 +55,18 @@ test("browserInstallUrl keeps only origin, pathname and install=1 — no hash, n
     browserInstallUrl({ origin: "https://safar.amrsys.net", pathname: "/app" }),
     "https://safar.amrsys.net/app?install=1",
   );
+});
+
+test("openSiteForInstall uses openLink with a clean URL and does not call addToHomeScreen", () => {
+  const calls: string[] = [];
+  const href = openSiteForInstall(
+    { origin: "https://safar.amrsys.net", pathname: "/" },
+    { openLink: (url: string) => calls.push(url) },
+    (url) => calls.push("WINDOW:" + url),
+  );
+  assert.equal(href, "https://safar.amrsys.net/?install=1");
+  assert.deepEqual(calls, ["https://safar.amrsys.net/?install=1"]);
+  const parsed = new URL(href);
+  assert.equal(parsed.hash, "");
+  assert.deepEqual([...parsed.searchParams.keys()], ["install"]);
 });
