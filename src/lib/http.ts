@@ -77,8 +77,16 @@ export const SECURITY_HEADERS: Record<string, string> = {
     "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests",
 };
 
+/** Default for every JSON answer: per-person, never stored by the CDN, a proxy or the browser. Public card routes override it. */
+export const PRIVATE_CACHE = "private, no-store";
+
 export function json(data: unknown, status = 200, headers?: HeadersInit): Response {
-  return Response.json(data, { status, headers: { ...SECURITY_HEADERS, ...headers } });
+  const h = new Headers(SECURITY_HEADERS);
+  h.set("Cache-Control", PRIVATE_CACHE);
+  h.set("Vary", "Cookie");
+  new Headers(headers).forEach((v, k) => h.set(k, v));
+  if (!/\b(private|no-store)\b/i.test(h.get("Cache-Control") ?? "")) h.delete("Vary");
+  return Response.json(data, { status, headers: h });
 }
 
 export function jsonWithCookie(data: unknown, cookie: string, status = 200): Response {

@@ -2,6 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { sessionSecret } from "../env.server.ts";
 import { sessionKey, sessionsOfKey, type UserRecord } from "../user.ts";
 import { getStores } from "../storage/index.ts";
+import { json } from "../http.ts";
 
 /** Only essential cookie: session id. No analytics or marketing cookies. */
 const COOKIE = "amrid_session";
@@ -113,11 +114,11 @@ export function crossSiteRejected(request: Request): boolean {
 }
 
 export async function requireUser(request: Request): Promise<UserRecord | Response> {
-  if (crossSiteRejected(request)) return Response.json({ error: "forbidden" }, { status: 403 });
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403);
   const { nickKey } = await import("../user.ts");
   const s = await readSession(request);
-  if (!s) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!s) return json({ error: "unauthorized" }, 401);
   const raw = await getStores().kv.get(nickKey(s.nick));
-  if (!raw) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!raw) return json({ error: "unauthorized" }, 401);
   return JSON.parse(raw) as UserRecord;
 }

@@ -53,7 +53,10 @@ function ConnectPage() {
 
   function goLogin() {
     try {
-      sessionStorage.setItem(CONNECT_PENDING_KEY, location.pathname + location.search);
+      const v = location.pathname + location.search;
+      sessionStorage.setItem(CONNECT_PENDING_KEY, v);
+      // Sign-in may finish in another tab (code from the Telegram bot): keep it 10 minutes on this device too.
+      localStorage.setItem(CONNECT_PENDING_KEY, JSON.stringify({ v, exp: Date.now() + 10 * 60 * 1000 }));
     } catch {
       /* storage blocked */
     }

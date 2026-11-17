@@ -130,6 +130,23 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(login.status, 400);
   });
 
+  it("a new sign-in on the same device ends the previous account's session", async () => {
+    const a = await signup("@AMR-611-611", "correct-battery-horse");
+    const b = await signup("@AMR-622-622", "correct-battery-horse");
+    assert.equal((await handleMe(req("/api/me", { method: "GET", cookie: a.cookie }))).status, 200);
+    const login = await json(
+      await handleLogin(req("/api/auth/login", { cookie: a.cookie, body: { nick: b.nick, authKey: encodeAuthKey(b.pwd.authKey) } })),
+    );
+    assert.equal(login.status, 200, JSON.stringify(login.data));
+    const otp = await json(
+      await handleOtp(req("/api/auth/otp", { cookie: a.cookie, body: { otpId: login.data.otpId, code: login.data.testOtp } })),
+    );
+    assert.equal(otp.status, 200);
+    assert.equal((await handleMe(req("/api/me", { method: "GET", cookie: a.cookie }))).status, 401);
+    const me = await json(await handleMe(req("/api/me", { method: "GET", cookie: otp.cookie })));
+    assert.equal(me.data.nick, b.nick);
+  });
+
   it("logs in with the derived auth key only and stores minimized Telegram fields", async () => {
     const acc = await signup("@AMR-417-283", "correct-battery-horse");
     const stored = JSON.parse((await getStores().kv.get(nickKey(acc.nick)))!) as {
@@ -576,7 +593,7 @@ describe("auth-key-only login and recovery", () => {
       await handleSignup(
         req("/api/auth/signup", {
           body: {
-            nick: "Murad",
+            nick: "Name",
             authKey: encodeAuthKey(pwd.authKey),
             recoveryVerifyKey: encodeAuthKey(rec.verifyKey),
             kdfPassword: pwd.params,
@@ -590,7 +607,7 @@ describe("auth-key-only login and recovery", () => {
       ),
     );
     assert.equal(noAge.status, 200, JSON.stringify(noAge.data));
-    assert.equal(noAge.data.nick, "murad.amr");
+    assert.equal(noAge.data.nick, "name.amr");
     assert.ok(noAge.cookie);
     const directLogin = await json(await handleLogin(req("/api/auth/login", { body: { nick: noAge.data.nick, authKey: encodeAuthKey(pwd.authKey) } })));
     assert.equal(directLogin.status, 200, JSON.stringify(directLogin.data));

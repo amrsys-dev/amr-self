@@ -10,7 +10,7 @@ describe("card photo", () => {
     assert.equal(photoType(new TextEncoder().encode("<svg onload=x>")), null);
   });
   it("versions the public URL so a new photo is not served from cache", () => {
-    assert.equal(photoUrl({ nick: "murad.amr", photo: { key: "k", v: 7 } }), "/api/card-photo/murad.amr?v=7");
-    assert.equal(photoUrl({ nick: "murad.amr" }), null);
+    assert.equal(photoUrl({ nick: "name.amr", photo: { key: "k", v: 7 } }), "/api/card-photo/name.amr?v=7");
+    assert.equal(photoUrl({ nick: "name.amr" }), null);
   });
 });
