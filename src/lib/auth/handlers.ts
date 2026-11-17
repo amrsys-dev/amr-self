@@ -73,6 +73,11 @@ const otpSchema = z.object({
   otpId: z.string().min(8),
   code: z.string().min(4).max(12),
 });
+/** Sign-in code; otpId is missing after «Войти через Google» (the pending id is then in the HttpOnly cookie amr_glogin). */
+const signInOtpSchema = z.object({
+  otpId: z.string().min(8).optional(),
+  code: z.string().min(4).max(12),
+});
 
 const recoverySchema = z.object({
   nick: z.string().min(3),
@@ -532,11 +537,17 @@ export async function handleLogin(request: Request): Promise<Response> {
 }
 
 export async function handleOtp(request: Request): Promise<Response> {
-  const body = otpSchema.safeParse(await readJson(request));
-  if (!body.success) return json({ error: "invalid" }, 400);
+  const parsed = signInOtpSchema.safeParse(await readJson(request));
+  if (!parsed.success) return json({ error: "invalid" }, 400);
+  const fromCookie = !parsed.data.otpId;
+  const otpId = parsed.data.otpId ?? readCookie(request, GOOGLE_LOGIN_COOKIE);
+  if (!otpId || !/^[A-Za-z0-9_-]{8,64}$/.test(otpId)) return json({ error: "invalid_code" }, 401);
+  const body = { data: { otpId, code: parsed.data.code } };
   const raw = await getStores().kv.get(otpKey(body.data.otpId));
   if (!raw) return json({ error: "invalid_code" }, 401);
   const pending = JSON.parse(raw) as PendingSignup | PendingLogin;
+  // The cookie only ever carries a Google sign-in that waits for the Telegram code.
+  if (fromCookie && !(pending.kind === "login" && pending.method === "google")) return json({ error: "invalid_code" }, 401);
   // Only sign-up and sign-in codes open a session here; delete / link / channel codes never do.
   if (pending.kind !== "signup" && pending.kind !== "login") return json({ error: "invalid_code" }, 401);
   if (pending.otp && pending.otp.purpose !== pending.kind) return json({ error: "invalid_code" }, 401);
@@ -574,7 +585,9 @@ export async function handleOtp(request: Request): Promise<Response> {
   await destroySession(request); // a new sign-in never keeps the previous account's session on this device
   const method: SignInMethod = pending.kind === "login" && pending.method === "google" ? "google" : "telegram";
   const { cookie } = await createSession(user.nick, method);
-  return jsonWithCookie({ ...sessionPayload(user), method }, cookie);
+  const res = jsonWithCookie({ ...sessionPayload(user), method }, cookie);
+  if (method === "google") res.headers.append("Set-Cookie", googleLoginCookie("", 0));
+  return res;
 }
 
 export async function handleLogout(request: Request): Promise<Response> {
@@ -637,8 +650,9 @@ export async function handleRecovery(request: Request): Promise<Response> {
   user.passwordHash = await hashAuthKey(newAuth);
   user.wrapPassword = body.data.wrapPassword as WrappedKey;
   user.kdf = { password: body.data.kdfPassword, recovery: replacement.kdfs[0] ?? user.kdf.recovery };
-  await dropGoogle(user); // recovery = someone may have had access: unlink Google too
+  const googleDropped = await dropGoogle(user); // recovery = someone may have had access: unlink Google too
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
+  if (googleDropped) await noticeGoogle(user, "unlinked");
   await revokeAllSessions(user.nick);
   await destroySession(request); // a new sign-in never keeps the previous account's session on this device
   const { cookie } = await createSession(user.nick);
@@ -724,8 +738,9 @@ async function handleRebind(
   );
   if (pending.channel === "telegram") user.otp.telegram = telegramFromUserInput(pending.dest, true);
   else user.otp.email = { address: pending.dest, verified: true };
-  await dropGoogle(user); // new 2FA channel after recovery: unlink Google too
+  const googleDropped = await dropGoogle(user); // new 2FA channel after recovery: unlink Google too
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
+  if (googleDropped) await noticeGoogle(user, "unlinked");
   await getStores().kv.delete(otpKey(data.otpId));
   await revokeAllSessions(user.nick);
   const { cookie } = await createSession(user.nick, "telegram");
@@ -1124,6 +1139,14 @@ export async function handleGoogleProof(request: Request): Promise<Response> {
 }
 
 const GOOGLE_STATE_COOKIE = "amr_gs";
+const GOOGLE_LOGIN_COOKIE = "amr_glogin";
+function googleLoginCookie(value: string, maxAge: number): string {
+  const secure = process.env.VERCEL || process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${GOOGLE_LOGIN_COOKIE}=${value}; Path=/api/auth/otp; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`;
+}
+function readCookie(request: Request, name: string): string {
+  return (request.headers.get("cookie") ?? "").split(";").map((c) => c.trim()).find((c) => c.startsWith(`${name}=`))?.slice(name.length + 1) ?? "";
+}
 function redirect(location: string, cookies: string[] = []): Response {
   const h = new Headers({ Location: location, "Cache-Control": "private, no-store" });
   for (const c of cookies) h.append("Set-Cookie", c);
@@ -1212,8 +1235,9 @@ export async function handleGoogleCallback(request: Request, fetchImpl: typeof f
       if (issued instanceof Response) return back("rate_limited");
       const pending: PendingLogin = { kind: "login", nick: user.nick, otp: issued.otp, method: "google" };
       await kv.put(otpKey(issued.otpId), JSON.stringify(pending), otpPutTtl());
+      // The pending id stays in an HttpOnly cookie (not in the URL); /api/auth/otp reads it.
       const test = isTestMode() ? `&t=${issued.code}` : "";
-      return redirect(`/#google-otp=${issued.otpId}${test}`, [clear]);
+      return redirect(`/?google=otp${test}`, [clear, googleLoginCookie(issued.otpId, Math.floor(OTP_TTL_MS / 1000))]);
     }
     await destroySession(request);
     const { cookie } = await createSession(user.nick, "google");

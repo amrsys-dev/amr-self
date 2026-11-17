@@ -151,13 +151,11 @@ export function useIdApp() {
       }
       const g = new URLSearchParams(window.location.search).get("google");
       if (g === "ok") markGoogleSignIn();
-      if (g && g !== "ok" && g !== "linked") setErr(t(googleMsg(g)));
-      // Google sign-in on an account with Telegram: finish with the Telegram login code.
-      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const gOtp = hash.get("google-otp");
-      if (!r.ok && gOtp) {
-        setOtpId(gOtp);
-        setTestOtp(hash.get("t") ?? undefined);
+      if (g && g !== "ok" && g !== "linked" && g !== "otp") setErr(t(googleMsg(g)));
+      // Google sign-in on an account with Telegram: finish with the Telegram login code (pending id is in an HttpOnly cookie).
+      if (!r.ok && g === "otp") {
+        setOtpId("");
+        setTestOtp(new URLSearchParams(window.location.search).get("t") ?? undefined);
         setScreen("login-2fa");
         window.history.replaceState(null, "", window.location.pathname);
       }
@@ -271,7 +269,7 @@ export function useIdApp() {
     try {
       const r = await api<SessionState & { wrapPassword: WrappedKey }>("/api/auth/otp", {
         method: "POST",
-        body: JSON.stringify({ otpId, code }),
+        body: JSON.stringify(otpId ? { otpId, code } : { code }),
       });
       if (!r.ok) return fail(r.status, r.data as { error?: string });
       if ((r.data as { method?: string }).method === "google") markGoogleSignIn();

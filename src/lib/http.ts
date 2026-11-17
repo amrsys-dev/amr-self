@@ -66,6 +66,13 @@ export function clientIp(request: Request): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
+/**
+ * Must equal the Content-Security-Policy in vercel.json (a test checks it).
+ * form-action allows accounts.google.com: «Войти через Google» posts a form to /api/auth/google/start, which redirects there.
+ */
+export const CONTENT_SECURITY_POLICY =
+  "default-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests";
+
 export const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -73,8 +80,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=63072000; includeSubDomains",
   // TanStack Start emits inline hydration bootstrap (per-request, so hashes are unstable).
   // A per-request nonce would be tighter once CSP is no longer a static Vercel header.
-  "Content-Security-Policy":
-    "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests",
+  "Content-Security-Policy": CONTENT_SECURITY_POLICY,
 };
 
 /** Default for every JSON answer: per-person, never stored by the CDN, a proxy or the browser. Public card routes override it. */

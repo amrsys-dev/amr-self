@@ -397,6 +397,7 @@ describe("auth-key-only login and recovery", () => {
     const acc = await signup("@AMR-520-520", "old-password-ok");
     const oldCookie = acc.cookie;
     await seedGoogle(acc.nick, "g-sub-rec");
+    testNotices.length = 0;
     const still = await json(await handleMe(req("/api/me", { method: "GET", cookie: oldCookie })));
     assert.equal(still.status, 200);
     const newPwd = await derivePasswordKeys("new-password-ok");
@@ -422,6 +423,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(reset.data.sessionsRevoked, true);
     // Recovery unlinks Google: an attacker's linked Google can't survive a reset.
     assert.equal(await getStores().kv.get(googleSubKey("g-sub-rec")), null);
+    assert.ok(testNotices.some((n) => n.text.includes("Google отвязан")));
     assert.equal(JSON.parse((await getStores().kv.get(nickKey(acc.nick)))!).google, undefined);
     const dead = await json(await handleMe(req("/api/me", { method: "GET", cookie: oldCookie })));
     assert.equal(dead.status, 401);
@@ -733,14 +735,29 @@ describe("auth-key-only login and recovery", () => {
       await linkGoogle(acc);
       const login = await start("login");
       const res = await callback(login.state, [login.gs], fakeGoogle(base, () => login.nonce));
-      const loc = res.headers.get("location")!;
-      assert.match(loc, /^\/#google-otp=/);
+      const loc = new URL(res.headers.get("location")!, ORIGIN);
+      assert.equal(loc.pathname, "/");
+      assert.equal(loc.searchParams.get("google"), "otp");
+      assert.ok(!loc.hash && !loc.search.includes(acc.nick)); // the pending id is not in the URL
       assert.equal(sessionCookie(res), undefined); // no session before the Telegram code
-      const h = new URLSearchParams(loc.slice(2));
-      const fin = await json(await handleOtp(req("/api/auth/otp", { body: { otpId: h.get("google-otp"), code: h.get("t") } })));
+      const pendingCookie = res.headers.getSetCookie().find((c) => c.startsWith("amr_glogin="))!;
+      assert.match(pendingCookie, /HttpOnly/);
+      assert.match(pendingCookie, /Path=\/api\/auth\/otp/);
+      assert.match(pendingCookie, /SameSite=Lax/);
+      const pendingId = pendingCookie.split(";")[0];
+      assert.ok(!loc.search.includes(pendingId.slice("amr_glogin=".length)));
+      // Without the cookie the code alone is useless.
+      assert.equal((await json(await handleOtp(req("/api/auth/otp", { body: { code: loc.searchParams.get("t") } })))).status, 401);
+      const finRes = await handleOtp(req("/api/auth/otp", { cookie: pendingId, body: { code: loc.searchParams.get("t") } }));
+      const fin = await json(finRes.clone());
       assert.equal(fin.status, 200, JSON.stringify(fin.data));
       assert.equal(fin.data.method, "google");
-      assert.equal((await json(await handleMe(req("/api/me", { method: "GET", cookie: fin.cookie })))).data.nick, acc.nick);
+      assert.ok(finRes.headers.getSetCookie().some((c) => c.startsWith("amr_glogin=;") && c.includes("Max-Age=0")));
+      const sess = finRes.headers.getSetCookie().find((c) => c.startsWith("amrid_session="))!.split(";")[0];
+      assert.equal((await json(await handleMe(req("/api/me", { method: "GET", cookie: sess })))).data.nick, acc.nick);
+      // The cookie can't carry an ordinary password-login code.
+      const pl = await json(await handleLogin(req("/api/auth/login", { body: { nick: acc.nick, authKey: encodeAuthKey(acc.pwd.authKey) } })));
+      assert.equal((await json(await handleOtp(req("/api/auth/otp", { cookie: `amr_glogin=${pl.data.otpId}`, body: { code: pl.data.testOtp } })))).status, 401);
       // An account without Telegram (e.g. Google-first) gets the session right away.
       const other = await signup("@AMR-588-588", "correct-battery-horse");
       await linkGoogle(other, "g-sub-9");
@@ -1020,6 +1037,7 @@ describe("auth-key-only login and recovery", () => {
     const acc = await signup("@AMR-600-600", "correct-battery-horse");
     const oldCookie = acc.cookie;
     await seedGoogle(acc.nick, "g-sub-rebind");
+    testNotices.length = 0;
     const start = await json(
       await handleRecovery(
         req("/api/auth/recovery", {
@@ -1052,6 +1070,7 @@ describe("auth-key-only login and recovery", () => {
     assert.equal(confirm.status, 200, JSON.stringify(confirm.data));
     assert.equal(confirm.data.rebound, true);
     assert.equal(await getStores().kv.get(googleSubKey("g-sub-rebind")), null);
+    assert.ok(testNotices.some((n) => n.text.includes("Google отвязан")));
     assert.equal(JSON.parse((await getStores().kv.get(nickKey(acc.nick)))!).google, undefined);
     assert.equal(confirm.data.sessionsRevoked, true);
     assert.equal(confirm.data.recoveryBurned, true);
