@@ -142,4 +142,73 @@ describe("privacy policy page", () => {
       assert.match(html, re, name);
     }
   });
+
+  describe("SECURITY review fixes (storage, transfer basis, nick, complaints, card)", () => {
+    const all = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    const main = ["privacy-policy.ru.md", "privacy-policy.en.md", "privacy-policy.ar.md"].map((name) => ({
+      name,
+      text: policies.find((p) => p.name === name)!.text,
+    }));
+
+    it("does not claim all Cloudflare data is in the EU; names KV/Durable Objects and R2 (EU)", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /Данные Cloudflare хранятся в Европейском союзе/, name);
+        assert.doesNotMatch(text, /Cloudflare data is stored in the European Union/i, name);
+        assert.doesNotMatch(text, /بيانات Cloudflare محفوظة في الاتحاد الأوروبي/, name);
+        assert.doesNotMatch(text, /Долговременное хранение у Cloudflare — в Европе/, name);
+        assert.doesNotMatch(text, /Long-term storage with Cloudflare is in Europe/i, name);
+      }
+      for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
+        assert.match(text, /Cloudflare KV/, name);
+        assert.match(text, /Durable Objects/, name);
+        assert.match(text, /Cloudflare R2/, name);
+      }
+    });
+
+    it("states the transfer basis, without «будет оформлено»", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /будет оформлено/, name);
+        assert.doesNotMatch(text, /to be formalised/i, name);
+        assert.doesNotMatch(text, /ستُستكمل/, name);
+      }
+      const ru = main[0]!.text;
+      assert.match(ru, /Основание передачи: она нужна, чтобы дать вам сервис, который вы сами запросили/);
+      assert.match(ru, /по правилам SDAIA о передаче персональных данных за пределы Королевства/);
+      assert.match(main[1]!.text, /SDAIA rules on transferring personal data outside the Kingdom/);
+      assert.match(main[2]!.text, /قواعد سدايا لنقل البيانات الشخصية خارج المملكة/);
+    });
+
+    it("describes the real nick rule from src/lib/nick.ts", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /@AMR-…/, name);
+        assert.doesNotMatch(text, /не утверждён|not yet approved|ما اعتمدت/, name);
+      }
+      for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
+        assert.match(text, /murad\.amr/, name);
+        assert.match(text, /3[^0-9]{1,12}24/, name);
+      }
+    });
+
+    it("has no impersonation-report retention (no such feature in code)", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /90 дней|90 days|90 يوماً/, name);
+        assert.doesNotMatch(text, /Жалобы на подделку хранятся/, name);
+        assert.doesNotMatch(text, /Reports of impersonation are kept/i, name);
+        assert.doesNotMatch(text, /بلاغات الانتحال تُحفظ/, name);
+      }
+    });
+
+    it("has no «hide card» action; the /u/ card is public while the account exists", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /скрыть визитку|закрыть визитку/, name);
+        assert.doesNotMatch(text, /hide card|hide the card/i, name);
+        assert.doesNotMatch(text, /إخفاء البطاقة|تقفل البطاقة/, name);
+      }
+      for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
+        assert.match(text, /self\.amrsys\.net\/u\/murad\.amr/, name);
+      }
+      assert.match(main[0]!.text, /Пока аккаунт существует, ваша визитка открыта всем/);
+      assert.match(main[0]!.text, /После удаления аккаунта визитка перестаёт открываться/);
+    });
+  });
 });

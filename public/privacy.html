@@ -72,7 +72,7 @@
 <p>We only collect what is needed for sign-in, the card, and syncing your encrypted finances and tasks file.</p>
 <h3>3.1. Account and sign-in</h3>
 <ul>
-<li>Your nick of the form @AMR-… (the exact format is not yet approved).</li>
+<li>Your nick, which you choose yourself: 3 to 24 characters — Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending <code>.amr</code>, for example <code>murad.amr</code>. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.</li>
 <li>Your password — stored only as a hash. We do not store or see the password itself.</li>
 <li>Ways to sign in: nickname and password; Google sign-in works only when it is turned on in the service and you linked Google to your account beforehand. You create an account with a nickname and a password; Telegram is not needed for that.</li>
 <li>Your Telegram ID — only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.</li>
@@ -133,7 +133,7 @@
 <p>Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The authority is SDAIA.</p>
 <ul>
 <li>Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you (the service terms).</li>
-<li>Showing guests the public contacts and photo you chose — your consent. You can hide a field, hide the card, or withdraw consent at any time.</li>
+<li>Showing guests the public contacts and photo you chose — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.</li>
 <li>Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.</li>
 <li>Storing your Google ID, if you chose to sign in with Google — performance of the agreement.</li>
 <li>Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising.</li>
@@ -161,8 +161,8 @@
 <li><strong>Telegram</strong> — the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.</li>
 <li><strong>Google</strong> — sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google&#x27;s servers are outside Saudi Arabia.</li>
 </ul>
-<p>Long-term storage with Cloudflare is in Europe (EU). Cloudflare data is stored in the European Union. That is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.</p>
-<p>Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this version: <strong>to be formalised</strong>. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).</p>
+<p>Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects — on Cloudflare’s global network, not tied to one country, and outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.</p>
+<p>Basis for the transfer: it is necessary to provide the service you asked for; in addition, providers protect data under their contractual data processing terms. The transfer follows the SDAIA rules on transferring personal data outside the Kingdom. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).</p>
 <p>Vercel, Cloudflare, Telegram, and Google keep their own technical logs under their own rules: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. Our periods are in section 7.</p>
 <p>They process data so we can provide the service (the site, storage, and code delivery), not for our own unrelated mailing.</p>
 <h2>7. How long we keep data</h2>
@@ -170,7 +170,6 @@
 <li>Account and card data — for as long as the account exists, or until you delete it sooner.</li>
 <li>After “delete everything”, we erase the record, photos, the public card cache, the linked Telegram ID, and the encrypted finances and tasks file at once. Provider backups may remain for up to 30 days.</li>
 <li>You may change the nick once. The old nick is reserved and is never given to anyone else, including after the account is deleted.</li>
-<li>Reports of impersonation are kept for 90 days and are not erased by the “delete everything” button, so a report cannot be hidden.</li>
 <li>Our technical sign-in and protection records are kept for 30 days, then deleted or made anonymous.</li>
 <li>The password hash is kept while the account exists and is erased with it. Hashes of the current set of recovery codes are kept while that set is in force; after a new set of 10 codes is issued, hashes of the old set are erased.</li>
 </ul>
@@ -202,9 +201,8 @@
 <p>We answer a request about your data within 30 days.</p>
 <p>To use these rights, write to <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> or Telegram <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. How to delete your account</h2>
-<p>The service has “hide card” and “delete everything”. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.</p>
+<p>While the account exists, your card is open to everyone at self.amrsys.net/u/your-nick (for example, self.amrsys.net/u/murad.amr): it shows your nick, design, photo (if you uploaded one), and only the contacts you made public. You can hide each contact and delete the photo. After the account is deleted, the card stops opening; cached copies disappear within a few minutes. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.</p>
 <p>After deletion, that nick is never given to anyone else, including back to you automatically. The old account and its data cannot be restored after deletion. To use the service again, create a new account with a new nick. We keep the deleted nick itself with no time limit (only the nick and the date), so it is never given to anyone.</p>
-<p>Reports of impersonation are kept for 90 days and are not erased by the “delete everything” button. Provider backups may remain for up to 30 days. Details are in section 7.</p>
 <h2>11. Children</h2>
 <p>The service is only for people aged 18 and over. We do not knowingly collect children’s data. If you learn that a child created an account, write to us and we will delete it.</p>
 <h2>12. Changes to this policy</h2>
@@ -235,7 +233,7 @@
 <p>نأخذ فقط اللي يحتاجه الدخول، والبطاقة، ومزامنة ملف مالك ومهامك المشفّر.</p>
 <h3>3.1. الحساب والدخول</h3>
 <ul>
-<li>معرفك من شكل @AMR-… (الصيغة الدقيقة إلى الآن ما اعتمدت).</li>
+<li>معرفك اللي تختاره بنفسك: من 3 إلى 24 حرفاً — حروف لاتينية وأرقام، ويجوز بينها نقطة أو شرطة أو شرطة سفلية وحدة. المعرف يُحفظ بحروف صغيرة مع النهاية <code>.amr</code>، مثل <code>murad.amr</code>. الكلمات الخدمية (admin وsupport وapi وأمثالها) ما تنحجز. المعرفات القديمة مثل @AMR-123-456 تظل شغالة.</li>
 <li>كلمة المرور — فقط بشكل هاش. نفس كلمة المرور ما نخزّنها وما نشوفها.</li>
 <li>طرق الدخول: المعرف وكلمة المرور؛ والدخول عبر Google فقط إذا كان مفعّلاً في الخدمة وربطت Google بحسابك من قبل. الحساب ينشأ بالمعرف وكلمة المرور، وما يحتاج تلغرام.</li>
 <li>معرف تلغرام (Telegram ID) — فقط إذا ربطت تلغرام. وقتها عند الدخول (بكلمة المرور أو عبر Google) يوصلك رمز لمرة واحدة في تلغرام بعد الخطوة الأولى.</li>
@@ -296,7 +294,7 @@
 <p>المعالجة تتم وفق نظام حماية البيانات الشخصية في السعودية (PDPL). الجهة المختصة: سدايا.</p>
 <ul>
 <li>إنشاء حسابك، وحفظ المعرف، والسماح لك بالدخول، وعرض البطاقة حسب إعدادك — تنفيذ الاتفاق معك (شروط الخدمة).</li>
-<li>إظهار جهات التواصل والصور المفتوحة اللي اخترتها للزوار — موافقتك. تقدر في أي وقت تخفي حقلاً، أو تقفل البطاقة، أو تسحب الموافقة.</li>
+<li>إظهار جهات التواصل والصور المفتوحة اللي اخترتها للزوار — موافقتك. تقدر في أي وقت تخفي جهة تواصل، أو تحذف الصورة، أو تسحب الموافقة.</li>
 <li>حفظ Telegram ID وإرسال رمز الدخول إلى تلغرام — تنفيذ الاتفاق وحماية الدخول.</li>
 <li>حفظ Google ID إذا اخترت بنفسك الدخول عبر Google — تنفيذ الاتفاق.</li>
 <li>حفظ ملف مالك ومهامك المشفّر والبيانات الخدمية عنه (الحجم، ووقت المزامنة، والحساب)، عشان يمكن مزامنة الملف — تنفيذ الاتفاق. المفتاح ما يُرسل إلى الخادم. هذا الملف ما نستخدمه للنصائح أو التقييم أو الإعلانات.</li>
@@ -324,8 +322,8 @@
 <li><strong>تلغرام</strong> — قناة توصيل رمز العامل الثاني (رمز الدخول). تلغرام يستلم Telegram ID ورسالة فيها رمز الدخول. رموز الاسترجاع ما تنرسل عبر تلغرام.</li>
 <li><strong>Google</strong> — الدخول بحساب Google. ‏Google يعرف إنك دخلت AMR ID، ويعطينا بس Google ID. خوادم Google برّا السعودية.</li>
 </ul>
-<p>الحفظ الطويل عند Cloudflare في أوروبا (EU). بيانات Cloudflare محفوظة في الاتحاد الأوروبي. هذا نقل بيانات خارج السعودية. خادم التطبيق على Vercel يشتغل في أمريكا (منطقة iad1، واشنطن): الطلبات تمر عبره، أما بيانات الحساب فمحفوظة عند Cloudflare مو عند Vercel. تلغرام يوصّل الرمز على خوادمه، عادة خارج السعودية. ما نقول إن البيانات موجودة في السعودية.</p>
-<p>ضمانات هذا النقل (مثلاً البنود التعاقدية القياسية لسدايا) إلى تاريخ هذه النسخة ما اكتملت: <strong>ستُستكمل</strong>. نعطي المزوّدين فقط اللي ما تشتغل الخدمة بدونه، ونختار مزوّدين عندهم قواعد منشورة لحماية البيانات (الروابط تحت).</p>
+<p>سجلات الحساب (المعرف، وهاش كلمة المرور، وTelegram ID و@username، وGoogle ID، والجلسات) محفوظة في Cloudflare KV وDurable Objects — على شبكة Cloudflare العالمية، بدون ربط بدولة وحدة، وخارج السعودية. ملف المال والمهام المشفّر وصور البطاقة محفوظة في Cloudflare R2 في الاتحاد الأوروبي. كل هذا نقل بيانات خارج السعودية. خادم التطبيق على Vercel يشتغل في أمريكا (منطقة iad1، واشنطن): الطلبات تمر عبره، أما بيانات الحساب فمحفوظة عند Cloudflare مو عند Vercel. تلغرام يوصّل الرمز على خوادمه، عادة خارج السعودية. ما نقول إن البيانات موجودة في السعودية.</p>
+<p>أساس النقل: إنه لازم عشان نقدم لك الخدمة اللي طلبتها بنفسك؛ وكمان المزوّدون يحمون البيانات حسب شروطهم التعاقدية لمعالجة البيانات. النقل يتم وفق قواعد سدايا لنقل البيانات الشخصية خارج المملكة. نعطي المزوّدين فقط اللي ما تشتغل الخدمة بدونه، ونختار مزوّدين عندهم قواعد منشورة لحماية البيانات (الروابط تحت).</p>
 <p>Vercel وCloudflare وتلغرام وGoogle يحتفظون بسجلاتهم التقنية حسب قواعدهم: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. مددنا في القسم 7.</p>
 <p>يعالجون البيانات عشان نقدر نقدّم الخدمة (الموقع، والحفظ، وتوصيل الرمز)، مو لمراسلاتنا الخارجة عن هذا الغرض.</p>
 <h2>7. كم نحفظ</h2>
@@ -333,7 +331,6 @@
 <li>بيانات الحساب والبطاقة — طول ما الحساب موجود، أو إلى أن تحذفها أبكر.</li>
 <li>بعد إجراء «حذف الكل» نمسح فوراً السجل، والصور، والنسخة المخزّنة للبطاقة العامة، وربط Telegram ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً.</li>
 <li>تقدر تغيّر المعرف مرة واحدة. المعرف القديم يروح للحجز وما يُعطى لأحد، بما في ذلك بعد حذف الحساب.</li>
-<li>بلاغات الانتحال تُحفظ 90 يوماً وما تُمسح بزر «حذف الكل»، عشان ما يندفن البلاغ.</li>
 <li>سجلاتنا التقنية عن الدخول والحماية تُحفظ 30 يوماً، وبعدها تُحذف أو تُزال عنها الهوية.</li>
 <li>هاش كلمة المرور يُحفظ طول وجود الحساب، ويُمسح معه. هاشات مجموعة رموز الاسترجاع الحالية تُحفظ طول ما المجموعة سارية؛ بعد إصدار مجموعة جديدة من 10 رموز، هاشات المجموعة القديمة تُمسح.</li>
 </ul>
@@ -365,9 +362,8 @@
 <p>نرد على طلبك عن بياناتك خلال 30 يوماً.</p>
 <p>عشان تستخدم حقوقك، اكتب على <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> أو تلغرام <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. كيف تحذف حسابك</h2>
-<p>في الخدمة إجراءان: «إخفاء البطاقة» و«حذف الكل». عشان تحذف الحساب، أكّد بنفس طريقة دخولك: كلمة المرور، أو رمز من تلغرام، أو تدخل Google مرة ثانية. نمسح فوراً سجلك، والصور، والنسخة المخزّنة للبطاقة، وربط Telegram ID، وربط Google ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً. بعد الحذف هذا المعرف والبطاقة يتوقفان عن العمل.</p>
+<p>طالما الحساب موجود، بطاقتك مفتوحة للكل على العنوان self.amrsys.net/u/معرفك (مثلاً self.amrsys.net/u/murad.amr): فيها المعرف، والتصميم، والصورة (إذا رفعتها)، وفقط جهات التواصل اللي خليتها مفتوحة. تقدر تخفي كل جهة تواصل وتحذف الصورة. بعد حذف الحساب البطاقة ما تعود تنفتح، والنسخ المخزّنة تختفي خلال دقائق. عشان تحذف الحساب، أكّد بنفس طريقة دخولك: كلمة المرور، أو رمز من تلغرام، أو تدخل Google مرة ثانية. نمسح فوراً سجلك، والصور، والنسخة المخزّنة للبطاقة، وربط Telegram ID، وربط Google ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً. بعد الحذف هذا المعرف والبطاقة يتوقفان عن العمل.</p>
 <p>بعد الحذف هذا المعرف ما يُعطى لأحد، حتى لك تلقائياً. الحساب القديم وبياناته ما ترجع بعد الحذف. عشان تستخدم الخدمة مرة ثانية، أنشئ حساباً جديداً بمعرف جديد. نحتفظ بالمعرف المحذوف نفسه بدون مدة (المعرف والتاريخ فقط)، عشان ما يُعطى لأحد.</p>
-<p>بلاغات الانتحال تُحفظ 90 يوماً وما تُمسح بزر «حذف الكل». النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً. التفاصيل في القسم 7.</p>
 <h2>11. الأطفال</h2>
 <p>الخدمة فقط لمن عمره 18 سنة فأكثر. ما نجمع عن قصد بيانات أطفال. إذا عرفت إن حساباً سواه طفل، اكتب لنا — بنحذفه.</p>
 <h2>12. تعديلات هذه السياسة</h2>
@@ -424,7 +420,7 @@
 <p>Мы берём только то, что нужно для входа, визитки и синхронизации вашего зашифрованного файла финансов и задач.</p>
 <h3>3.1. Аккаунт и вход</h3>
 <ul>
-<li>Ваш ник вида @AMR-… (точный формат ещё не утверждён).</li>
+<li>Ваш ник, который вы выбираете сами: от 3 до 24 символов — латинские буквы и цифры, между ними можно ставить одну точку, дефис или подчёркивание. Ник хранится маленькими буквами с окончанием <code>.amr</code>, например <code>murad.amr</code>. Служебные слова (admin, support, api и подобные) занять нельзя. Старые ники вида @AMR-123-456 продолжают работать.</li>
 <li>Пароль — только в виде хэша. Сам пароль мы не храним и не видим.</li>
 <li>Способы входа: ник и пароль; вход через Google — только когда он включён в сервисе и вы заранее привязали Google к аккаунту. Аккаунт создаётся по нику и паролю, Telegram для этого не нужен.</li>
 <li>Telegram ID — только если вы привязали Telegram. Тогда при входе (паролем или через Google) после первого шага приходит одноразовый код в Telegram.</li>
@@ -485,7 +481,7 @@
 <p>Обработка идёт по закону КСА о защите персональных данных (PDPL). Надзор — SDAIA.</p>
 <ul>
 <li>Создать аккаунт, сохранить ник, пустить вас в сервис и показать визитку так, как вы настроили — исполнение соглашения с вами (условия сервиса).</li>
-<li>Показать гостям выбранные вами открытые контакты и фото — ваше согласие. Вы можете в любой момент скрыть поле, закрыть визитку или отозвать согласие.</li>
+<li>Показать гостям выбранные вами открытые контакты и фото — ваше согласие. Вы можете в любой момент скрыть контакт, удалить фото или отозвать согласие.</li>
 <li>Хранить Telegram ID и отправлять код входа в Telegram — исполнение соглашения и защита входа.</li>
 <li>Хранить Google ID, если вы сами выбрали вход через Google, — исполнение соглашения.</li>
 <li>Хранить ваш зашифрованный файл финансов и задач и служебные сведения о нём (размер, время синхронизации, аккаунт), чтобы файл можно было синхронизировать — исполнение соглашения. Ключ на сервер не передаётся. Этот файл мы не используем для советов, оценки и рекламы.</li>
@@ -513,8 +509,8 @@
 <li><strong>Telegram</strong> — канал доставки кода второго фактора (кода входа). Telegram получает ваш Telegram ID и сообщение с кодом входа. Коды восстановления через Telegram не отправляются.</li>
 <li><strong>Google</strong> — вход через аккаунт Google. Google узнаёт, что вы вошли в AMR ID, а нам передаёт только Google ID. Серверы Google находятся вне Саудовской Аравии.</li>
 </ul>
-<p>Долговременное хранение у Cloudflare — в Европе (EU). Данные Cloudflare хранятся в Европейском союзе. Это передача данных вне Саудовской Аравии. Сервер приложения на Vercel работает в США (регион iad1, Вашингтон): через него проходят запросы, а данные аккаунта лежат у Cloudflare, не на Vercel. Telegram доставляет код на своих серверах, как правило вне Саудовской Аравии. Мы не утверждаем, что данные лежат в Саудовской Аравии.</p>
-<p>Гарантии такой передачи (например, стандартные договорные условия SDAIA) на дату этой версии не оформлены: <strong>будет оформлено</strong>. Мы передаём провайдерам только то, без чего сервис не работает, и выбираем провайдеров с открытыми правилами защиты данных (ссылки ниже).</p>
+<p>Записи аккаунта (ник, хэш пароля, Telegram ID и @username, Google ID, сеансы) хранятся в Cloudflare KV и Durable Objects — в глобальной сети Cloudflare, без привязки к одной стране и вне Саудовской Аравии. Зашифрованный файл финансов и задач и фото визитки хранятся в Cloudflare R2 в Европейском союзе. Всё это — передача данных за пределы Саудовской Аравии. Сервер приложения на Vercel работает в США (регион iad1, Вашингтон): через него проходят запросы, а данные аккаунта лежат у Cloudflare, не на Vercel. Telegram доставляет код на своих серверах, как правило вне Саудовской Аравии. Мы не утверждаем, что данные лежат в Саудовской Аравии.</p>
+<p>Основание передачи: она нужна, чтобы дать вам сервис, который вы сами запросили; кроме того, провайдеры защищают данные по своим договорным условиям обработки данных. Передача идёт по правилам SDAIA о передаче персональных данных за пределы Королевства. Мы передаём провайдерам только то, без чего сервис не работает, и выбираем провайдеров с открытыми правилами защиты данных (ссылки ниже).</p>
 <p>Vercel, Cloudflare, Telegram и Google ведут свои технические журналы и хранят их по своим правилам: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. Наши сроки — в разделе 7.</p>
 <p>Они обрабатывают данные, чтобы мы могли оказывать сервис (сайт, хранение, доставка кода), не для наших посторонних рассылок.</p>
 <h2>7. Сколько храним</h2>
@@ -522,7 +518,6 @@
 <li>Данные аккаунта и визитки — пока аккаунт существует или пока вы не удалите их раньше.</li>
 <li>После действия «удалить всё» мы сразу стираем запись, фото, кэш открытой визитки, привязку Telegram ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней.</li>
 <li>Ник можно сменить один раз. Старый ник уходит в резерв и больше никому не выдаётся, в том числе после удаления аккаунта.</li>
-<li>Жалобы на подделку хранятся 90 дней и не стираются кнопкой «удалить всё», чтобы нельзя было скрыть обращение.</li>
 <li>Наши технические записи о входе и защите хранятся 30 дней, затем стираются или обезличиваются.</li>
 <li>Хэш пароля хранится, пока существует аккаунт, и стирается вместе с ним. Хэши текущего набора кодов восстановления хранятся, пока набор действует; после выдачи нового набора из 10 кодов хэши старого набора стираются.</li>
 </ul>
@@ -554,9 +549,8 @@
 <p>На запрос о ваших данных отвечаем в течение 30 дней.</p>
 <p>Чтобы воспользоваться правами, напишите на <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> или в Telegram <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. Как удалить аккаунт</h2>
-<p>В сервисе есть действия «скрыть визитку» и «удалить всё». Чтобы удалить аккаунт, подтвердите это тем способом, которым входите: паролем, кодом из Telegram или повторным входом в Google. Мы сразу стираем вашу запись, фото, кэш визитки, привязку Telegram ID, привязку Google ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней. После удаления этот ник и визитка перестают работать.</p>
+<p>Пока аккаунт существует, ваша визитка открыта всем по адресу self.amrsys.net/u/ваш-ник (например, self.amrsys.net/u/murad.amr): там видны ник, оформление, фото (если вы его загрузили) и только те контакты, которые вы сделали открытыми. Каждый контакт можно скрыть, а фото — удалить. После удаления аккаунта визитка перестаёт открываться, копии в кэше исчезают в течение нескольких минут. Чтобы удалить аккаунт, подтвердите это тем способом, которым входите: паролем, кодом из Telegram или повторным входом в Google. Мы сразу стираем вашу запись, фото, кэш визитки, привязку Telegram ID, привязку Google ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней. После удаления этот ник и визитка перестают работать.</p>
 <p>После удаления этот ник больше никому не выдаётся, в том числе вам автоматически. Старый аккаунт и его данные после удаления не восстановить. Чтобы снова пользоваться сервисом, создайте новый аккаунт с новым ником. Сам удалённый ник мы храним без срока (только ник и дату), чтобы его никому не выдать.</p>
-<p>Жалобы на подделку хранятся 90 дней и не стираются кнопкой «удалить всё». Служебные копии у провайдеров могут оставаться до 30 дней. Подробности — в разделе 7.</p>
 <h2>11. Дети</h2>
 <p>Сервис предназначен только для людей 18 лет и старше. Мы сознательно не собираем данные детей. Если вы узнали, что аккаунт создал ребёнок, напишите нам — мы удалим его.</p>
 <h2>12. Изменения этой политики</h2>

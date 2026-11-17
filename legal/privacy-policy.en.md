@@ -33,7 +33,7 @@ We only collect what is needed for sign-in, the card, and syncing your encrypted
 
 ### 3.1. Account and sign-in
 
-- Your nick of the form @AMR-… (the exact format is not yet approved).
+- Your nick, which you choose yourself: 3 to 24 characters — Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending `.amr`, for example `murad.amr`. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.
 - Your password — stored only as a hash. We do not store or see the password itself.
 - Ways to sign in: nickname and password; Google sign-in works only when it is turned on in the service and you linked Google to your account beforehand. You create an account with a nickname and a password; Telegram is not needed for that.
 - Your Telegram ID — only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.
@@ -99,7 +99,7 @@ If you sign in with Google:
 Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The authority is SDAIA.
 
 - Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you (the service terms).
-- Showing guests the public contacts and photo you chose — your consent. You can hide a field, hide the card, or withdraw consent at any time.
+- Showing guests the public contacts and photo you chose — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.
 - Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.
 - Storing your Google ID, if you chose to sign in with Google — performance of the agreement.
 - Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising.
@@ -134,9 +134,9 @@ Processors and recipients in version 1:
 - **Telegram** — the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.
 - **Google** — sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google's servers are outside Saudi Arabia.
 
-Long-term storage with Cloudflare is in Europe (EU). Cloudflare data is stored in the European Union. That is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
+Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects — on Cloudflare’s global network, not tied to one country, and outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
 
-Safeguards for this transfer (for example, SDAIA standard contractual clauses) have not been put in place as of this version: **to be formalised**. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).
+Basis for the transfer: it is necessary to provide the service you asked for; in addition, providers protect data under their contractual data processing terms. The transfer follows the SDAIA rules on transferring personal data outside the Kingdom. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).
 
 Vercel, Cloudflare, Telegram, and Google keep their own technical logs under their own rules: [Vercel](https://vercel.com/legal/privacy-policy), [Cloudflare](https://www.cloudflare.com/privacypolicy/), [Telegram](https://telegram.org/privacy), [Google](https://policies.google.com/privacy). Our periods are in section 7.
 
@@ -147,7 +147,6 @@ They process data so we can provide the service (the site, storage, and code del
 - Account and card data — for as long as the account exists, or until you delete it sooner.
 - After “delete everything”, we erase the record, photos, the public card cache, the linked Telegram ID, and the encrypted finances and tasks file at once. Provider backups may remain for up to 30 days.
 - You may change the nick once. The old nick is reserved and is never given to anyone else, including after the account is deleted.
-- Reports of impersonation are kept for 90 days and are not erased by the “delete everything” button, so a report cannot be hidden.
 - Our technical sign-in and protection records are kept for 30 days, then deleted or made anonymous.
 - The password hash is kept while the account exists and is erased with it. Hashes of the current set of recovery codes are kept while that set is in force; after a new set of 10 codes is issued, hashes of the old set are erased.
 
@@ -185,11 +184,9 @@ To use these rights, write to [amrsys.dev@gmail.com](mailto:amrsys.dev@gmail.com
 
 ## 10. How to delete your account
 
-The service has “hide card” and “delete everything”. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.
+While the account exists, your card is open to everyone at self.amrsys.net/u/your-nick (for example, self.amrsys.net/u/murad.amr): it shows your nick, design, photo (if you uploaded one), and only the contacts you made public. You can hide each contact and delete the photo. After the account is deleted, the card stops opening; cached copies disappear within a few minutes. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.
 
 After deletion, that nick is never given to anyone else, including back to you automatically. The old account and its data cannot be restored after deletion. To use the service again, create a new account with a new nick. We keep the deleted nick itself with no time limit (only the nick and the date), so it is never given to anyone.
-
-Reports of impersonation are kept for 90 days and are not erased by the “delete everything” button. Provider backups may remain for up to 30 days. Details are in section 7.
 
 ## 11. Children
 
