@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiMetaRouteImport } from './routes/api/meta'
 import { Route as ApiRatesRouteImport } from './routes/api/rates'
+import { Route as ConnectRouteImport } from './routes/connect'
+import { Route as ApiConnectTokenRouteImport } from './routes/api/connect/token'
 import { Route as UNickRouteImport } from './routes/u.$nick'
 import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
@@ -47,6 +49,16 @@ const ApiMetaRoute = ApiMetaRouteImport.update({
 const ApiRatesRoute = ApiRatesRouteImport.update({
   id: '/api/rates',
   path: '/api/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectRoute = ConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiConnectTokenRoute = ApiConnectTokenRouteImport.update({
+  id: '/api/connect/token',
+  path: '/api/connect/token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UNickRoute = UNickRouteImport.update({
@@ -159,6 +171,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/connect': typeof ConnectRoute
+  '/api/connect/token': typeof ApiConnectTokenRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -185,6 +199,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/connect': typeof ConnectRoute
+  '/api/connect/token': typeof ApiConnectTokenRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -212,6 +228,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/connect': typeof ConnectRoute
+  '/api/connect/token': typeof ApiConnectTokenRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -240,6 +258,8 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/api/rates'
+    | '/connect'
+    | '/api/connect/token'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -266,6 +286,8 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/api/rates'
+    | '/connect'
+    | '/api/connect/token'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -292,6 +314,8 @@ export interface FileRouteTypes {
     | '/'
     | '/api/meta'
     | '/api/rates'
+    | '/connect'
+    | '/api/connect/token'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -319,6 +343,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiMetaRoute: typeof ApiMetaRoute
   ApiRatesRoute: typeof ApiRatesRoute
+  ConnectRoute: typeof ConnectRoute
+  ApiConnectTokenRoute: typeof ApiConnectTokenRoute
   UNickRoute: typeof UNickRoute
   ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
@@ -363,6 +389,20 @@ declare module '@tanstack/react-router' {
       path: '/api/rates'
       fullPath: '/api/rates'
       preLoaderRoute: typeof ApiRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect': {
+      id: '/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof ConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/connect/token': {
+      id: '/api/connect/token'
+      path: '/api/connect/token'
+      fullPath: '/api/connect/token'
+      preLoaderRoute: typeof ApiConnectTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/u/$nick': {
@@ -519,6 +559,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiMetaRoute: ApiMetaRoute,
   ApiRatesRoute: ApiRatesRoute,
+  ConnectRoute: ConnectRoute,
+  ApiConnectTokenRoute: ApiConnectTokenRoute,
   UNickRoute: UNickRoute,
   ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
