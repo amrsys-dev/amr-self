@@ -4,10 +4,11 @@ import { createMemoryStores } from "./memory.ts";
 import { createCoordinatedKvStore, isCoordinatedKey } from "./coordinated.ts";
 
 describe("coordinated kv", () => {
-  it("classifies nick, reserved, and data-version keys", () => {
+  it("classifies nick, reserved, google and data-version keys", () => {
     assert.equal(isCoordinatedKey("nick:@amr-1-1"), true);
     assert.equal(isCoordinatedKey("reserved:@amr-1-1"), true);
     assert.equal(isCoordinatedKey("user/AMR-1-1/data-version"), true);
+    assert.equal(isCoordinatedKey("google:1234567890"), true);
     assert.equal(isCoordinatedKey("session:abc"), false);
     assert.equal(isCoordinatedKey("otp:abc"), false);
     assert.equal(isCoordinatedKey("ratelimit:login:ip"), false);

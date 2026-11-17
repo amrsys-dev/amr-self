@@ -5,7 +5,7 @@ import type { App } from "./use-id-app.ts";
 
 /** Welcome, sign-up, login, recovery. */
 export function AuthScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin, startGuest } = app;
+  const { lang, setLang, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin, startGuest, startGoogle } = app;
   return (
     <>
     {screen === "welcome" && (
@@ -251,6 +251,13 @@ export function AuthScreens({ app }: { app: App }) {
               {t("enter")}
             </button>
           </div>
+          {meta?.googleLogin ? (
+            <div className="btns">
+              <button className={`btn g ${busy ? "off" : ""}`} type="button" onClick={() => startGoogle("login")}>
+                {t("google_login")}
+              </button>
+            </div>
+          ) : null}
           <div className="btns">
             <button className="link-quiet" type="button" onClick={() => setScreen("recovery")}>
               {t("forgot")}

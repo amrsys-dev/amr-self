@@ -653,3 +653,10 @@ p{margin:0;line-height:1.4}
 .hd .appname{font-size:30px;font-weight:800;letter-spacing:-.6px}
 .monopl .mono-svg,.hd .mono-svg{height:18px}
 .monopl{height:18px}
+/* Dark themes: native inputs (password, autofill, OTP) follow the theme instead of white UA boxes (Murad, 17.11) */
+.app{color-scheme:dark}
+.app.light,.app.theme-light{color-scheme:light}
+.field .box input:-webkit-autofill,.field .box input:-webkit-autofill:hover,.field .box input:-webkit-autofill:focus{-webkit-text-fill-color:var(--t);caret-color:var(--t);-webkit-box-shadow:0 0 0 1000px var(--field) inset;box-shadow:0 0 0 1000px var(--field) inset;transition:background-color 9999s ease-out 0s}
+.field .box input::placeholder{color:var(--muted);opacity:1}
+.otp-box{background:var(--field);border-color:var(--field-line);color:var(--t)}
+.otp-boxes:focus-within .otp-box{border-color:var(--cyan)}

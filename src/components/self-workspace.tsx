@@ -30,6 +30,8 @@ type Props = {
   section: Section;
   accountId: string;
   wrapPassword?: WrappedKey;
+  /** Shown on the lock screen instead of the default text (e.g. after «Войти через Google»). */
+  lockHint?: string;
   passwordKdf?: KdfParams;
   dataKey: Uint8Array | null;
   keyVersion: number;
@@ -214,7 +216,7 @@ function moveBlock(list: FinanceBlock[], i: number, d: number): FinanceBlock[] {
 const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateString() : "";
 
 export function SelfWorkspace({
-  section, accountId, wrapPassword, passwordKdf, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore, onNavigate,
+  section, accountId, wrapPassword, passwordKdf, lockHint, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore, onNavigate,
 }: Props) {
   const t = (key: CopyKey) => COPY[lang][key] ?? COPY.en[key];
   const { cur, toCur, money } = useCurrency();
@@ -383,7 +385,7 @@ export function SelfWorkspace({
         <img className="self-lock-mark" src="/self-mark.png" alt="" />
         <div className="self-eyebrow">SELF</div>
         <h2>{t("lockedTitle")}</h2>
-        <p>{t("lockedText")}</p>
+        <p>{lockHint ?? t("lockedText")}</p>
         <div className="self-field">
           <label>{t("password")}</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" onKeyDown={(e) => { if (e.key === "Enter") void unlock(); }} />

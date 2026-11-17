@@ -9,7 +9,7 @@ export function generateOtpDigits(): string {
 
 export type OtpRecord = {
   nick: string;
-  purpose: "login" | "signup" | "contact" | "otp-channel" | "delete" | "rebind";
+  purpose: "login" | "signup" | "contact" | "otp-channel" | "delete" | "rebind" | "google-link";
   channel: OtpChannel;
   hash: string;
   exp: number;

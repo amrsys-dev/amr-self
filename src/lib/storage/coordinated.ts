@@ -2,7 +2,7 @@ import type { KvPutOpts, KvStore } from "./types.ts";
 
 /** Keys whose uniqueness or If-Match version must be coordinated by the Durable Object. */
 export function isCoordinatedKey(key: string): boolean {
-  return key.startsWith("nick:") || key.startsWith("reserved:") || key.endsWith("/data-version");
+  return key.startsWith("nick:") || key.startsWith("reserved:") || key.startsWith("google:") || key.endsWith("/data-version");
 }
 
 /**
