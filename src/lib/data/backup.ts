@@ -6,7 +6,7 @@
  * The file is plain JSON on purpose: it must open even when the account is
  * lost. The app warns the user to keep it private.
  */
-import { isHealthConsent } from "../health/consent.ts";
+import { isHealthConsent, stripHealthWithoutConsent } from "../health/consent.ts";
 import { emptyUserData, type UserData } from "./schema.ts";
 
 export const BACKUP_FORMAT = "amr-self-backup";
@@ -71,5 +71,6 @@ export function parseBackup(text: string): ParseResult {
       }
     }
   }
-  return { ok: true, data: merged, createdAt: typeof f.createdAt === "string" ? f.createdAt : "" };
+  // A restored file without health consent brings no health entries back.
+  return { ok: true, data: stripHealthWithoutConsent(merged), createdAt: typeof f.createdAt === "string" ? f.createdAt : "" };
 }

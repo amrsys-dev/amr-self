@@ -13,6 +13,9 @@ type Copy = {
   confirmText: string;
   confirmYes: string;
   cancel: string;
+  /** Shown when the file already has health entries from before consent. */
+  old: string;
+  discard: string;
 };
 
 export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
@@ -33,6 +36,8 @@ export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
     confirmText: "Все записи здоровья удалятся из вашего файла и с этого устройства. Вернуть их нельзя.",
     confirmYes: "Отозвать и удалить",
     cancel: "Отмена",
+    old: "У вас уже есть записи здоровья. Пока нет согласия, они лежат только на этом устройстве и не уходят на сервер.",
+    discard: "Удалить старые записи",
   },
   en: {
     title: "Health — just for you",
@@ -51,6 +56,8 @@ export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
     confirmText: "All health entries will be deleted from your file and this device. They can't be restored.",
     confirmYes: "Withdraw and delete",
     cancel: "Cancel",
+    old: "You already have health entries. Until you agree, they stay only on this device and are not sent to the server.",
+    discard: "Delete old entries",
   },
   ar: {
     title: "الصحة — لك أنت بس",
@@ -69,6 +76,8 @@ export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
     confirmText: "كل سجلات الصحة بتنحذف من ملفك ومن هذا الجهاز، وما تقدر ترجعها.",
     confirmYes: "اسحب واحذف",
     cancel: "إلغاء",
+    old: "عندك سجلات صحة من قبل. لين توافق، تبقى على هذا الجهاز بس وما تنرسل للخادم.",
+    discard: "احذف السجلات القديمة",
   },
   uz: {
     title: "Salomatlik — faqat siz uchun",
@@ -87,6 +96,8 @@ export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
     confirmText: "Barcha salomatlik yozuvlari faylingizdan va shu qurilmadan o‘chadi. Ularni qaytarib bo‘lmaydi.",
     confirmYes: "Qaytarib olish va o‘chirish",
     cancel: "Bekor qilish",
+    old: "Sizda salomatlik yozuvlari bor. Rozilik bermaguningizcha ular faqat shu qurilmada turadi va serverga yuborilmaydi.",
+    discard: "Eski yozuvlarni o‘chirish",
   },
   tj: {
     title: "Саломатӣ — танҳо барои шумо",
@@ -105,6 +116,8 @@ export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
     confirmText: "Ҳамаи сабтҳои саломатӣ аз файли шумо ва аз ин дастгоҳ нест мешаванд. Баргардонданашон мумкин нест.",
     confirmYes: "Бозпас гирифтан ва нест кардан",
     cancel: "Бекор кардан",
+    old: "Шумо аллакай сабтҳои саломатӣ доред. То розигӣ надиҳед, онҳо танҳо дар ин дастгоҳ мемонанд ва ба сервер фиристода намешаванд.",
+    discard: "Нест кардани сабтҳои кӯҳна",
   },
 };
 
@@ -112,18 +125,31 @@ export function healthConsentCopy(lang: Lang): Copy {
   return HEALTH_CONSENT_COPY[lang] ?? HEALTH_CONSENT_COPY.en;
 }
 
-export function HealthConsentCard({ lang, busy, onAllow, onLater }: { lang: Lang; busy?: boolean; onAllow: () => void; onLater: () => void }) {
+export function HealthConsentCard({ lang, busy, hasOld, onAllow, onLater, onDiscard }: { lang: Lang; busy?: boolean; hasOld?: boolean; onAllow: () => void; onLater: () => void; onDiscard?: () => void }) {
   const c = healthConsentCopy(lang);
   return (
     <section className="self-card self-consent" aria-labelledby="health-consent-title">
       <h2 id="health-consent-title">{c.title}</h2>
       <p>{c.lead}</p>
       <ul>{c.points.map((p) => <li key={p}>{p}</li>)}</ul>
+      {hasOld ? <p className="self-consent-old">{c.old}</p> : null}
       <div className="self-modal-actions">
         <button type="button" className="self-secondary" onClick={onLater}>{c.notNow}</button>
         <button type="button" className="self-primary" disabled={busy} onClick={onAllow}>{c.allow}</button>
       </div>
+      {hasOld && onDiscard ? <button type="button" className="self-link-danger self-consent-discard" disabled={busy} onClick={onDiscard}>{c.discard}</button> : null}
     </section>
+  );
+}
+
+/** Shown once per app start when old health entries exist without consent. */
+export function HealthConsentPrompt(props: { lang: Lang; busy?: boolean; onAllow: () => void; onLater: () => void; onDiscard: () => void }) {
+  return (
+    <div className="self-modal-backdrop" role="presentation">
+      <div className="self-modal self-consent-modal" role="dialog" aria-modal="true" aria-labelledby="health-consent-title">
+        <HealthConsentCard {...props} hasOld />
+      </div>
+    </div>
   );
 }
 

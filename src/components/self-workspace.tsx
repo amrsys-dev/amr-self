@@ -18,8 +18,11 @@ import { CarPage, carOf, itemName } from "./self/car-page.tsx";
 import { groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
 import { groupTasks } from "@/lib/tasks/groups.ts";
 import { weekStreak, weekSummary } from "@/lib/health/week.ts";
-import { addHealthEntry, grantHealthConsent, hasHealthConsent, withdrawHealthConsent } from "@/lib/health/consent.ts";
-import { HealthConsentCard, HealthWithdrawDialog, healthConsentCopy } from "./self/health-consent.tsx";
+import { addHealthEntry, discardHealthWithoutConsent, grantHealthConsent, hasHealthConsent, hasLiveHealthEntries, withdrawHealthConsent } from "@/lib/health/consent.ts";
+import { HealthConsentCard, HealthConsentPrompt, HealthWithdrawDialog, healthConsentCopy } from "./self/health-consent.tsx";
+
+/** The old-entries consent prompt is shown once per app start, not on every tab switch. */
+let healthPromptDismissed = false;
 import { CurrencySign, useCurrency } from "./self/currency.tsx";
 import { parseAmount } from "@/lib/finance/currency.ts";
 import "./self-workspace.css";
@@ -249,6 +252,7 @@ export function SelfWorkspace({
   const [date, setDate] = useState(todayKey());
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [promptDismissed, setPromptDismissed] = useState(healthPromptDismissed);
 
   useEffect(() => {
     if (!dataKey && !guestStore) {
@@ -271,6 +275,7 @@ export function SelfWorkspace({
 
   // Without consent the Health section shows nothing and accepts nothing (PDPL).
   const healthOk = hasHealthConsent(data);
+  const hasOldHealth = !healthOk && hasLiveHealthEntries(data);
   const health = healthOk ? data.health ?? emptyUserData().health! : emptyUserData().health!;
   // Amounts in the chosen currency; stored records keep their own currency.
   const finIn = useMemo(() => data.finance.income.map((r) => ({ ...r, amount: toCur(amountOf(r), r.currency) })), [data.finance.income, toCur]);
@@ -370,8 +375,20 @@ export function SelfWorkspace({
     await persist(addHealthEntry(data, "water", record));
   }
 
+  function dismissHealthPrompt() {
+    healthPromptDismissed = true;
+    setPromptDismissed(true);
+  }
+
   async function allowHealth() {
+    dismissHealthPrompt();
     await persist(grantHealthConsent(data));
+  }
+
+  /** «Удалить старые записи»: clears old entries, consent stays not given. */
+  async function discardOldHealth() {
+    dismissHealthPrompt();
+    await persist(discardHealthWithoutConsent(data));
   }
 
   async function withdrawHealth() {
@@ -619,7 +636,7 @@ export function SelfWorkspace({
           <button className="self-back" type="button" onClick={() => setSubPage(null)}>‹ {backLabel}</button>
           <header className="self-large"><h1>{t("health")}</h1></header>
           {!healthOk ? (
-            <HealthConsentCard lang={lang} onAllow={() => void allowHealth()} onLater={() => setSubPage(null)} />
+            <HealthConsentCard lang={lang} hasOld={hasOldHealth} onAllow={() => void allowHealth()} onLater={() => setSubPage(null)} onDiscard={() => void discardOldHealth()} />
           ) : (<>
           <div className="self-card self-week">
             <div className="self-week-head"><b>{tx(lang, "thisWeek")}</b><span>{tx(lang, "weekLine", { n: week.count, m: week.minutes })}</span></div>
@@ -671,6 +688,9 @@ export function SelfWorkspace({
             <div className="self-modal-actions"><button type="button" className="self-secondary" onClick={() => setModal(null)}>{t("cancel")}</button><button type="button" className="self-primary" onClick={() => void saveModal()}>{t("save")}</button></div>
           </section>
         </div>
+      )}
+      {hasOldHealth && !promptDismissed && subPage !== "health" && (
+        <HealthConsentPrompt lang={lang} onAllow={() => void allowHealth()} onLater={dismissHealthPrompt} onDiscard={() => void discardOldHealth()} />
       )}
       {saveError ? <div className="self-error">{t("errorSave")}</div> : null}
     </div>

@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildBackup, parseBackup } from "../data/backup.ts";
-import { mergeUserData } from "../data/merge.ts";
-import { emptyUserData, type HealthEntry } from "../data/schema.ts";
+import { readFileSync } from "node:fs";
+import { compressAndEncrypt, decryptAndDecompress, generateDataKey } from "../crypto.ts";
+import { keepDeviceOnlyHealth, mergeUserData } from "../data/merge.ts";
+import { emptyUserData, type HealthEntry, type UserData } from "../data/schema.ts";
 import {
   HealthConsentRequired,
   addHealthEntry,
+  discardHealthWithoutConsent,
+  hasLiveHealthEntries,
+  needsHealthCleanup,
+  stripHealthWithoutConsent,
   grantHealthConsent,
   hasHealthConsent,
   mergeHealthConsent,
@@ -97,5 +103,112 @@ describe("health consent (PDPL)", () => {
     file.data.healthConsent = { granted: "yes" };
     const r = parseBackup(JSON.stringify(file));
     assert.equal(r.ok, false);
+  });
+});
+
+/** A file from before consent existed: health entries, no flag. */
+function legacyFile(): UserData {
+  const d = emptyUserData();
+  d.health!.water.push(water("old-w"));
+  d.health!.weight.push(weight("old-kg"));
+  d.health!.nutrition.push({ id: "old-m", updatedAt: "2026-11-10T08:00:00.000Z", kind: "meal", calories: 700, amount: 700, unit: "kcal", note: "plov" });
+  d.health!.workouts.push({ id: "gone", updatedAt: "2026-11-11T08:00:00.000Z", deleted: true });
+  d.finance.income.push({ id: "inc", updatedAt: "2026-11-10T08:00:00.000Z", amount: 100 });
+  return d;
+}
+const liveHealth = (d: UserData) => Object.values(d.health!).flat().filter((r) => !r.deleted);
+
+describe("old health entries without consent", () => {
+  it("are detected so the app can ask on first open", () => {
+    assert.equal(hasLiveHealthEntries(legacyFile()), true);
+    assert.equal(hasLiveHealthEntries(emptyUserData()), false);
+  });
+
+  it("«Удалить старые записи» clears them without giving consent", () => {
+    const out = discardHealthWithoutConsent(legacyFile(), new Date("2026-11-17T12:00:00Z"));
+    assert.equal(hasLiveHealthEntries(out), false);
+    assert.equal(out.healthConsent, undefined);
+    assert.equal(JSON.stringify(out.health).includes("plov"), false);
+    assert.equal(out.finance.income.length, 1);
+    assert.throws(() => addHealthEntry(out, "water", water("w")), HealthConsentRequired);
+  });
+
+  it("never go into the server payload, only bare deletion markers do", async () => {
+    const upload = stripHealthWithoutConsent(legacyFile());
+    assert.deepEqual(liveHealth(upload), []);
+    assert.deepEqual(upload.health!.workouts, [{ id: "gone", updatedAt: "2026-11-11T08:00:00.000Z", deleted: true }]);
+    assert.equal(upload.finance.income.length, 1, "other sections still sync");
+    // The encrypted blob that is sent really has no health content.
+    const key = await generateDataKey();
+    const aad = { accountId: "acc", version: 2 };
+    const back = await decryptAndDecompress(key, await compressAndEncrypt(key, upload, aad), aad) as UserData;
+    assert.equal(JSON.stringify(back).includes("plov"), false);
+    assert.deepEqual(liveHealth(back), []);
+  });
+
+  it("go to the server unchanged once consent is given", () => {
+    const granted = grantHealthConsent(legacyFile(), new Date("2026-11-17T12:00:00Z"));
+    assert.equal(stripHealthWithoutConsent(granted), granted);
+  });
+
+  it("an old server copy with health entries is flagged for a stripped re-upload", () => {
+    assert.equal(needsHealthCleanup(legacyFile()), true);
+    assert.equal(needsHealthCleanup(stripHealthWithoutConsent(legacyFile())), false);
+    assert.equal(needsHealthCleanup(grantHealthConsent(legacyFile())), false);
+  });
+
+  it("sync uploads only the stripped payload and re-uploads old server copies", () => {
+    const src = readFileSync(new URL("../data/sync.ts", import.meta.url), "utf8");
+    assert.match(src, /if \(needsHealthCleanup\(remote\)\) \{[\s\S]*?dirty: true/);
+    assert.match(src, /const upload = stripHealthWithoutConsent\(data\);\s*const encBlob = await compressAndEncrypt\(dataKey, upload,/);
+  });
+
+  it("stay on this device after a pull, but a withdrawal elsewhere still clears them", () => {
+    const local = legacyFile();
+    const remote = stripHealthWithoutConsent(local);
+    remote.finance.income.push({ id: "inc2", updatedAt: "2026-11-17T09:00:00.000Z", amount: 5 });
+    const pulled = keepDeviceOnlyHealth(remote, local);
+    assert.equal(pulled.finance.income.length, 2, "remote wins for other sections");
+    assert.equal(liveHealth(pulled).length, 3);
+    assert.equal(pulled.healthConsent, undefined);
+
+    const withdrawnRemote = { ...remote, healthConsent: { granted: false, at: "2026-11-17T10:00:00.000Z" } };
+    assert.deepEqual(liveHealth(keepDeviceOnlyHealth(withdrawnRemote, local)), []);
+
+    const grantedRemote = grantHealthConsent(remote, new Date("2026-11-17T10:00:00Z"));
+    assert.equal(keepDeviceOnlyHealth(grantedRemote, local), grantedRemote);
+  });
+});
+
+describe("restoring a backup", () => {
+  it("brings no health entries back without consent", () => {
+    const r = parseBackup(buildBackup(legacyFile()));
+    assert.equal(r.ok, true);
+    if (r.ok) {
+      assert.deepEqual(liveHealth(r.data), []);
+      assert.equal(JSON.stringify(r.data).includes("plov"), false);
+      assert.equal(r.data.finance.income.length, 1);
+    }
+  });
+
+  it("brings no health entries back from a file where consent was withdrawn", () => {
+    const d = legacyFile();
+    d.healthConsent = { granted: false, at: "2026-11-16T00:00:00.000Z" };
+    const r = parseBackup(buildBackup(d));
+    assert.equal(r.ok && liveHealth(r.data).length, 0);
+  });
+
+  it("keeps health entries when the backup has consent", () => {
+    const d = grantHealthConsent(legacyFile(), new Date("2026-11-17T08:00:00Z"));
+    const r = parseBackup(buildBackup(d));
+    assert.equal(r.ok && liveHealth(r.data).length, 3);
+  });
+
+  it("the restore path applies the same guard before writing", () => {
+    const src = readFileSync(new URL("../../components/app/use-id-app.ts", import.meta.url), "utf8");
+    assert.match(src, /const restored = stripHealthWithoutConsent\(parsed\.data\);/);
+    assert.match(src, /saveLocalData\(key, accountIdOf\(session\), restored\)/);
+    assert.match(src, /saveGuestData\(restored\)/);
+    assert.doesNotMatch(src, /saveLocalData\([^)]*parsed\.data\)/);
   });
 });

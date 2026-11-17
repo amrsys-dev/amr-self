@@ -1,4 +1,4 @@
-import { clearHealthEntries, mergeHealthConsent } from "../health/consent.ts";
+import { clearHealthEntries, hasHealthConsent, mergeHealthConsent } from "../health/consent.ts";
 import { emptyUserData, type DataRecord, type SalaryRecord, type UserData } from "./schema.ts";
 
 function isRecord<T extends DataRecord>(x: unknown): x is T {
@@ -66,4 +66,18 @@ export function mergeUserData(local: UserData, remote: UserData): UserData {
       log: mergeRecordList(lc.log ?? [], rc.log ?? []),
     },
   };
+}
+
+/**
+ * Health entries kept without consent stay on this device only: the server
+ * copy never has them, so after a pull put this device's copies back.
+ * A withdrawal on any device still wins (mergeUserData clears the section).
+ */
+export function keepDeviceOnlyHealth(remote: UserData, local: UserData | null): UserData {
+  if (!local || hasHealthConsent(remote) || hasHealthConsent(local)) return remote;
+  const both = mergeUserData(remote, local);
+  const out: UserData = { ...remote, health: both.health };
+  if (both.healthConsent) out.healthConsent = both.healthConsent;
+  else delete out.healthConsent;
+  return out;
 }

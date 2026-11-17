@@ -71,3 +71,34 @@ export function mergeHealthConsent(a: unknown, b: unknown): HealthConsent | unde
   if (x.at === y.at) return x.granted ? y : x; // tie: withdrawal wins
   return x.at > y.at ? x : y;
 }
+
+/** True when the file still has health entries (e.g. from before consent existed). */
+export function hasLiveHealthEntries(data: Pick<UserData, "health">): boolean {
+  const h = data.health;
+  if (!h) return false;
+  return HEALTH_FIELDS.some((f) => (h[f] ?? []).some((r) => !r.deleted));
+}
+
+/** «Удалить старые записи»: tombstone every health entry without giving consent. */
+export function discardHealthWithoutConsent(data: UserData, now: Date = new Date()): UserData {
+  return { ...data, health: clearHealthEntries(data.health, now.toISOString()) };
+}
+
+/**
+ * Without consent, health content never leaves the device and never enters a
+ * restored file: live entries are dropped, and only bare deletion markers
+ * (id, time, deleted) remain so deletions still reach other devices.
+ * With consent the data is returned unchanged.
+ */
+export function stripHealthWithoutConsent(data: UserData): UserData {
+  if (hasHealthConsent(data)) return data;
+  const h = data.health ?? emptyHealth();
+  const keep = (rows: HealthEntry[] | undefined): HealthEntry[] =>
+    (rows ?? []).filter((r) => r.deleted).map((r) => ({ id: r.id, updatedAt: r.updatedAt, deleted: true }));
+  return { ...data, health: { water: keep(h.water), weight: keep(h.weight), nutrition: keep(h.nutrition), workouts: keep(h.workouts) } };
+}
+
+/** A server copy with health entries but no consent must be re-uploaded stripped. */
+export function needsHealthCleanup(remote: Pick<UserData, "health" | "healthConsent">): boolean {
+  return !hasHealthConsent(remote) && hasLiveHealthEntries(remote);
+}
