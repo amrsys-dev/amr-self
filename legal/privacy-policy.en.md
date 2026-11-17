@@ -49,7 +49,7 @@ Email is not used for sign-in or for codes in version 1. That comes later.
 - Contacts you add yourself: Telegram, a WhatsApp number, and any others you enter. You may also put an email address on the card as an ordinary contact, without a “confirmed” mark: email is not confirmed by a code in this version.
 - We do not verify contacts on the card: the card has no “confirmed” mark. The WhatsApp number is not printed on the card — it shows “listed by the owner” instead, and the number itself is only inside the chat link. Telegram does not become public on the card just because we store a Telegram ID to deliver codes: it appears on the card only if you add it yourself as a public contact.
 - Visibility for each contact: “open to everyone” or “hidden”. There are no other modes. A new contact is public right away, except the WhatsApp number, which is hidden by default.
-- A photo and card design, if you upload or choose them. An uploaded photo is visible to everyone on the public card: the photo has no visibility setting, you can only delete it.
+- A photo and card design, if you upload or choose them. An uploaded photo is visible to everyone on the public card: the photo has no visibility setting, you can only delete it. After you delete the photo, cached copies disappear within a few minutes.
 - We do not store a separate copy of the card: the server builds the guest page from your record each time it is opened, and the Cloudflare network keeps a cached copy for a few minutes.
 
 LinkedIn is not connected in version 1. If it is added later, it will only be through official LinkedIn sign-in.
@@ -97,7 +97,7 @@ If you sign in with Google:
 
 Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The authority is SDAIA.
 
-- Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you (the service terms).
+- Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you: you chose to use the service.
 - Showing guests your public contacts and uploaded photo — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.
 - Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.
 - Storing your Google ID, if you chose to sign in with Google — performance of the agreement.
@@ -132,7 +132,7 @@ Processors and recipients in version 1:
 - **Cloudflare** — KV, Durable Objects, and R2 storage (account records, card photos, and the encrypted file) and the Worker that delivers one-time codes to Telegram and caches the public card. Only our server can reach the storage, not the browser and not a direct public link; card photos are served only through our site. The encrypted file is stored with Cloudflare in the European Union (Europe).
 - **Telegram** — the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.
 - **Google** — sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google's servers are outside Saudi Arabia.
-- **AMR Bazar** (bazar.amrsys.net) — only if you yourself signed in to Bazar with AMR ID and tapped “Allow”. Bazar receives your internal account number and nick. Phone, email, and hidden contacts are not shared.
+- **AMR Bazar** (bazar.amrsys.net) — only if you yourself signed in to Bazar with AMR ID and tapped “Allow”. Bazar receives your internal account number, your nick, and a display name — the same nick without the .amr ending (your real name is not shared). Phone, email, and hidden contacts are not shared.
 
 Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects — on Cloudflare’s global network, not tied to one country; the main storage is outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
 
@@ -145,7 +145,7 @@ They process data so we can provide the service (the site, storage, and code del
 ## 7. How long we keep data
 
 - Account and card data — for as long as the account exists, or until you delete it sooner.
-- When you delete your account (“Delete my data” in your profile, the “Delete account” screen), we erase at once the record, photos, the linked Telegram ID and Google ID, and the encrypted file with all its versions. The cached copy of the card disappears within a few minutes. Provider backups may remain for up to 30 days.
+- When you delete your account (“Delete my data” in your profile, the “Delete account” screen), we erase at once the record, photos, the linked Telegram ID and Google ID, and the encrypted file with all its versions. Cached copies of the card and photo disappear within a few minutes. Provider backups may remain for up to 30 days.
 - You may change the nick once. The old nick is reserved and is never given to anyone else, including after the account is deleted.
 - Our technical sign-in and protection records are kept for 30 days, then deleted or made anonymous.
 - The password hash is kept while the account exists and is erased with it. Hashes of the current set of recovery codes are kept while that set is in force; after a new set of 10 codes is issued, hashes of the old set are erased. We keep hashes of codes already used for 30 more days so a code cannot be used twice.

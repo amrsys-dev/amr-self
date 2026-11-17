@@ -271,9 +271,33 @@ describe("privacy policy page", () => {
         assert.doesNotMatch(text, /распечатайте|print them|اطبعها/i, name);
         assert.doesNotMatch(text, /ключ или секрет|key or secret|المفتاح أو السر/i, name);
       }
-      assert.match(ru, /Bazar получает внутренний номер вашего аккаунта и ник/);
+      assert.match(ru, /Bazar получает внутренний номер вашего аккаунта, ник и имя для показа/);
       assert.match(ru, /последние 5 версий/);
       assert.match(ru, /действует 5 минут/);
+    });
+  });
+
+  describe("SECURITY non-blockers", () => {
+    const all = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    const pick = (n: string) => policies.find((p) => p.name === n)!.text;
+
+    it("names the Bazar display name (nick without .amr, no real name)", () => {
+      assert.match(pick("privacy-policy.ru.md"), /имя для показа — это тот же ник без окончания \.amr/);
+      assert.match(pick("privacy-policy.en.md"), /display name — the same nick without the \.amr ending/);
+      assert.match(pick("privacy-policy.ar.md"), /اسم العرض/);
+      assert.equal([...html.matchAll(/without the \.amr ending|без окончания \.amr|بدون النهاية \.amr/g)].length, 3);
+    });
+
+    it("does not reference a missing terms-of-service document", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /условия сервиса|service terms|شروط الخدمة/i, name);
+      }
+    });
+
+    it("says cached photo copies disappear within minutes", () => {
+      assert.match(pick("privacy-policy.ru.md"), /После удаления фото его копии в кэше исчезают в течение нескольких минут/);
+      assert.match(pick("privacy-policy.en.md"), /After you delete the photo, cached copies disappear within a few minutes/);
+      assert.match(pick("privacy-policy.ar.md"), /بعد حذف الصورة نسخها المؤقتة تختفي خلال دقائق/);
     });
   });
 });

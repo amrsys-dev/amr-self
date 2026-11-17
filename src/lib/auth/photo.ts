@@ -52,6 +52,9 @@ export async function handlePhotoDelete(request: Request): Promise<Response> {
   return json({ ok: true, photo: null });
 }
 
+/** Short cache: a deleted or replaced photo disappears from caches within minutes. */
+export const PHOTO_CACHE_CONTROL = "public, max-age=60, s-maxage=60, stale-while-revalidate=300";
+
 /** Public: anyone with the card link can see the cover photo. */
 export async function handlePhotoGet(nickParam: string): Promise<Response> {
   const nick = normalizeNick(nickParam);
@@ -65,7 +68,7 @@ export async function handlePhotoGet(nickParam: string): Promise<Response> {
   return new Response(new Uint8Array(bytes).buffer as ArrayBuffer, {
     headers: {
       "content-type": user.photo.type ?? "image/jpeg",
-      "cache-control": "public, max-age=86400, s-maxage=86400, immutable",
+      "cache-control": PHOTO_CACHE_CONTROL,
       "x-content-type-options": "nosniff",
     },
   });
