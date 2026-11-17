@@ -65,35 +65,34 @@
 <p>If the law requires registration in the SDAIA controller register, we will register and say so here.</p>
 <p>The service website is <a href="https://self.amrsys.net">self.amrsys.net</a>.</p>
 <h2>2. What this service is</h2>
-<p>AMR ID version 1 is a separate web app (PWA) on Vercel. It is your nickname and a digital card with a QR code. The card may show contacts you added yourself. You decide what is public and what is hidden.</p>
+<p>AMR ID version 1 is a separate web app (PWA) on Vercel. It is your nickname and a digital card with a QR code. The card may show contacts you added yourself. You decide which contacts are public and which are hidden. A photo, if you upload one, is visible to everyone.</p>
 <p>Sign-in uses a nickname and a password. If you linked Telegram, you also enter a one-time code from the official Telegram bot after the password. See section 3.1.</p>
 <p>Version 1 has <strong>no password vault</strong>. We do not store your documents, messenger passwords, or secrets from other services. There is a separate finances and tasks file: it is encrypted on your device, and the key stays only with you (see section 3.5). Email is not used for sign-in in this version — that comes later.</p>
 <h2>3. What data we collect</h2>
 <p>We only collect what is needed for sign-in, the card, and syncing your encrypted finances and tasks file.</p>
 <h3>3.1. Account and sign-in</h3>
 <ul>
-<li>Your nick, which you choose yourself: 3 to 24 characters — Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending <code>.amr</code>, for example <code>murad.amr</code>. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.</li>
+<li>Your nick, which you choose yourself: 3 to 24 characters — Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending <code>.amr</code>, for example <code>name.amr</code>. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.</li>
 <li>Your password — stored only as a hash. We do not store or see the password itself.</li>
 <li>Ways to sign in: nickname and password; Google sign-in works only when it is turned on in the service and you linked Google to your account beforehand. You create an account with a nickname and a password; Telegram is not needed for that.</li>
 <li>Your Telegram ID — only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.</li>
 <li>You can link or change Telegram on the sign-in screen with «I lost Telegram»: you need the password and one recovery code. You enter your Telegram ID, the official bot <a href="https://t.me/amr_id_bot">@amr_id_bot</a> sends a code, and you enter it in the app.</li>
 <li>Besides the Telegram ID, we store only your public Telegram username (@username), if you have one. We do not take your name, phone number, or profile photo from Telegram.</li>
-<li>One-time sign-in codes are issued by a Cloudflare Worker and sent to Telegram. We do not store the code in readable form: it is short-lived and single-use.</li>
-<li>Ten one-time recovery codes. They are created on your device and shown once on the screen when you register. Copy them, save them to a file, or print them. Recovery codes are not sent through Telegram. Only verification hashes and wraps go to the server, not the codes themselves. After a password reset with a code, a new set of 10 codes is likewise created on the device and shown once on the screen; the old codes no longer work. Version 1 has no other way to get access back: if you lose the password and all the codes, access cannot be restored. If you lose access to Telegram, your password plus one recovery code let you link a new Telegram account. All open sessions are then closed, and the code you used is consumed.</li>
+<li>The one-time sign-in code is created by our server, and a Cloudflare Worker delivers it to Telegram through the bot. We keep the code only as a hash: it is single-use and works for 5 minutes.</li>
+<li>Ten one-time recovery codes. They are created on your device and shown once on the screen when you register. Write them down and keep them safe: we cannot show them again. Recovery codes are not sent through Telegram. Only verification hashes and wraps go to the server, not the codes themselves. After a password reset with a code, a new set of 10 codes is likewise created on the device and shown once on the screen; the old codes no longer work. Version 1 has no other way to get access back: if you lose the password and all the codes, access cannot be restored. If you lose access to Telegram, your password plus one recovery code let you link a new Telegram account. All open sessions are then closed, and the code you used is consumed.</li>
 </ul>
 <p>Email is not used for sign-in or for codes in version 1. That comes later.</p>
 <h3>3.2. The card</h3>
 <ul>
 <li>Contacts you add yourself: Telegram, a WhatsApp number, and any others you enter. You may also put an email address on the card as an ordinary contact, without a “confirmed” mark: email is not confirmed by a code in this version.</li>
-<li>How the contact was added. The “confirmed” mark is used only after the platform’s official check: Telegram on the card is “confirmed” only if it is the same account linked through the official bot; otherwise it is “listed by the owner”. Discord — only through official OAuth2 login, if we have already implemented it. Steam — only through official OpenID login, if we have already implemented it. WhatsApp, email, and Signal in this version are always “listed by the owner”: that is not a check of the number, mailbox, or account. Telegram does not become public on the card just because we store a Telegram ID to deliver codes: it appears on the card only if you make it public.</li>
-<li>Visibility for each contact and photo: “open to everyone” or “hidden”. Version 1 has no other visibility modes. The WhatsApp number and photo are hidden by default.</li>
-<li>A photo and card design, if you upload them.</li>
-<li>A public snapshot of the card (only fields you made public) — so we can show the page and the QR code.</li>
+<li>We do not verify contacts on the card: the card has no “confirmed” mark. The WhatsApp number is not printed on the card — it shows “listed by the owner” instead, and the number itself is only inside the chat link. Telegram does not become public on the card just because we store a Telegram ID to deliver codes: it appears on the card only if you add it yourself as a public contact.</li>
+<li>Visibility for each contact: “open to everyone” or “hidden”. There are no other modes. A new contact is public right away, except the WhatsApp number, which is hidden by default.</li>
+<li>A photo and card design, if you upload or choose them. An uploaded photo is visible to everyone on the public card: the photo has no visibility setting, you can only delete it.</li>
+<li>We do not store a separate copy of the card: the server builds the guest page from your record each time it is opened, and the Cloudflare network keeps a cached copy for a few minutes.</li>
 </ul>
 <p>LinkedIn is not connected in version 1. If it is added later, it will only be through official LinkedIn sign-in.</p>
 <h3>3.3. Technical data</h3>
 <ul>
-<li>A change log for your record.</li>
 <li>Technical records of sign-in and of service protection (rate limits, blocked suspicious requests). We do not write the password, the Telegram code, or recovery codes into logs.</li>
 <li>We do not keep a separate visit log. To stop guessing attacks, the server keeps the IP address, the nick (if you typed one), and the time of attempts for about 15 minutes, then the record deletes itself. We do not save device type or page addresses. We keep any of our technical records for no more than 30 days.</li>
 <li>On your device the app keeps: the sign-in cookie <code>amrid_session</code> (up to 14 days, page scripts cannot read it); for Google sign-in, two more short cookies for 5–10 minutes; in localStorage, your language, theme, currency and exchange rates, and the order of finance blocks; in IndexedDB, an encrypted copy of your file and a device key, so you do not type the password at every start. Signing out wipes the IndexedDB data. The app cache keeps only site files and pages for offline use; server replies with your data are not stored there.</li>
@@ -111,14 +110,14 @@
 <h3>3.5. The finances and tasks file</h3>
 <p>In version 1 you may keep your finances and tasks in a separate file.</p>
 <ul>
-<li>The data in the file is your finances and tasks. The file is compressed and encrypted on your device, and only then sent to the server.</li>
+<li>The file holds your finances, tasks, plans, diary, visa notes, sport, health (water, weight, food, workouts), and car upkeep. The file is compressed and encrypted on your device, and only then sent to the server.</li>
 <li>The file is encrypted on the device with a key that is not sent to the server. The server stores only the encrypted file.</li>
-<li>The server can see only the file size, the sync time, and which account the file belongs to.</li>
+<li>The server can see only the file size, the sync time, and which account the file belongs to. The server keeps the last 5 versions of the encrypted file.</li>
 <li>The Telegram second factor does not affect the file key: losing Telegram affects sign-in, not the data in the file.</li>
-<li>The encrypted file is stored with Cloudflare, in the European Union (Europe). From the device it is synced to the server from time to time, about every few minutes.</li>
+<li>The encrypted file is stored with Cloudflare, in the European Union (Europe). From the device it is synced to the server from time to time, about every 3 minutes.</li>
 <li>We do not use this file for financial advice, for scoring a person, or for advertising.</li>
-<li>If you lose the key or secret and all recovery codes, the data in the file is gone for good. AMR cannot restore it.</li>
-<li>When you use “delete everything”, the file is deleted together with your other data. Provider backups follow the same deletion periods as other data (see section 7).</li>
+<li>If you forget the password and lose all recovery codes, the data in the file is gone for good. AMR cannot restore it.</li>
+<li>When you delete your account (“Delete my data” in your profile), the file is deleted together with your other data. Provider backups follow the same deletion periods as other data (see section 7).</li>
 </ul>
 <h3>3.6. Sign-in with Google</h3>
 <p>If you sign in with Google:</p>
@@ -133,15 +132,15 @@
 <p>Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The authority is SDAIA.</p>
 <ul>
 <li>Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you (the service terms).</li>
-<li>Showing guests the public contacts and photo you chose — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.</li>
+<li>Showing guests your public contacts and uploaded photo — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.</li>
 <li>Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.</li>
 <li>Storing your Google ID, if you chose to sign in with Google — performance of the agreement.</li>
 <li>Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising.</li>
-<li>Handling reports of impersonation and stopping abuse — legitimate interest: protecting people from impersonation and abuse.</li>
+<li>Reviewing messages about impersonation or abuse that people send to our email or Telegram, and stopping abuse — legitimate interest: protecting people from impersonation and abuse. There is no in-app complaint button.</li>
 </ul>
 <p>We do not sell contact lists, and we do not build a hidden profile of a person beyond what the card and sign-in need.</p>
 <h2>5. Who can see what</h2>
-<p>A guest (anyone with the link or QR code) sees only what is public: the nickname, the design, and the contacts and photo you marked as public. The “message” button opens a chat only for a public contact.</p>
+<p>A guest (anyone with the link or QR code) sees only the nickname, the design, the photo (if you uploaded one), and the contacts you marked as public. The “message” button opens a chat only for a public contact.</p>
 <p>Hidden contacts are shown to no one except you after you sign in. They do not appear:</p>
 <ul>
 <li>on the card page;</li>
@@ -150,38 +149,39 @@
 <li>in link previews (when a messenger or website shows a title, text, and image for the card address).</li>
 </ul>
 <p>The Telegram ID used to deliver the code is not shown to guests.</p>
-<p>The AMR team does not use hidden contacts for mailing and does not show them to other people. Staff access is only to fix the service or review a report, and only as much as needed.</p>
+<p>The AMR team does not use hidden contacts for mailing and does not show them to other people. Staff access is only to fix the service or review a message about impersonation or abuse sent to our email or Telegram, and only as much as needed.</p>
 <p>Only authorised people on the AMR team have that access.</p>
 <p>The card page does not show a sign-in form to guests and does not ask them for codes.</p>
 <h2>6. Where data is stored and who receives it</h2>
 <p>Processors and recipients in version 1:</p>
 <ul>
 <li><strong>Vercel</strong> — the site and application server (PWA).</li>
-<li><strong>Cloudflare</strong> — KV and R2 storage (the account record, the public card snapshot, photos and design, and the encrypted finances and tasks file) and the Worker that issues one-time codes. KV and R2 are reachable only from our server, not from the browser and not through a direct public link. The encrypted file is stored with Cloudflare in the European Union (Europe).</li>
+<li><strong>Cloudflare</strong> — KV, Durable Objects, and R2 storage (account records, card photos, and the encrypted file) and the Worker that delivers one-time codes to Telegram and caches the public card. Only our server can reach the storage, not the browser and not a direct public link; card photos are served only through our site. The encrypted file is stored with Cloudflare in the European Union (Europe).</li>
 <li><strong>Telegram</strong> — the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.</li>
 <li><strong>Google</strong> — sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google&#x27;s servers are outside Saudi Arabia.</li>
+<li><strong>AMR Bazar</strong> (bazar.amrsys.net) — only if you yourself signed in to Bazar with AMR ID and tapped “Allow”. Bazar receives your internal account number and nick. Phone, email, and hidden contacts are not shared.</li>
 </ul>
 <p>Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects — on Cloudflare’s global network, not tied to one country; the main storage is outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.</p>
-<p>Basis for the transfer: it is necessary to provide the service you asked for; in addition, providers protect data under their contractual data processing terms. The transfer follows the SDAIA rules on transferring personal data outside the Kingdom. We give providers only what the service cannot work without, and we pick providers with public data protection rules (links below).</p>
+<p>Basis for the transfer: it is necessary to provide the service you asked for; providers protect data under their published rules (links below). The transfer follows the SDAIA rules on transferring personal data outside the Kingdom. We give providers only what the service cannot work without.</p>
 <p>Vercel, Cloudflare, Telegram, and Google keep their own technical logs under their own rules: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. Our periods are in section 7.</p>
 <p>They process data so we can provide the service (the site, storage, and code delivery), not for our own unrelated mailing.</p>
 <h2>7. How long we keep data</h2>
 <ul>
 <li>Account and card data — for as long as the account exists, or until you delete it sooner.</li>
-<li>After “delete everything”, we erase the record, photos, the public card cache, the linked Telegram ID, and the encrypted finances and tasks file at once. Provider backups may remain for up to 30 days.</li>
+<li>When you delete your account (“Delete my data” in your profile, the “Delete account” screen), we erase at once the record, photos, the linked Telegram ID and Google ID, and the encrypted file with all its versions. The cached copy of the card disappears within a few minutes. Provider backups may remain for up to 30 days.</li>
 <li>You may change the nick once. The old nick is reserved and is never given to anyone else, including after the account is deleted.</li>
 <li>Our technical sign-in and protection records are kept for 30 days, then deleted or made anonymous.</li>
-<li>The password hash is kept while the account exists and is erased with it. Hashes of the current set of recovery codes are kept while that set is in force; after a new set of 10 codes is issued, hashes of the old set are erased.</li>
+<li>The password hash is kept while the account exists and is erased with it. Hashes of the current set of recovery codes are kept while that set is in force; after a new set of 10 codes is issued, hashes of the old set are erased. We keep hashes of codes already used for 30 more days so a code cannot be used twice.</li>
 </ul>
 <h2>8. Security</h2>
 <ul>
 <li>The service is reached over a protected connection (HTTPS).</li>
 <li>The password is stored only as a hash. Recovery codes on the server are stored only as verification hashes and wraps, not as the codes themselves.</li>
-<li>One-time sign-in codes are issued by the server (a Cloudflare Worker), last a short time, and are not stored with us in readable form.</li>
+<li>The one-time sign-in code is created by our server; the server keeps it only as a hash, and it works for 5 minutes. A Cloudflare Worker delivers it to Telegram.</li>
 <li>To change the second-factor channel, you need the password and a one-time code from the old channel. If you lose access to Telegram, your password plus one recovery code let you link a new Telegram account: all open sessions are closed, and the code you used is consumed.</li>
-<li>Access keys for Cloudflare KV and R2 stay on the server only. The guest app and the browser cannot reach the storage directly.</li>
-<li>The file is encrypted on the device with a key that is not sent to the server. If you lose the key or secret and all recovery codes, we cannot restore that file.</li>
-<li>Hidden fields do not go into the public card snapshot, the guest page, or link previews.</li>
+<li>Only our server has the secret for Cloudflare storage. The browser cannot reach the storage directly.</li>
+<li>The file is encrypted on the device with a key that is not sent to the server. If you forget the password and lose all recovery codes, we cannot restore that file.</li>
+<li>Hidden contacts do not go into the guest page, the card cache, or link previews.</li>
 <li>Rate limits reduce guessing of nicknames, passwords, and codes.</li>
 </ul>
 <p>The second-factor code arrives in Telegram. Anyone who can read your Telegram messages can see that code. Keep your Telegram account safe.</p>
@@ -201,7 +201,7 @@
 <p>We answer a request about your data within 30 days.</p>
 <p>To use these rights, write to <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> or Telegram <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. How to delete your account</h2>
-<p>While the account exists, your card is open to everyone at self.amrsys.net/u/your-nick (for example, self.amrsys.net/u/murad.amr): it shows your nick, design, photo (if you uploaded one), and only the contacts you made public. You can hide each contact and delete the photo. After the account is deleted, the card stops opening; cached copies disappear within a few minutes. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.</p>
+<p>While the account exists, your card is open to everyone at self.amrsys.net/u/your-nick (for example, self.amrsys.net/u/name.amr): it shows your nick, design, photo (if you uploaded one), and only the contacts you made public. You can hide each contact and delete the photo. After the account is deleted, the card stops opening; cached copies disappear within a few minutes. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.</p>
 <p>After deletion, that nick is never given to anyone else, including back to you automatically. The old account and its data cannot be restored after deletion. To use the service again, create a new account with a new nick. We keep the deleted nick itself with no time limit (only the nick and the date), so it is never given to anyone.</p>
 <h2>11. Children</h2>
 <p>The service is only for people aged 18 and over. We do not knowingly collect children’s data. If you learn that a child created an account, write to us and we will delete it.</p>
@@ -226,35 +226,34 @@
 <p>إذا طلب النظام التسجيل في سجل المتحكمين لدى سدايا، بنسجّل ونذكر ذلك هنا.</p>
 <p>موقع الخدمة: <a href="https://self.amrsys.net">self.amrsys.net</a>.</p>
 <h2>2. وش هي هذه الخدمة</h2>
-<p>AMR ID الإصدار 1 هو تطبيق ويب منفصل (PWA) على Vercel. هذا معرفك (النيك) وبطاقة رقمية مع رمز QR. على البطاقة قد تظهر جهات تواصل أنت أضفتها بنفسك. أنت تقرر وش مفتوح للجميع، وش مخفي.</p>
+<p>AMR ID الإصدار 1 هو تطبيق ويب منفصل (PWA) على Vercel. هذا معرفك (النيك) وبطاقة رقمية مع رمز QR. على البطاقة قد تظهر جهات تواصل أنت أضفتها بنفسك. أنت تقرر أي جهات التواصل مفتوحة للجميع وأيها مخفية. الصورة، إذا رفعتها، يشوفها الكل.</p>
 <p>الدخول: المعرف وكلمة المرور. إذا ربطت تلغرام، تحتاج بعد كلمة المرور رمزاً لمرة واحدة من بوت تلغرام الرسمي. التفاصيل في القسم 3.1.</p>
 <p>في الإصدار 1 <strong>ما في خزنة كلمات مرور</strong>. ما نخزّن وثائقك، ولا كلمات مرور تطبيقات المراسلة، ولا أسرار خدمات ثانية. في ملف منفصل للمال والمهام: يتشفّر على جهازك، والمفتاح يبقى عندك وحدك (انظر القسم 3.5). الدخول بالبريد في هذا الإصدار ما نستخدمه — هذا لاحقاً.</p>
 <h2>3. أي بيانات نجمع</h2>
 <p>نأخذ فقط اللي يحتاجه الدخول، والبطاقة، ومزامنة ملف مالك ومهامك المشفّر.</p>
 <h3>3.1. الحساب والدخول</h3>
 <ul>
-<li>معرفك اللي تختاره بنفسك: من 3 إلى 24 حرفاً — حروف لاتينية وأرقام، ويجوز بينها نقطة أو شرطة أو شرطة سفلية وحدة. المعرف يُحفظ بحروف صغيرة مع النهاية <code>.amr</code>، مثل <code>murad.amr</code>. الكلمات الخدمية (admin وsupport وapi وأمثالها) ما تنحجز. المعرفات القديمة مثل @AMR-123-456 تظل شغالة.</li>
+<li>معرفك اللي تختاره بنفسك: من 3 إلى 24 حرفاً — حروف لاتينية وأرقام، ويجوز بينها نقطة أو شرطة أو شرطة سفلية وحدة. المعرف يُحفظ بحروف صغيرة مع النهاية <code>.amr</code>، مثل <code>name.amr</code>. الكلمات الخدمية (admin وsupport وapi وأمثالها) ما تنحجز. المعرفات القديمة مثل @AMR-123-456 تظل شغالة.</li>
 <li>كلمة المرور — فقط بشكل هاش. نفس كلمة المرور ما نخزّنها وما نشوفها.</li>
 <li>طرق الدخول: المعرف وكلمة المرور؛ والدخول عبر Google فقط إذا كان مفعّلاً في الخدمة وربطت Google بحسابك من قبل. الحساب ينشأ بالمعرف وكلمة المرور، وما يحتاج تلغرام.</li>
 <li>معرف تلغرام (Telegram ID) — فقط إذا ربطت تلغرام. وقتها عند الدخول (بكلمة المرور أو عبر Google) يوصلك رمز لمرة واحدة في تلغرام بعد الخطوة الأولى.</li>
 <li>تقدر تربط تلغرام أو تغيّره من شاشة الدخول عبر «فقدت تلغرام»: تحتاج كلمة المرور ورمز استرجاع واحد. تكتب معرف تلغرام (Telegram ID) حقك، والبوت الرسمي <a href="https://t.me/amr_id_bot">@amr_id_bot</a> يرسل رمزاً، وتكتبه في التطبيق.</li>
 <li>غير Telegram ID نحفظ فقط اسم المستخدم العام في تلغرام (@username) إذا عندك. ما نأخذ من تلغرام اسمك ولا رقم جوالك ولا صورة الملف.</li>
-<li>رموز الدخول لمرة واحدة يصدرها Cloudflare Worker ويرسلها إلى تلغرام. نفس الرمز ما نخزّنه بشكل مقروء: قصير، لمرة واحدة، وينتهي بسرعة.</li>
-<li>عشرة رموز استرجاع لمرة واحدة. تُنشأ على جهازك وتنعرض مرة واحدة على الشاشة وقت التسجيل. انسخها، احفظها في ملف، أو اطبعها. رموز الاسترجاع ما تنرسل عبر تلغرام. لخادم يروح فقط الهاشات للتحقق والنسخ المغلفة للمفتاح، مو الرموز نفسها. بعد إعادة تعيين كلمة المرور برمز، مجموعة جديدة من 10 رموز تنشأ على الجهاز وتنعرض مرة واحدة على الشاشة؛ الرموز القديمة ما تعود تعمل. في الإصدار 1 ما في طريق ثاني لترجيع الدخول: إذا فقدت كلمة المرور وكل الرموز، الدخول ما يرجع. إذا فقدت الدخول لتلغرام، كلمة المرور ورمز استرجاع واحد يسمحون بربط تلغرام جديد. كل الجلسات المفتوحة تنقفل، والرمز اللي استخدمته يخلص وما يعود يشتغل.</li>
+<li>رمز الدخول لمرة واحدة ينشئه خادمنا، ويوصله Cloudflare Worker إلى تلغرام عبر البوت. نحفظ الرمز فقط كهاش: لمرة واحدة وصالح 5 دقائق.</li>
+<li>عشرة رموز استرجاع لمرة واحدة. تُنشأ على جهازك وتنعرض مرة واحدة على الشاشة وقت التسجيل. اكتبها واحفظها في مكان آمن: ما نقدر نعرضها مرة ثانية. رموز الاسترجاع ما تنرسل عبر تلغرام. لخادم يروح فقط الهاشات للتحقق والنسخ المغلفة للمفتاح، مو الرموز نفسها. بعد إعادة تعيين كلمة المرور برمز، مجموعة جديدة من 10 رموز تنشأ على الجهاز وتنعرض مرة واحدة على الشاشة؛ الرموز القديمة ما تعود تعمل. في الإصدار 1 ما في طريق ثاني لترجيع الدخول: إذا فقدت كلمة المرور وكل الرموز، الدخول ما يرجع. إذا فقدت الدخول لتلغرام، كلمة المرور ورمز استرجاع واحد يسمحون بربط تلغرام جديد. كل الجلسات المفتوحة تنقفل، والرمز اللي استخدمته يخلص وما يعود يشتغل.</li>
 </ul>
 <p>البريد للدخول وللرموز في الإصدار 1 ما يُستخدم. هذا لاحقاً.</p>
 <h3>3.2. البطاقة</h3>
 <ul>
 <li>جهات التواصل اللي أضفتها بنفسك: تلغرام، ورقم واتساب، وغيرها إذا ذكرتها. تقدر كمان تحط بريداً على البطاقة كجهة تواصل عادية، بدون علامة «مؤكد»: ما في تأكيد للبريد برمز في هذا الإصدار.</li>
-<li>علامة كيف ظهرت جهة التواصل. علامة «مؤكد» تنحط فقط بعد التحقق الرسمي من المنصة: تلغرام على البطاقة يكون «مؤكد» فقط إذا كان نفس الحساب المربوط عبر البوت الرسمي؛ وإلا «مذكور من صاحب الحساب». ديسكورد — فقط عبر الدخول الرسمي OAuth2، إذا كنّا طبقناه. ستيم — فقط عبر الدخول الرسمي OpenID، إذا كنّا طبقناه. واتساب والبريد وسيغنال في هذا الإصدار دائماً «مذكور من صاحب الحساب»: هذا مو فحص للرقم أو للصندوق أو للحساب. تلغرام على البطاقة ما يصير عاماً فقط لأننا نخزّن Telegram ID لتوصيل الرموز: يظهر على البطاقة فقط إذا فتحته بنفسك.</li>
-<li>إعدادات الإظهار لكل جهة تواصل وصورة: «مفتوح للجميع» أو «مخفي». في الإصدار 1 ما في أوضاع إظهار ثانية. رقم واتساب والصورة مخفيان بشكل افتراضي.</li>
-<li>صورة وتصميم البطاقة، إذا رفعتها.</li>
-<li>نسخة عامة من البطاقة (فقط الحقول اللي فتحتها) — عشان نعرض الصفحة ورمز QR.</li>
+<li>ما نتحقق من جهات التواصل على البطاقة: ما في علامة «مؤكد» على البطاقة. رقم واتساب ما ينطبع على البطاقة — بداله يظهر «ذكره المالك»، والرقم نفسه موجود فقط داخل رابط المحادثة. تلغرام على البطاقة ما يصير عاماً فقط لأننا نخزّن Telegram ID لتوصيل الرموز: يظهر على البطاقة فقط إذا أضفته بنفسك كجهة تواصل مفتوحة.</li>
+<li>إظهار كل جهة تواصل: «مفتوح للجميع» أو «مخفي». ما في أوضاع ثانية. جهة التواصل الجديدة تكون مفتوحة على طول، إلا رقم واتساب — مخفي بشكل افتراضي.</li>
+<li>صورة وتصميم البطاقة، إذا رفعتها أو اخترتها. الصورة المرفوعة يشوفها الكل على البطاقة العامة: ما لها إعداد إظهار، تقدر بس تحذفها.</li>
+<li>ما نحفظ نسخة منفصلة من البطاقة: الخادم يبني صفحة الزائر من سجلك كل مرة تنفتح، وشبكة Cloudflare تحفظ نسخة مؤقتة لدقائق.</li>
 </ul>
 <p>لينكدإن في الإصدار 1 ما نربطه. إذا جاء لاحقاً، فقط عبر الدخول الرسمي لينكدإن.</p>
 <h3>3.3. البيانات التقنية</h3>
 <ul>
-<li>سجل تعديلات سجلّك.</li>
 <li>سجلات تقنية عن الدخول وعن حماية الخدمة (الحدود، ورفض الطلبات المشبوهة). قيم كلمة المرور، ورمز تلغرام، ورمز الاسترجاع ما نكتبها في السجلات.</li>
 <li>ما نحتفظ بسجل زيارات منفصل. للحماية من التخمين يحفظ الخادم عنوان IP والمعرف (إذا كتبته) ووقت المحاولات حوالي 15 دقيقة، وبعدها ينحذف السجل تلقائياً. ما نحفظ نوع الجهاز ولا عناوين الصفحات. أي سجلات تقنية عندنا نحفظها 30 يوماً كحد أقصى.</li>
 <li>على جهازك يحفظ التطبيق: ملف تعريف الدخول (cookie) <code>amrid_session</code> لمدة حتى 14 يوماً، وسكربتات الصفحة ما تقدر تقراه؛ عند الدخول عبر Google ملفّين مؤقتين إضافيين لمدة 5–10 دقائق؛ في localStorage اللغة والمظهر والعملة وأسعار الصرف وترتيب أقسام المالية؛ في IndexedDB نسخة مشفرة من ملفك ومفتاح الجهاز، عشان ما تكتب كلمة المرور كل مرة تفتح التطبيق. عند الخروج من الحساب تنحذف بيانات IndexedDB. ذاكرة التطبيق المؤقتة فيها فقط ملفات وصفحات الموقع للعمل بدون إنترنت، وردود الخادم اللي فيها بياناتك ما تنحفظ فيها.</li>
@@ -272,14 +271,14 @@
 <h3>3.5. ملف المال والمهام</h3>
 <p>في الإصدار 1 تقدر تحفظ مالك ومهامك في ملف منفصل.</p>
 <ul>
-<li>البيانات في الملف هي مالك ومهامك. الملف يُضغط ويتشفّر على جهازك، وبعدها فقط يُرسل إلى الخادم.</li>
+<li>في الملف: مالك، ومهامك، وخططك، ويومياتك، وملاحظات التأشيرة، والرياضة، والصحة (الماء، والوزن، والأكل، والتمارين)، وصيانة السيارة. الملف يُضغط ويتشفّر على جهازك، وبعدها فقط يُرسل إلى الخادم.</li>
 <li>الملف يتشفّر على الجهاز بمفتاح ما يُرسل إلى الخادم. على الخادم يبقى فقط الملف المشفّر.</li>
-<li>الخادم يشوف فقط حجم الملف، ووقت المزامنة، وأي حساب يتبع له الملف.</li>
+<li>الخادم يشوف فقط حجم الملف، ووقت المزامنة، وأي حساب يتبع له الملف. الخادم يحفظ آخر 5 نسخ من الملف المشفّر.</li>
 <li>العامل الثاني عبر تلغرام ما يؤثر على مفتاح الملف: فقدان تلغرام يؤثر على الدخول، مو على بيانات الملف.</li>
-<li>الملف المشفّر محفوظ عند Cloudflare، في الاتحاد الأوروبي (أوروبا). من الجهاز يتزامن إلى الخادم من فترة لفترة، تقريباً كل كم دقيقة.</li>
+<li>الملف المشفّر محفوظ عند Cloudflare، في الاتحاد الأوروبي (أوروبا). من الجهاز يتزامن إلى الخادم من فترة لفترة، تقريباً كل 3 دقائق.</li>
 <li>ما نستخدم هذا الملف لنصائح مالية، ولا لتقييم الشخص، ولا للإعلانات.</li>
-<li>إذا فقدت المفتاح أو السر وكل رموز الاسترجاع، بيانات الملف تضيع نهائياً. AMR ما تقدر ترجّعها.</li>
-<li>عند إجراء «حذف الكل» الملف يُحذف مع بقية بياناتك. النسخ الاحتياطية لدى المزود تختفي في نفس المدد اللي لبقية البيانات (انظر القسم 7).</li>
+<li>إذا نسيت كلمة المرور وفقدت كل رموز الاسترجاع، بيانات الملف تضيع نهائياً. AMR ما تقدر ترجّعها.</li>
+<li>لما تحذف حسابك («حذف بياناتي» في الملف الشخصي) الملف يُحذف مع بقية بياناتك. النسخ الاحتياطية لدى المزود تختفي في نفس المدد اللي لبقية البيانات (انظر القسم 7).</li>
 </ul>
 <h3>3.6. الدخول عبر Google</h3>
 <p>إذا دخلت عبر Google:</p>
@@ -294,15 +293,15 @@
 <p>المعالجة تتم وفق نظام حماية البيانات الشخصية في السعودية (PDPL). الجهة المختصة: سدايا.</p>
 <ul>
 <li>إنشاء حسابك، وحفظ المعرف، والسماح لك بالدخول، وعرض البطاقة حسب إعدادك — تنفيذ الاتفاق معك (شروط الخدمة).</li>
-<li>إظهار جهات التواصل والصور المفتوحة اللي اخترتها للزوار — موافقتك. تقدر في أي وقت تخفي جهة تواصل، أو تحذف الصورة، أو تسحب الموافقة.</li>
+<li>إظهار جهات التواصل المفتوحة والصورة المرفوعة للزوار — موافقتك. تقدر في أي وقت تخفي جهة تواصل، أو تحذف الصورة، أو تسحب الموافقة.</li>
 <li>حفظ Telegram ID وإرسال رمز الدخول إلى تلغرام — تنفيذ الاتفاق وحماية الدخول.</li>
 <li>حفظ Google ID إذا اخترت بنفسك الدخول عبر Google — تنفيذ الاتفاق.</li>
 <li>حفظ ملف مالك ومهامك المشفّر والبيانات الخدمية عنه (الحجم، ووقت المزامنة، والحساب)، عشان يمكن مزامنة الملف — تنفيذ الاتفاق. المفتاح ما يُرسل إلى الخادم. هذا الملف ما نستخدمه للنصائح أو التقييم أو الإعلانات.</li>
-<li>النظر في بلاغات الانتحال وإيقاف إساءة الاستخدام — مصلحة مشروعة: حماية الناس من الانتحال وإساءة الاستخدام.</li>
+<li>النظر في الرسائل عن الانتحال أو إساءة الاستخدام اللي توصلنا على البريد أو تلغرام، وإيقاف إساءة الاستخدام — مصلحة مشروعة: حماية الناس من الانتحال وإساءة الاستخدام. ما في زر بلاغ داخل التطبيق.</li>
 </ul>
 <p>ما نبيع قواعد جهات التواصل، وما نبني ملفاً خفياً عن الشخص فوق اللي تحتاجه البطاقة والدخول.</p>
 <h2>5. مين يشوف وش</h2>
-<p>الزائر (أي شخص عنده الرابط أو رمز QR) يشوف فقط المفتوح: المعرف، والتصميم، وجهات التواصل والصور اللي علّمتها كمفتوحة. زر «مراسلة» يفتح المحادثة فقط لجهة تواصل مفتوحة.</p>
+<p>الزائر (أي شخص عنده الرابط أو رمز QR) يشوف فقط المعرف، والتصميم، والصورة (إذا رفعتها)، وجهات التواصل اللي علّمتها كمفتوحة. زر «مراسلة» يفتح المحادثة فقط لجهة تواصل مفتوحة.</p>
 <p>جهات التواصل المخفية ما تظهر لأحد غيرك بعد الدخول. ما تكون:</p>
 <ul>
 <li>في صفحة البطاقة؛</li>
@@ -311,38 +310,39 @@
 <li>في معاينة الرابط (لما تطبيق أو موقع يعرض عنواناً ونصاً وصورة لعنوان البطاقة).</li>
 </ul>
 <p>Telegram ID اللازم لتوصيل الرمز ما يظهر للزوار.</p>
-<p>فريق AMR ما يستخدم الجهات المخفية للمراسلة، وما يعرضها لناس ثانيين. الوصول الوظيفي فقط لإصلاح الخدمة أو النظر في بلاغ، وبالقدر اللازم فقط.</p>
+<p>فريق AMR ما يستخدم الجهات المخفية للمراسلة، وما يعرضها لناس ثانيين. الوصول الوظيفي فقط لإصلاح الخدمة أو النظر في رسالة عن انتحال أو إساءة استخدام وصلتنا على البريد أو تلغرام، وبالقدر اللازم فقط.</p>
 <p>هذا الوصول فقط لأشخاص مخوّلين من فريق AMR.</p>
 <p>للزائر على صفحة البطاقة ما نعرض نماذج دخول، وما نطلب منه أكواد.</p>
 <h2>6. وين تنحفظ البيانات، ومين يستلمها</h2>
 <p>جهات المعالجة والاستلام في الإصدار 1:</p>
 <ul>
 <li><strong>Vercel</strong> — الموقع وخادم التطبيق (PWA).</li>
-<li><strong>Cloudflare</strong> — التخزين KV و R2 (سجل الحساب، والنسخة العامة للبطاقة، والصور والتصميم، وملف المال والمهام المشفّر) وWorker اللي يصدر الرموز لمرة واحدة. الوصول إلى KV و R2 فقط من خادمنا، مو من المتصفح ولا برابط عام مباشر. الملف المشفّر محفوظ عند Cloudflare في الاتحاد الأوروبي (أوروبا).</li>
+<li><strong>Cloudflare</strong> — التخزين KV وDurable Objects وR2 (سجلات الحساب، وصور البطاقة، والملف المشفّر) وWorker اللي يوصّل الرموز لمرة واحدة إلى تلغرام ويحفظ البطاقة العامة مؤقتاً. الوصول إلى التخزين فقط من خادمنا، مو من المتصفح ولا برابط عام مباشر؛ صور البطاقة تُعرض فقط عبر موقعنا. الملف المشفّر محفوظ عند Cloudflare في الاتحاد الأوروبي (أوروبا).</li>
 <li><strong>تلغرام</strong> — قناة توصيل رمز العامل الثاني (رمز الدخول). تلغرام يستلم Telegram ID ورسالة فيها رمز الدخول. رموز الاسترجاع ما تنرسل عبر تلغرام.</li>
 <li><strong>Google</strong> — الدخول بحساب Google. ‏Google يعرف إنك دخلت AMR ID، ويعطينا بس Google ID. خوادم Google برّا السعودية.</li>
+<li><strong>AMR Bazar</strong> (bazar.amrsys.net) — فقط إذا دخلت Bazar بنفسك عبر AMR ID وضغطت «سماح». Bazar يستلم رقم حسابك الداخلي ومعرفك. الهاتف والبريد وجهات التواصل المخفية ما تنرسل.</li>
 </ul>
 <p>سجلات الحساب (المعرف، وهاش كلمة المرور، وTelegram ID و@username، وGoogle ID، والجلسات) محفوظة في Cloudflare KV وDurable Objects — على شبكة Cloudflare العالمية، بدون ربط بدولة وحدة؛ والحفظ الأساسي خارج السعودية. ملف المال والمهام المشفّر وصور البطاقة محفوظة في Cloudflare R2 في الاتحاد الأوروبي. كل هذا نقل بيانات خارج السعودية. خادم التطبيق على Vercel يشتغل في أمريكا (منطقة iad1، واشنطن): الطلبات تمر عبره، أما بيانات الحساب فمحفوظة عند Cloudflare مو عند Vercel. تلغرام يوصّل الرمز على خوادمه، عادة خارج السعودية. ما نقول إن البيانات موجودة في السعودية.</p>
-<p>أساس النقل: إنه لازم عشان نقدم لك الخدمة اللي طلبتها بنفسك؛ وكمان المزوّدون يحمون البيانات حسب شروطهم التعاقدية لمعالجة البيانات. النقل يتم وفق قواعد سدايا لنقل البيانات الشخصية خارج المملكة. نعطي المزوّدين فقط اللي ما تشتغل الخدمة بدونه، ونختار مزوّدين عندهم قواعد منشورة لحماية البيانات (الروابط تحت).</p>
+<p>أساس النقل: إنه لازم عشان نقدم لك الخدمة اللي طلبتها بنفسك؛ والمزوّدون يحمون البيانات حسب قواعدهم المنشورة (الروابط تحت). النقل يتم وفق قواعد سدايا لنقل البيانات الشخصية خارج المملكة. نعطي المزوّدين فقط اللي ما تشتغل الخدمة بدونه.</p>
 <p>Vercel وCloudflare وتلغرام وGoogle يحتفظون بسجلاتهم التقنية حسب قواعدهم: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. مددنا في القسم 7.</p>
 <p>يعالجون البيانات عشان نقدر نقدّم الخدمة (الموقع، والحفظ، وتوصيل الرمز)، مو لمراسلاتنا الخارجة عن هذا الغرض.</p>
 <h2>7. كم نحفظ</h2>
 <ul>
 <li>بيانات الحساب والبطاقة — طول ما الحساب موجود، أو إلى أن تحذفها أبكر.</li>
-<li>بعد إجراء «حذف الكل» نمسح فوراً السجل، والصور، والنسخة المخزّنة للبطاقة العامة، وربط Telegram ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً.</li>
+<li>لما تحذف حسابك («حذف بياناتي» في الملف الشخصي، شاشة «حذف الحساب») نمسح فوراً السجل، والصور، وربط Telegram ID وGoogle ID، والملف المشفّر بكل نسخه. النسخة المؤقتة للبطاقة تختفي خلال دقائق. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً.</li>
 <li>تقدر تغيّر المعرف مرة واحدة. المعرف القديم يروح للحجز وما يُعطى لأحد، بما في ذلك بعد حذف الحساب.</li>
 <li>سجلاتنا التقنية عن الدخول والحماية تُحفظ 30 يوماً، وبعدها تُحذف أو تُزال عنها الهوية.</li>
-<li>هاش كلمة المرور يُحفظ طول وجود الحساب، ويُمسح معه. هاشات مجموعة رموز الاسترجاع الحالية تُحفظ طول ما المجموعة سارية؛ بعد إصدار مجموعة جديدة من 10 رموز، هاشات المجموعة القديمة تُمسح.</li>
+<li>هاش كلمة المرور يُحفظ طول وجود الحساب، ويُمسح معه. هاشات مجموعة رموز الاسترجاع الحالية تُحفظ طول ما المجموعة سارية؛ بعد إصدار مجموعة جديدة من 10 رموز، هاشات المجموعة القديمة تُمسح. هاشات الرموز المستخدمة نحفظها 30 يوماً إضافية عشان ما ينستخدم الرمز مرتين.</li>
 </ul>
 <h2>8. الأمان</h2>
 <ul>
 <li>الاتصال بالخدمة يتم عبر اتصال محمي (HTTPS).</li>
 <li>كلمة المرور محفوظة فقط كهاش. رموز الاسترجاع على الخادم محفوظة فقط كهاشات للتحقق ونسخ مغلفة للمفتاح، مو الرموز نفسها.</li>
-<li>رموز الدخول لمرة واحدة يصدرها الخادم (Cloudflare Worker)، تعيش وقتاً قصيراً، وما نخزّنها عندنا بشكل مقروء.</li>
+<li>رمز الدخول لمرة واحدة ينشئه خادمنا؛ يُحفظ على الخادم فقط كهاش وصالح 5 دقائق. Cloudflare Worker يوصّله إلى تلغرام.</li>
 <li>عشان تغيّر قناة العامل الثاني، لازم كلمة المرور ورمز لمرة واحدة من القناة القديمة. إذا فقدت الدخول لتلغرام، كلمة المرور ورمز استرجاع واحد يسمحون بربط تلغرام جديد: كل الجلسات المفتوحة تنقفل، والرمز اللي استخدمته يخلص وما يعود يشتغل.</li>
-<li>مفاتيح الوصول إلى Cloudflare KV و R2 تبقى فقط على الخادم. تطبيق الزائر والمتصفح ما يقدرون يوصلون للتخزين مباشرة.</li>
-<li>الملف يتشفّر على الجهاز بمفتاح ما يُرسل إلى الخادم. إذا فقدت المفتاح أو السر وكل رموز الاسترجاع، ما نقدر نرجّع هذا الملف.</li>
-<li>الحقول المخفية ما تدخل النسخة العامة للبطاقة، ولا صفحة الزائر، ولا معاينة الروابط.</li>
+<li>سر الوصول إلى تخزين Cloudflare موجود فقط عند خادمنا. المتصفح ما يقدر يوصل للتخزين مباشرة.</li>
+<li>الملف يتشفّر على الجهاز بمفتاح ما يُرسل إلى الخادم. إذا نسيت كلمة المرور وفقدت كل رموز الاسترجاع، ما نقدر نرجّع هذا الملف.</li>
+<li>جهات التواصل المخفية ما تدخل صفحة الزائر، ولا النسخة المؤقتة للبطاقة، ولا معاينة الروابط.</li>
 <li>في حدود على الطلبات المتكررة، عشان ما يصير تخمين للمعرفات أو كلمات المرور أو الرموز.</li>
 </ul>
 <p>رمز العامل الثاني يوصل في تلغرام. أي شخص يقدر يقرأ رسائلك في تلغرام يقدر يشوف هذا الرمز. احفظ دخولك لتلغرام.</p>
@@ -362,7 +362,7 @@
 <p>نرد على طلبك عن بياناتك خلال 30 يوماً.</p>
 <p>عشان تستخدم حقوقك، اكتب على <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> أو تلغرام <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. كيف تحذف حسابك</h2>
-<p>طالما الحساب موجود، بطاقتك مفتوحة للكل على العنوان self.amrsys.net/u/معرفك (مثلاً self.amrsys.net/u/murad.amr): فيها المعرف، والتصميم، والصورة (إذا رفعتها)، وفقط جهات التواصل اللي خليتها مفتوحة. تقدر تخفي كل جهة تواصل وتحذف الصورة. بعد حذف الحساب البطاقة ما تعود تنفتح، والنسخ المخزّنة تختفي خلال دقائق. عشان تحذف الحساب، أكّد بنفس طريقة دخولك: كلمة المرور، أو رمز من تلغرام، أو تدخل Google مرة ثانية. نمسح فوراً سجلك، والصور، والنسخة المخزّنة للبطاقة، وربط Telegram ID، وربط Google ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً. بعد الحذف هذا المعرف والبطاقة يتوقفان عن العمل.</p>
+<p>طالما الحساب موجود، بطاقتك مفتوحة للكل على العنوان self.amrsys.net/u/معرفك (مثلاً self.amrsys.net/u/name.amr): فيها المعرف، والتصميم، والصورة (إذا رفعتها)، وفقط جهات التواصل اللي خليتها مفتوحة. تقدر تخفي كل جهة تواصل وتحذف الصورة. بعد حذف الحساب البطاقة ما تعود تنفتح، والنسخ المخزّنة تختفي خلال دقائق. عشان تحذف الحساب، أكّد بنفس طريقة دخولك: كلمة المرور، أو رمز من تلغرام، أو تدخل Google مرة ثانية. نمسح فوراً سجلك، والصور، والنسخة المخزّنة للبطاقة، وربط Telegram ID، وربط Google ID، وملف المال والمهام المشفّر. النسخ الاحتياطية لدى المزودين قد تبقى حتى 30 يوماً. بعد الحذف هذا المعرف والبطاقة يتوقفان عن العمل.</p>
 <p>بعد الحذف هذا المعرف ما يُعطى لأحد، حتى لك تلقائياً. الحساب القديم وبياناته ما ترجع بعد الحذف. عشان تستخدم الخدمة مرة ثانية، أنشئ حساباً جديداً بمعرف جديد. نحتفظ بالمعرف المحذوف نفسه بدون مدة (المعرف والتاريخ فقط)، عشان ما يُعطى لأحد.</p>
 <h2>11. الأطفال</h2>
 <p>الخدمة فقط لمن عمره 18 سنة فأكثر. ما نجمع عن قصد بيانات أطفال. إذا عرفت إن حساباً سواه طفل، اكتب لنا — بنحذفه.</p>
@@ -413,35 +413,34 @@
 <p>Если закон потребует регистрации в реестре контролёров SDAIA, мы её пройдём и укажем это здесь.</p>
 <p>Сайт сервиса: <a href="https://self.amrsys.net">self.amrsys.net</a>.</p>
 <h2>2. О каком сервисе речь</h2>
-<p>AMR ID версии 1 — отдельное веб-приложение (PWA) на Vercel. Это ваш ник и цифровая визитка с QR-кодом. На визитке могут быть контакты, которые вы сами добавили. Вы решаете, что открыто для всех, а что скрыто.</p>
+<p>AMR ID версии 1 — отдельное веб-приложение (PWA) на Vercel. Это ваш ник и цифровая визитка с QR-кодом. На визитке могут быть контакты, которые вы сами добавили. Вы решаете, какие контакты открыты для всех, а какие скрыты. Фото, если вы его загрузили, видно всем.</p>
 <p>Вход: ник и пароль. Если вы привязали Telegram, после пароля нужен ещё одноразовый код из официального Telegram-бота. Подробнее — в разделе 3.1.</p>
 <p>В версии 1 <strong>нет сейфа паролей</strong>. Мы не храним ваши документы, пароли от мессенджеров и секреты чужих сервисов. Есть отдельный файл финансов и задач: он шифруется на вашем устройстве, ключ остаётся только у вас (см. раздел 3.5). Вход через почту в этой версии не используем — это позже.</p>
 <h2>3. Какие данные мы собираем</h2>
 <p>Мы берём только то, что нужно для входа, визитки и синхронизации вашего зашифрованного файла финансов и задач.</p>
 <h3>3.1. Аккаунт и вход</h3>
 <ul>
-<li>Ваш ник, который вы выбираете сами: от 3 до 24 символов — латинские буквы и цифры, между ними можно ставить одну точку, дефис или подчёркивание. Ник хранится маленькими буквами с окончанием <code>.amr</code>, например <code>murad.amr</code>. Служебные слова (admin, support, api и подобные) занять нельзя. Старые ники вида @AMR-123-456 продолжают работать.</li>
+<li>Ваш ник, который вы выбираете сами: от 3 до 24 символов — латинские буквы и цифры, между ними можно ставить одну точку, дефис или подчёркивание. Ник хранится маленькими буквами с окончанием <code>.amr</code>, например <code>name.amr</code>. Служебные слова (admin, support, api и подобные) занять нельзя. Старые ники вида @AMR-123-456 продолжают работать.</li>
 <li>Пароль — только в виде хэша. Сам пароль мы не храним и не видим.</li>
 <li>Способы входа: ник и пароль; вход через Google — только когда он включён в сервисе и вы заранее привязали Google к аккаунту. Аккаунт создаётся по нику и паролю, Telegram для этого не нужен.</li>
 <li>Telegram ID — только если вы привязали Telegram. Тогда при входе (паролем или через Google) после первого шага приходит одноразовый код в Telegram.</li>
 <li>Привязать или сменить Telegram можно на экране входа по ссылке «Потерял Telegram»: нужны пароль и один код восстановления. Вы указываете свой Telegram ID, официальный бот <a href="https://t.me/amr_id_bot">@amr_id_bot</a> присылает код, вы вводите его в приложении.</li>
 <li>Кроме Telegram ID мы храним только ваш публичный ник в Telegram (@username), если он есть. Имя, фамилию, номер телефона и фото профиля из Telegram мы не берём.</li>
-<li>Одноразовые коды входа выдаёт Cloudflare Worker и отправляет их в Telegram. Сам код мы не храним в читаемом виде: он короткий, одноразовый и быстро истекает.</li>
-<li>Десять одноразовых кодов восстановления. Они создаются на вашем устройстве и один раз показываются на экране при регистрации. Скопируйте их, сохраните файлом или распечатайте. Через Telegram коды восстановления не отправляются. На сервер уходят только проверочные хэши и обёртки, не сами коды. После сброса пароля по коду новый набор из 10 кодов так же создаётся на устройстве и один раз показывается на экране; старые коды больше не действуют. Других способов вернуть доступ в версии 1 нет: если вы потеряли пароль и все коды, доступ вернуть нельзя. Если вы потеряли доступ к Telegram, пароль и один код восстановления позволяют привязать новый Telegram. Все открытые сеансы при этом закрываются, использованный код сгорает.</li>
+<li>Одноразовый код входа создаёт наш сервер, а в Telegram его доставляет Cloudflare Worker через бота. Сам код мы храним только как хэш: он одноразовый и действует 5 минут.</li>
+<li>Десять одноразовых кодов восстановления. Они создаются на вашем устройстве и один раз показываются на экране при регистрации. Запишите их и храните в надёжном месте: показать их ещё раз мы не сможем. Через Telegram коды восстановления не отправляются. На сервер уходят только проверочные хэши и обёртки, не сами коды. После сброса пароля по коду новый набор из 10 кодов так же создаётся на устройстве и один раз показывается на экране; старые коды больше не действуют. Других способов вернуть доступ в версии 1 нет: если вы потеряли пароль и все коды, доступ вернуть нельзя. Если вы потеряли доступ к Telegram, пароль и один код восстановления позволяют привязать новый Telegram. Все открытые сеансы при этом закрываются, использованный код сгорает.</li>
 </ul>
 <p>Почта для входа и для кодов в версии 1 не используется. Это позже.</p>
 <h3>3.2. Визитка</h3>
 <ul>
 <li>Контакты, которые вы сами добавили: Telegram, номер WhatsApp и другие, если вы их укажете. Почту на визитке тоже можно указать как обычный контакт, без отметки «подтверждено»: подтверждение почты кодом в этой версии нет.</li>
-<li>Отметка, как контакт появился. Значок «подтверждён» ставится только после официальной проверки платформы: Telegram на визитке — «подтверждён», только если это тот же аккаунт, который привязан через официального бота; иначе — «указан владельцем». Discord — только через официальный вход OAuth2, если мы его уже сделали. Steam — только через официальный вход OpenID, если мы его уже сделали. WhatsApp, почта и Signal в этой версии всегда «указан владельцем»: это не проверка номера, ящика или аккаунта. Telegram на визитке не становится публичным только потому, что мы храним Telegram ID для доставки кодов: на карточке он виден лишь если вы сами его открыли.</li>
-<li>Настройки видимости каждого контакта и фото: «открыто для всех» или «скрыто». В версии 1 других режимов видимости нет. Номер WhatsApp и фото по умолчанию скрыты.</li>
-<li>Фото и оформление визитки, если вы их загрузите.</li>
-<li>Открытый слепок визитки (только поля, которые вы открыли) — чтобы показать страницу и QR.</li>
+<li>Контакты на визитке мы не проверяем: значка «подтверждён» на визитке нет. Номер WhatsApp на визитке не печатается — вместо него стоит «указан владельцем», а сам номер есть только в ссылке на чат. Telegram на визитке не становится публичным только потому, что мы храним Telegram ID для доставки кодов: на визитке он виден, только если вы сами добавили его как открытый контакт.</li>
+<li>Видимость каждого контакта: «открыто для всех» или «скрыто». Других режимов нет. Новый контакт сразу открыт, кроме номера WhatsApp — он по умолчанию скрыт.</li>
+<li>Фото и оформление визитки, если вы их загрузите или выберете. Загруженное фото видно всем на открытой визитке: настройки видимости у фото нет, его можно только удалить.</li>
+<li>Отдельную копию визитки мы не храним: страницу для гостя сервер собирает из вашей записи при каждом открытии, а сеть Cloudflare держит её копию в кэше несколько минут.</li>
 </ul>
 <p>LinkedIn в версии 1 не подключаем. Если появится позже, только через официальный вход LinkedIn.</p>
 <h3>3.3. Технические данные</h3>
 <ul>
-<li>Журнал изменений вашей записи.</li>
 <li>Технические записи о входе и о защите сервиса (лимиты, отказ в подозрительных запросах). Значения пароля, кода из Telegram и кода восстановления в логи не пишем.</li>
 <li>Отдельный журнал посещений мы не ведём. Для защиты от перебора сервер хранит IP-адрес, ник (если вы его ввели) и время попыток — около 15 минут, потом запись удаляется сама. Тип устройства и адреса страниц мы не сохраняем. Любые наши технические записи хранятся не дольше 30 дней.</li>
 <li>На устройстве приложение хранит: cookie входа <code>amrid_session</code> (до 14 дней, скрипты страницы её не читают); при входе через Google — ещё две временные cookie на 5–10 минут; в localStorage — язык, тему, валюту и курсы валют, порядок блоков в финансах; в IndexedDB — зашифрованную копию вашего файла и ключ устройства, чтобы не вводить пароль при каждом запуске. При выходе из аккаунта данные в IndexedDB стираются. Кэш приложения хранит только файлы и страницы сайта для работы без сети, ответы сервера с вашими данными туда не попадают.</li>
@@ -459,14 +458,14 @@
 <h3>3.5. Файл финансов и задач</h3>
 <p>В версии 1 вы можете вести свои финансы и задачи в отдельном файле.</p>
 <ul>
-<li>Данные в файле — это ваши финансы и задачи. Файл сжимается и шифруется на вашем устройстве, и только потом отправляется на сервер.</li>
+<li>В файле — ваши финансы, задачи, планы, дневник, записи о визе, спорт, здоровье (вода, вес, питание, тренировки) и обслуживание машины. Файл сжимается и шифруется на вашем устройстве, и только потом отправляется на сервер.</li>
 <li>Файл шифруется на устройстве ключом, который не передаётся на сервер. На сервере лежит только зашифрованный файл.</li>
-<li>Сервер видит только размер файла, время синхронизации и то, к какому аккаунту файл относится.</li>
+<li>Сервер видит только размер файла, время синхронизации и то, к какому аккаунту файл относится. На сервере хранятся последние 5 версий зашифрованного файла.</li>
 <li>Второй фактор через Telegram на ключ файла не влияет: потеря Telegram бьёт по входу, не по данным в файле.</li>
-<li>Зашифрованный файл хранится у Cloudflare, в Европейском союзе (Европа). С устройства он время от времени синхронизируется на сервер, примерно раз в несколько минут.</li>
+<li>Зашифрованный файл хранится у Cloudflare, в Европейском союзе (Европа). С устройства он время от времени синхронизируется на сервер, примерно раз в 3 минуты.</li>
 <li>Мы не используем этот файл для финансовых советов, оценки человека и рекламы.</li>
-<li>Если вы потеряете ключ или секрет и все коды восстановления, данные из файла пропадут навсегда. AMR не сможет их вернуть.</li>
-<li>При действии «удалить всё» файл удаляется вместе с остальными данными. Служебные копии у провайдера исчезают в те же сроки, что и другие данные (см. раздел 7).</li>
+<li>Если вы забудете пароль и потеряете все коды восстановления, данные из файла пропадут навсегда. AMR не сможет их вернуть.</li>
+<li>Когда вы удаляете аккаунт (пункт «Удалить мои данные» в профиле), файл удаляется вместе с остальными данными. Служебные копии у провайдера исчезают в те же сроки, что и другие данные (см. раздел 7).</li>
 </ul>
 <h3>3.6. Вход через Google</h3>
 <p>Если вы входите через Google:</p>
@@ -481,15 +480,15 @@
 <p>Обработка идёт по закону КСА о защите персональных данных (PDPL). Надзор — SDAIA.</p>
 <ul>
 <li>Создать аккаунт, сохранить ник, пустить вас в сервис и показать визитку так, как вы настроили — исполнение соглашения с вами (условия сервиса).</li>
-<li>Показать гостям выбранные вами открытые контакты и фото — ваше согласие. Вы можете в любой момент скрыть контакт, удалить фото или отозвать согласие.</li>
+<li>Показать гостям открытые контакты и загруженное фото — ваше согласие. Вы можете в любой момент скрыть контакт, удалить фото или отозвать согласие.</li>
 <li>Хранить Telegram ID и отправлять код входа в Telegram — исполнение соглашения и защита входа.</li>
 <li>Хранить Google ID, если вы сами выбрали вход через Google, — исполнение соглашения.</li>
 <li>Хранить ваш зашифрованный файл финансов и задач и служебные сведения о нём (размер, время синхронизации, аккаунт), чтобы файл можно было синхронизировать — исполнение соглашения. Ключ на сервер не передаётся. Этот файл мы не используем для советов, оценки и рекламы.</li>
-<li>Разбирать жалобы на подделку и останавливать злоупотребления — законный интерес: защищать людей от подделки и злоупотреблений.</li>
+<li>Разбирать сообщения о подделке или злоупотреблениях, которые нам присылают на почту или в Telegram, и останавливать злоупотребления — законный интерес: защищать людей от подделки и злоупотреблений. Отдельной кнопки жалобы в приложении нет.</li>
 </ul>
 <p>Мы не продаём базы контактов и не собираем скрытый профиль человека сверх того, что нужно для визитки и входа.</p>
 <h2>5. Кто что видит</h2>
-<p>Гость (человек со ссылкой или с QR) видит только открытое: ник, оформление и те контакты и фото, которые вы пометили как открытые. Кнопка «написать» открывает чат только по открытому контакту.</p>
+<p>Гость (человек со ссылкой или с QR) видит только ник, оформление, фото (если вы его загрузили) и те контакты, которые вы пометили как открытые. Кнопка «написать» открывает чат только по открытому контакту.</p>
 <p>Скрытые контакты не показываются никому, кроме вас после входа. Их нет:</p>
 <ul>
 <li>на странице визитки;</li>
@@ -498,38 +497,39 @@
 <li>в превью ссылки (когда мессенджер или сайт показывает заголовок, текст и картинку по адресу визитки).</li>
 </ul>
 <p>Telegram ID, который нужен для доставки кода, гостям не показывается.</p>
-<p>Команда AMR не использует скрытые контакты для рассылки и не показывает их другим людям. Служебный доступ — только чтобы чинить сервис или разобрать жалобу, и только в нужном объёме.</p>
+<p>Команда AMR не использует скрытые контакты для рассылки и не показывает их другим людям. Служебный доступ — только чтобы чинить сервис или разобрать сообщение о подделке или злоупотреблении, присланное нам на почту или в Telegram, и только в нужном объёме.</p>
 <p>Такой доступ есть только у уполномоченных людей из команды AMR.</p>
 <p>Гостю на странице визитки мы не показываем формы входа и не просим коды.</p>
 <h2>6. Где хранятся данные и кто их получает</h2>
 <p>Обработчики и получатели в версии 1:</p>
 <ul>
 <li><strong>Vercel</strong> — сайт и сервер приложения (PWA).</li>
-<li><strong>Cloudflare</strong> — хранилище KV и R2 (запись аккаунта, открытый слепок визитки, фото и оформление, зашифрованный файл финансов и задач) и Worker, который выдаёт одноразовые коды. Доступ к KV и R2 есть только у нашего сервера, не из браузера и не по прямой публичной ссылке. Зашифрованный файл хранится у Cloudflare в Европейском союзе (Европа).</li>
+<li><strong>Cloudflare</strong> — хранилище KV, Durable Objects и R2 (записи аккаунта, фото визитки, зашифрованный файл) и Worker, который доставляет одноразовые коды в Telegram и держит в кэше открытую визитку. Доступ к хранилищу есть только у нашего сервера, не из браузера и не по прямой публичной ссылке; фото визитки отдаётся только через наш сайт. Зашифрованный файл хранится у Cloudflare в Европейском союзе (Европа).</li>
 <li><strong>Telegram</strong> — канал доставки кода второго фактора (кода входа). Telegram получает ваш Telegram ID и сообщение с кодом входа. Коды восстановления через Telegram не отправляются.</li>
 <li><strong>Google</strong> — вход через аккаунт Google. Google узнаёт, что вы вошли в AMR ID, а нам передаёт только Google ID. Серверы Google находятся вне Саудовской Аравии.</li>
+<li><strong>AMR Bazar</strong> (bazar.amrsys.net) — только если вы сами вошли в Bazar через AMR ID и нажали «Разрешить». Bazar получает внутренний номер вашего аккаунта и ник. Телефон, почта и скрытые контакты не передаются.</li>
 </ul>
 <p>Записи аккаунта (ник, хэш пароля, Telegram ID и @username, Google ID, сеансы) хранятся в Cloudflare KV и Durable Objects — в глобальной сети Cloudflare, без привязки к одной стране; основное хранение — вне Саудовской Аравии. Зашифрованный файл финансов и задач и фото визитки хранятся в Cloudflare R2 в Европейском союзе. Всё это — передача данных за пределы Саудовской Аравии. Сервер приложения на Vercel работает в США (регион iad1, Вашингтон): через него проходят запросы, а данные аккаунта лежат у Cloudflare, не на Vercel. Telegram доставляет код на своих серверах, как правило вне Саудовской Аравии. Мы не утверждаем, что данные лежат в Саудовской Аравии.</p>
-<p>Основание передачи: она нужна, чтобы дать вам сервис, который вы сами запросили; кроме того, провайдеры защищают данные по своим договорным условиям обработки данных. Передача идёт по правилам SDAIA о передаче персональных данных за пределы Королевства. Мы передаём провайдерам только то, без чего сервис не работает, и выбираем провайдеров с открытыми правилами защиты данных (ссылки ниже).</p>
+<p>Основание передачи: она нужна, чтобы дать вам сервис, который вы сами запросили; провайдеры защищают данные по своим опубликованным правилам (ссылки ниже). Передача идёт по правилам SDAIA о передаче персональных данных за пределы Королевства. Мы передаём провайдерам только то, без чего сервис не работает.</p>
 <p>Vercel, Cloudflare, Telegram и Google ведут свои технические журналы и хранят их по своим правилам: <a href="https://vercel.com/legal/privacy-policy">Vercel</a>, <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>, <a href="https://telegram.org/privacy">Telegram</a>, <a href="https://policies.google.com/privacy">Google</a>. Наши сроки — в разделе 7.</p>
 <p>Они обрабатывают данные, чтобы мы могли оказывать сервис (сайт, хранение, доставка кода), не для наших посторонних рассылок.</p>
 <h2>7. Сколько храним</h2>
 <ul>
 <li>Данные аккаунта и визитки — пока аккаунт существует или пока вы не удалите их раньше.</li>
-<li>После действия «удалить всё» мы сразу стираем запись, фото, кэш открытой визитки, привязку Telegram ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней.</li>
+<li>Когда вы удаляете аккаунт (пункт «Удалить мои данные» в профиле, экран «Удалить аккаунт»), мы сразу стираем запись, фото, привязку Telegram ID и Google ID и зашифрованный файл со всеми его версиями. Копия визитки в кэше исчезает в течение нескольких минут. Служебные копии у провайдеров могут оставаться до 30 дней.</li>
 <li>Ник можно сменить один раз. Старый ник уходит в резерв и больше никому не выдаётся, в том числе после удаления аккаунта.</li>
 <li>Наши технические записи о входе и защите хранятся 30 дней, затем стираются или обезличиваются.</li>
-<li>Хэш пароля хранится, пока существует аккаунт, и стирается вместе с ним. Хэши текущего набора кодов восстановления хранятся, пока набор действует; после выдачи нового набора из 10 кодов хэши старого набора стираются.</li>
+<li>Хэш пароля хранится, пока существует аккаунт, и стирается вместе с ним. Хэши текущего набора кодов восстановления хранятся, пока набор действует; после выдачи нового набора из 10 кодов хэши старого набора стираются. Хэши уже использованных кодов храним ещё 30 дней, чтобы код нельзя было использовать повторно.</li>
 </ul>
 <h2>8. Безопасность</h2>
 <ul>
 <li>Связь с сервисом идёт по защищённому соединению (HTTPS).</li>
 <li>Пароль хранится только как хэш. Коды восстановления на сервере — только как проверочные хэши и обёртки, не сами коды.</li>
-<li>Одноразовые коды входа выдаёт сервер (Cloudflare Worker), живут коротко и в читаемом виде у нас не хранятся.</li>
+<li>Одноразовый код входа создаёт наш сервер; на сервере он хранится только как хэш и действует 5 минут. В Telegram его доставляет Cloudflare Worker.</li>
 <li>Чтобы сменить канал второго фактора, нужны пароль и одноразовый код из старого канала. Если вы потеряли доступ к Telegram, пароль и один код восстановления позволяют привязать новый Telegram: все открытые сеансы закрываются, использованный код сгорает.</li>
-<li>Ключи доступа к Cloudflare KV и R2 держим только на сервере. Из приложения у гостя и из браузера к хранилищу напрямую не обратиться.</li>
-<li>Файл шифруется на устройстве ключом, который не передаётся на сервер. Если вы потеряете ключ или секрет и все коды восстановления, мы этот файл не восстановим.</li>
-<li>Скрытые поля не попадают в открытый слепок визитки, в страницу для гостя и в превью ссылок.</li>
+<li>Секрет доступа к хранилищу Cloudflare есть только у нашего сервера. Из браузера к хранилищу напрямую не обратиться.</li>
+<li>Файл шифруется на устройстве ключом, который не передаётся на сервер. Если вы забудете пароль и потеряете все коды восстановления, мы этот файл не восстановим.</li>
+<li>Скрытые контакты не попадают в страницу для гостя, в кэш визитки и в превью ссылок.</li>
 <li>Есть лимиты на частые запросы, чтобы нельзя было перебирать ники, пароли и коды.</li>
 </ul>
 <p>Код второго фактора приходит в Telegram. Кто может читать ваши сообщения в Telegram, может увидеть этот код. Берегите доступ к Telegram.</p>
@@ -549,7 +549,7 @@
 <p>На запрос о ваших данных отвечаем в течение 30 дней.</p>
 <p>Чтобы воспользоваться правами, напишите на <a href="mailto:amrsys.dev@gmail.com">amrsys.dev@gmail.com</a> или в Telegram <a href="https://t.me/amr_ecosystems">@amr_ecosystems</a>.</p>
 <h2>10. Как удалить аккаунт</h2>
-<p>Пока аккаунт существует, ваша визитка открыта всем по адресу self.amrsys.net/u/ваш-ник (например, self.amrsys.net/u/murad.amr): там видны ник, оформление, фото (если вы его загрузили) и только те контакты, которые вы сделали открытыми. Каждый контакт можно скрыть, а фото — удалить. После удаления аккаунта визитка перестаёт открываться, копии в кэше исчезают в течение нескольких минут. Чтобы удалить аккаунт, подтвердите это тем способом, которым входите: паролем, кодом из Telegram или повторным входом в Google. Мы сразу стираем вашу запись, фото, кэш визитки, привязку Telegram ID, привязку Google ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней. После удаления этот ник и визитка перестают работать.</p>
+<p>Пока аккаунт существует, ваша визитка открыта всем по адресу self.amrsys.net/u/ваш-ник (например, self.amrsys.net/u/name.amr): там видны ник, оформление, фото (если вы его загрузили) и только те контакты, которые вы сделали открытыми. Каждый контакт можно скрыть, а фото — удалить. После удаления аккаунта визитка перестаёт открываться, копии в кэше исчезают в течение нескольких минут. Чтобы удалить аккаунт, подтвердите это тем способом, которым входите: паролем, кодом из Telegram или повторным входом в Google. Мы сразу стираем вашу запись, фото, кэш визитки, привязку Telegram ID, привязку Google ID и зашифрованный файл финансов и задач. Служебные копии у провайдеров могут оставаться до 30 дней. После удаления этот ник и визитка перестают работать.</p>
 <p>После удаления этот ник больше никому не выдаётся, в том числе вам автоматически. Старый аккаунт и его данные после удаления не восстановить. Чтобы снова пользоваться сервисом, создайте новый аккаунт с новым ником. Сам удалённый ник мы храним без срока (только ник и дату), чтобы его никому не выдать.</p>
 <h2>11. Дети</h2>
 <p>Сервис предназначен только для людей 18 лет и старше. Мы сознательно не собираем данные детей. Если вы узнали, что аккаунт создал ребёнок, напишите нам — мы удалим его.</p>

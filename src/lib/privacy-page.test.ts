@@ -184,7 +184,7 @@ describe("privacy policy page", () => {
         assert.doesNotMatch(text, /не утверждён|not yet approved|ما اعتمدت/, name);
       }
       for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
-        assert.match(text, /murad\.amr/, name);
+        assert.match(text, /name\.amr/, name);
         assert.match(text, /3[^0-9]{1,12}24/, name);
       }
     });
@@ -205,10 +205,75 @@ describe("privacy policy page", () => {
         assert.doesNotMatch(text, /إخفاء البطاقة|تقفل البطاقة/, name);
       }
       for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
-        assert.match(text, /self\.amrsys\.net\/u\/murad\.amr/, name);
+        assert.match(text, /self\.amrsys\.net\/u\/name\.amr/, name);
       }
       assert.match(main[0]!.text, /Пока аккаунт существует, ваша визитка открыта всем/);
       assert.match(main[0]!.text, /После удаления аккаунта визитка перестаёт открываться/);
+    });
+  });
+
+  describe("feature claims match the code (full pass)", () => {
+    const all = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    const ru = policies.find((p) => p.name === "privacy-policy.ru.md")!.text;
+    const en = policies.find((p) => p.name === "privacy-policy.en.md")!.text;
+    const ar = policies.find((p) => p.name === "privacy-policy.ar.md")!.text;
+
+    it("a) photo: no visibility setting, visible to everyone, only delete", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /Настройки видимости каждого контакта и фото|Номер WhatsApp и фото по умолчанию скрыты/, name);
+        assert.doesNotMatch(text, /Visibility for each contact and photo|WhatsApp number and photo are hidden by default/i, name);
+        assert.doesNotMatch(text, /رقم واتساب والصورة مخفيان/, name);
+      }
+      assert.match(ru, /настройки видимости у фото нет, его можно только удалить/);
+      assert.match(en, /the photo has no visibility setting, you can only delete it/);
+      assert.match(ar, /ما لها إعداد إظهار، تقدر بس تحذفها/);
+    });
+
+    it("b) real delete button names instead of «удалить всё»", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /удалить всё/i, name);
+        assert.doesNotMatch(text, /delete everything/i, name);
+        assert.doesNotMatch(text, /حذف الكل/, name);
+      }
+      assert.match(ru, /«Удалить мои данные»/);
+      assert.match(ru, /«Удалить аккаунт»/);
+      assert.match(en, /“Delete my data”/);
+      assert.match(ar, /«حذف بياناتي»/);
+    });
+
+    it("c) no in-app complaint feature; messages come by email/Telegram", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /Разбирать жалобы на подделку|разобрать жалобу/, name);
+        assert.doesNotMatch(text, /Handling reports of impersonation|review a report/i, name);
+        assert.doesNotMatch(text, /النظر في بلاغات الانتحال|النظر في بلاغ،/, name);
+      }
+      assert.match(ru, /которые нам присылают на почту или в Telegram/);
+      assert.match(en, /send to our email or Telegram/);
+    });
+
+    it("d) example nick is name.amr", () => {
+      for (const { name, text } of all) assert.doesNotMatch(text, /murad\.amr/i, name);
+    });
+
+    it("e) transfer basis does not claim unverified contracts", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /договорным условиям|contractual data processing terms|شروطهم التعاقدية/i, name);
+      }
+      assert.match(ru, /провайдеры защищают данные по своим опубликованным правилам \(ссылки ниже\)/);
+    });
+
+    it("no other unbacked feature claims (codes, badges, snapshot, change log, print, key/secret)", () => {
+      for (const { name, text } of all) {
+        assert.doesNotMatch(text, /выдаёт Cloudflare Worker|выдаёт сервер \(Cloudflare Worker\)|issued by a Cloudflare Worker|issued by the server \(Cloudflare Worker\)/, name);
+        assert.doesNotMatch(text, /OAuth2|OpenID/, name);
+        assert.doesNotMatch(text, /слепок|snapshot|النسخة العامة للبطاقة/i, name);
+        assert.doesNotMatch(text, /Журнал изменений|change log/i, name);
+        assert.doesNotMatch(text, /распечатайте|print them|اطبعها/i, name);
+        assert.doesNotMatch(text, /ключ или секрет|key or secret|المفتاح أو السر/i, name);
+      }
+      assert.match(ru, /Bazar получает внутренний номер вашего аккаунта и ник/);
+      assert.match(ru, /последние 5 версий/);
+      assert.match(ru, /действует 5 минут/);
     });
   });
 });
