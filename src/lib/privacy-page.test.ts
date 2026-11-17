@@ -124,4 +124,22 @@ describe("privacy policy page", () => {
     assert.match(ar, /وما يحتاج تلغرام/);
     for (const t of [ru, en, ar]) assert.match(t, /Google/);
   });
+
+  it("section 10 matches the code: no sign-in with the same Telegram, deleted nick stays reserved", () => {
+    const files = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
+    for (const { name, text } of files) {
+      assert.doesNotMatch(text, /Вход с тем же Telegram/, name);
+      assert.doesNotMatch(text, /same Telegram account only creates/i, name);
+      assert.doesNotMatch(text, /بنفس تلغرام ينشئ/, name);
+    }
+    const want: Record<string, RegExp> = {
+      "privacy-policy.ru.md": /создайте новый аккаунт с новым ником/,
+      "privacy-policy.en.md": /create a new account with a new nick/,
+      "privacy-policy.ar.md": /أنشئ حساباً جديداً بمعرف جديد/,
+    };
+    for (const [name, re] of Object.entries(want)) {
+      assert.match(policies.find((p) => p.name === name)!.text, re, name);
+      assert.match(html, re, name);
+    }
+  });
 });

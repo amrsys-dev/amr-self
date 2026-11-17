@@ -187,7 +187,7 @@ To use these rights, write to [amrsys.dev@gmail.com](mailto:amrsys.dev@gmail.com
 
 The service has “hide card” and “delete everything”. To delete the account, confirm it the way you sign in: with your password, a Telegram code, or by signing in to Google again. We immediately erase your record, photos, the card cache, the linked Telegram ID, the linked Google ID, and the encrypted finances and tasks file. Provider backups may remain for up to 30 days. After that, the nickname and card stop working.
 
-After deletion, that nick is never given to anyone else, including back to you automatically. Signing in later with the same Telegram account only creates a new nick.
+After deletion, that nick is never given to anyone else, including back to you automatically. The old account and its data cannot be restored after deletion. To use the service again, create a new account with a new nick. We keep the deleted nick itself with no time limit (only the nick and the date), so it is never given to anyone.
 
 Reports of impersonation are kept for 90 days and are not erased by the “delete everything” button. Provider backups may remain for up to 30 days. Details are in section 7.
 
