@@ -482,6 +482,7 @@ export async function handleSignup(request: Request): Promise<Response> {
     dataVersion: 0,
   };
   if (!(await claimNick(nick, JSON.stringify(user)))) return json({ error: "nick_taken" }, 409);
+  await destroySession(request); // a new sign-in never keeps the previous account's session on this device
   const { cookie } = await createSession(nick);
   return jsonWithCookie(sessionPayload(user), cookie);
 }
@@ -507,6 +508,7 @@ export async function handleLogin(request: Request): Promise<Response> {
   // account's stored, already-verified destination.
   const stored = verifiedOtpDest(user);
   if (!stored) {
+    await destroySession(request); // a new sign-in never keeps the previous account's session on this device
     const { cookie } = await createSession(user.nick);
     return jsonWithCookie(sessionPayload(user), cookie);
   }
@@ -561,6 +563,7 @@ export async function handleOtp(request: Request): Promise<Response> {
     user = JSON.parse(stored) as UserRecord;
   }
   await getStores().kv.delete(otpKey(body.data.otpId));
+  await destroySession(request); // a new sign-in never keeps the previous account's session on this device
   const { cookie } = await createSession(user.nick);
   return jsonWithCookie(sessionPayload(user), cookie);
 }
@@ -627,6 +630,7 @@ export async function handleRecovery(request: Request): Promise<Response> {
   user.kdf = { password: body.data.kdfPassword, recovery: replacement.kdfs[0] ?? user.kdf.recovery };
   await getStores().kv.put(nickKey(nick), JSON.stringify(user));
   await revokeAllSessions(user.nick);
+  await destroySession(request); // a new sign-in never keeps the previous account's session on this device
   const { cookie } = await createSession(user.nick);
   return jsonWithCookie({ ...sessionPayload(user), wrapRecovery: replacement.wraps[0] ?? matchedWrap, recoveryBurned: true, sessionsRevoked: true, recoveryLeft: recoverySlots(user).hashes.length, newRecoveryIssued: true }, cookie);
 }
@@ -1199,6 +1203,7 @@ export async function handleTelegramLink(request: Request): Promise<Response> {
       expirationTtl: Math.max(60, Math.ceil((rec.exp - Date.now()) / 1000)),
     });
     await getStores().kv.delete(otpKey(rec.pendingOtpId));
+    await destroySession(request); // a new sign-in never keeps the previous account's session on this device
     const { cookie } = await createSession(user.nick);
     return jsonWithCookie({ status: "linked", ...sessionPayload(user) }, cookie);
   }

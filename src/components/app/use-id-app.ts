@@ -57,11 +57,15 @@ export function useIdApp() {
   useEffect(() => {
     if (!session) return;
     try {
-      const pending = sessionStorage.getItem("amr-connect-pending");
-      if (pending) {
-        sessionStorage.removeItem("amr-connect-pending");
-        if (/^\/connect\?[\w=&%.-]+$/.test(pending)) location.assign(pending);
+      let pending = sessionStorage.getItem("amr-connect-pending");
+      const saved = localStorage.getItem("amr-connect-pending");
+      sessionStorage.removeItem("amr-connect-pending");
+      localStorage.removeItem("amr-connect-pending");
+      if (!pending && saved) {
+        const d = JSON.parse(saved) as { v?: unknown; exp?: unknown };
+        if (typeof d.v === "string" && typeof d.exp === "number" && d.exp > Date.now()) pending = d.v;
       }
+      if (pending && /^\/connect\?[\w=&%.-]+$/.test(pending)) location.assign(pending);
     } catch {
       /* storage blocked */
     }
