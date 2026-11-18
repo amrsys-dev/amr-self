@@ -224,7 +224,7 @@ const localDate = (s?: string) => s ? new Date(s + "T12:00:00").toLocaleDateStri
 export function SelfWorkspace({
   section, accountId, wrapPassword, passwordKdf, lockHint, dataKey, keyVersion, lang, onUnlock, onOpenCard, guestStore, onNavigate,
 }: Props) {
-  const t = (key: CopyKey) => COPY[lang][key] ?? COPY.en[key];
+  const t = (key: CopyKey): string => (COPY[lang as keyof typeof COPY] ?? COPY.en)[key] ?? COPY.en[key];
   const { cur, toCur, money } = useCurrency();
   const [blocks, setBlocks] = useState<FinanceBlock[]>(DEFAULT_BLOCKS);
   useEffect(() => setBlocks(loadBlocks()), []);

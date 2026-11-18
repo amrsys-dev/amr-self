@@ -137,7 +137,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
   return (
     <>
     {inShell && (
@@ -207,7 +207,7 @@ export function ShellScreens({ app }: { app: App }) {
                       <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
                         <i />
                       </button>
-                      <button type="button" className="set-chev" aria-label={t("delete")} onClick={() => void removeContact(c)} style={{ marginInlineStart: 8 }}>×</button>
+                      <button type="button" className="set-chev" aria-label={t("delete_action")} onClick={() => void removeContact(c)} style={{ marginInlineStart: 8 }}>×</button>
                     </div>
                   ))}
                   <LinkRow label={t("add_contact")} tone="accent" onClick={() => setSheet("kind")} />
@@ -258,7 +258,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
                 {meta?.googleLogin ? (
                   <div className="btns">
-                    <button className="btn g" type="button" onClick={() => googleSignIn()}>
+                    <button className="btn g" type="button" onClick={() => startGoogle("login")}>
                       {t("google_login")}
                     </button>
                   </div>
