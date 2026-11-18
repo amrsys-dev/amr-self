@@ -112,6 +112,7 @@ export function useIdApp() {
   const [pendingContactId, setPendingContactId] = useState("");
   const [rebindDest, setRebindDest] = useState("");
   const dataKeyRef = useRef<Uint8Array | null>(null);
+  const loginWrapKey = useRef<Uint8Array | null>(null);
   const accountIdRef = useRef<string | null>(null);
 
   const [sheet, setSheet] = useState<"kind" | "value" | null>(null);
@@ -256,7 +257,7 @@ export function useIdApp() {
         setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
         return;
       }
-      const count = meta?.recoveryCodes ?? 10;
+      const count = meta?.recoveryCodes ?? 1;
       const codes = generateRecoveryCodes(count);
       const dataKey = await generateDataKey();
       dataKeyRef.current = dataKey;
@@ -310,12 +311,18 @@ export function useIdApp() {
       if ((r.data as { method?: string }).method === "google") markGoogleSignIn();
       if (kind === "login" && password && r.data.wrapPassword && r.data.kdf) {
         try {
-          const { salt, opts } = keysFromParams(r.data.kdf.password);
-          const pwd = await derivePasswordKeys(password, salt, opts);
-          dataKeyRef.current = await unwrapDataKey(r.data.wrapPassword, pwd.wrapKey);
+          // Reuse the key derived at the password step: no second slow derivation.
+          let wrapKey = loginWrapKey.current;
+          if (!wrapKey) {
+            const { salt, opts } = keysFromParams(r.data.kdf.password);
+            wrapKey = (await derivePasswordKeys(password, salt, opts)).wrapKey;
+          }
+          dataKeyRef.current = await unwrapDataKey(r.data.wrapPassword, wrapKey);
         } catch {
           setErr(t("error"));
           return;
+        } finally {
+          loginWrapKey.current = null;
         }
       }
       setSession(r.data);
@@ -356,6 +363,14 @@ export function useIdApp() {
         return fail(r.status, r.data as { error?: string });
       }
       if (r.data.cardPath) {
+        // The same password already unlocks the personal data: no separate "Unlock SELF" step.
+        if (r.data.wrapPassword) {
+          try {
+            dataKeyRef.current = await unwrapDataKey(r.data.wrapPassword, pwd.wrapKey);
+          } catch {
+            /* the Unlock screen stays as a fallback */
+          }
+        }
         setSession(r.data);
         setAppearance(r.data.appearance);
         setTestOtp(undefined);
@@ -363,6 +378,7 @@ export function useIdApp() {
         setScreen("today");
         return;
       }
+      loginWrapKey.current = pwd.wrapKey;
       if (!r.data.otpId) return fail(400, { error: "invalid" });
       setOtpId(r.data.otpId);
       setTestOtp(r.data.testOtp);
