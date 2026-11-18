@@ -1,6 +1,6 @@
 /* AMR ID service worker — cache the app shell, network-first for API. */
-const SHELL = "amrself-shell-v10";
-const SHELL_URLS = ["/", "/manifest.webmanifest", "/amr-monogram.svg", "/icon-192.png", "/fonts/Inter.ttf", "/offline.html"];
+const SHELL = "amrself-shell-v11";
+const SHELL_URLS = ["/manifest.webmanifest", "/amr-monogram.svg", "/icon-192.png", "/fonts/Inter.ttf", "/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -29,14 +29,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res.ok) void caches.open(SHELL).then((c) => c.put(req, res.clone()));
-          return res;
-        })
-        .catch(() => caches.match("/offline.html")),
-    );
+    event.respondWith(fetch(req).catch(() => caches.match("/offline.html")));
     return;
   }
   event.respondWith(
