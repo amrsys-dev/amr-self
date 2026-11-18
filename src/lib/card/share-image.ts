@@ -130,7 +130,16 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     const ix = lx + 12;
     const iy = y + 12;
     if (s.bg !== "none") {
-      ctx.fillStyle = s.bg;
+      if (s.bg.startsWith("radial-gradient")) {
+        // Instagram: canvas cannot take a CSS gradient, so draw the same brand gradient
+        const g = ctx.createRadialGradient(ix + 12, iy + 43, 2, ix + 12, iy + 43, 52);
+        g.addColorStop(0, "#FDF497");
+        g.addColorStop(0.05, "#FDF497");
+        g.addColorStop(0.45, "#FD5949");
+        g.addColorStop(0.6, "#D6249F");
+        g.addColorStop(0.9, "#285AEB");
+        ctx.fillStyle = g;
+      } else ctx.fillStyle = s.bg;
       rr(ctx, ix, iy, 40, 40, 11);
       ctx.fill();
     }
@@ -142,6 +151,8 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     ctx.lineJoin = "round";
     for (const layer of s.layers) {
       const p2 = new Path2D(layer.d);
+      ctx.save();
+      if (layer.dx || layer.dy) ctx.translate(layer.dx ?? 0, layer.dy ?? 0);
       if (layer.stroke) {
         ctx.lineWidth = 1.9;
         ctx.strokeStyle = layer.color;
@@ -153,8 +164,9 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
           ctx.stroke(p2);
         }
         ctx.fillStyle = layer.color;
-        ctx.fill(p2);
+        ctx.fill(p2, layer.evenodd ? "evenodd" : "nonzero");
       }
+      ctx.restore();
     }
     ctx.restore();
     const tx = ix + 52;
