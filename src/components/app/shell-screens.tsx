@@ -324,7 +324,6 @@ export function ShellScreens({ app }: { app: App }) {
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
-                <NotificationsRow lang={lang} />
 {session.nickChanged ? null : (
                 <LinkRow
                   label={t("change_nick")}
@@ -405,7 +404,7 @@ export function ShellScreens({ app }: { app: App }) {
                   />
                 </label>
               </div>
-              {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : null}
+              {backupMsg ? <p className="hint" role="status">{t(backupMsg)}</p> : <p className="hint">{t("backup_hint_file")}</p>}
             </div>
           )}
           {screen === "profile" && session && (

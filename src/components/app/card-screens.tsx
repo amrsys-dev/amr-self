@@ -11,7 +11,7 @@ export function CardScreens({ app }: { app: App }) {
     <>
     {session && screen === "card" && (
       <>
-        <Header title={t("card")} onBack={() => setScreen("profile")} tool={<button className="tool" type="button" onClick={() => setScreen("card-themes")}>⋯</button>} />
+        <Header title={t("card")} onBack={() => setScreen("profile")} />
         <div className={`page skin-page skin-${session.theme}`}>
           <CardHero
             nick={session.nick}
