@@ -6,6 +6,11 @@ export const CONTACT_KINDS = [
   "steam",
   "snapchat",
   "imo",
+  "instagram",
+  "tiktok",
+  "x",
+  "facebook",
+  "linkedin",
   "youtube",
   "email",
   "other",
@@ -72,6 +77,21 @@ export function contactHref(c: Contact): string | null {
       return `https://www.snapchat.com/add/${encodeURIComponent(v)}`;
     case "imo":
       return v.startsWith("http") ? v : `https://imo.im/${encodeURIComponent(v)}`;
+    case "instagram":
+      if (/^https:\/\/(?:www\.)?instagram\.com\//i.test(v)) return v;
+      return `https://instagram.com/${encodeURIComponent(v.replace(/^@/, ""))}`;
+    case "tiktok":
+      if (/^https:\/\/(?:www\.)?tiktok\.com\//i.test(v)) return v;
+      return `https://www.tiktok.com/@${encodeURIComponent(v.replace(/^@/, ""))}`;
+    case "x":
+      if (/^https:\/\/(?:www\.)?(?:x\.com|twitter\.com)\//i.test(v)) return v;
+      return `https://x.com/${encodeURIComponent(v.replace(/^@/, ""))}`;
+    case "facebook":
+      if (/^https:\/\/(?:www\.)?facebook\.com\//i.test(v)) return v;
+      return `https://facebook.com/${encodeURIComponent(v.replace(/^@/, ""))}`;
+    case "linkedin":
+      if (/^https:\/\/(?:www\.)?linkedin\.com\//i.test(v)) return v;
+      return `https://www.linkedin.com/in/${encodeURIComponent(v.replace(/^@/, ""))}`;
     case "email":
       // Only a plain address: no "?bcc=" or other mailto parameters.
       return EMAIL_RE.test(v) ? `mailto:${v}` : null;

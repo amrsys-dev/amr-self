@@ -768,7 +768,7 @@ const patchSchema = z.object({
     .array(
       z.object({
         id: z.string().min(1).max(40).regex(/^[\w-]+$/),
-        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
+        kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "imo", "instagram", "tiktok", "x", "facebook", "linkedin", "youtube", "email", "other"]),
         value: z.string().max(200).regex(NO_CONTROL),
         visible: z.boolean(),
         label: z.string().max(80).optional(),
@@ -808,7 +808,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
 }
 
 const addContactSchema = z.object({
-  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "youtube", "email", "other"]),
+  kind: z.enum(["telegram", "whatsapp", "signal", "discord", "steam", "snapchat", "imo", "instagram", "tiktok", "x", "facebook", "linkedin", "youtube", "email", "other"]),
   value: z.string().min(1).max(200).regex(NO_CONTROL),
   visible: z.boolean().optional(),
   label: z.string().max(80).optional(),
