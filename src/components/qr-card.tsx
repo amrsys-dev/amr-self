@@ -135,7 +135,7 @@ export function CardHero({
         ) : null}
       )}
       {qr ? <div className="idqr"><QrMatrix value={url} label={nick} /></div> : null}
-      <div className="idcard-foot">SELF · AMR</div>
+      <div className="idcard-foot">AMR ID</div>
     </div>
   );
 }
