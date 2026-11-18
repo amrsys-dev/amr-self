@@ -53,7 +53,7 @@ type Props = {
 const COPY = {
   ru: {
     welcome: "Ваш день под контролем", overview: "Обзор дня", todayTasks: "Задачи на сегодня",
-    health: "Здоровье", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Сервисы",
+    health: "Фитнес", finance: "Финансы", work: "Планер", identity: "Цифровая визитка", more: "Сервисы",
     vault: "Сейф", nutrition: "Питание", activity: "Активность", income: "Доходы", expense: "Расходы",
     balance: "Баланс месяца", addIncome: "Добавить доход", addExpense: "Добавить расход",
     all: "Все", saved: "Сохранено на устройстве", syncing: "Ожидает синхронизации", loading: "Загрузка данных…",
@@ -79,7 +79,7 @@ const COPY = {
   },
   en: {
     welcome: "Your day, in control", overview: "Daily overview", todayTasks: "Today's tasks",
-    health: "Health", finance: "Finance", work: "Planner", identity: "Digital identity", more: "Services",
+    health: "Fitness", finance: "Finance", work: "Planner", identity: "Digital identity", more: "Services",
     vault: "Vault", nutrition: "Nutrition", activity: "Activity", income: "Income", expense: "Expenses",
     balance: "Monthly balance", addIncome: "Add income", addExpense: "Add expense",
     all: "All", saved: "Saved on this device", syncing: "Waiting to sync", loading: "Loading your data…",
@@ -443,10 +443,9 @@ export function SelfWorkspace({
   const hour = new Date().getHours();
   const greeting = tx(lang, hour < 12 ? "goodMorning" : hour < 18 ? "goodAfternoon" : "goodEvening");
   const dateLine = new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : lang === "ar" ? "ar-SA" : lang === "uz" ? "uz-UZ" : lang === "tj" ? "tg-TJ" : "en-US", { weekday: "long", day: "numeric", month: "long" });
-  const modules: { key: "car" | "health" | "identity"; title: string; subtitle: string; icon: string }[] = [
+  const modules: { key: "car" | "health"; title: string; subtitle: string; icon: string }[] = [
     { key: "car", title: tx(lang, "car"), subtitle: tx(lang, "carSubtitle"), icon: "car" },
     { key: "health", title: t("health"), subtitle: tx(lang, "healthSub"), icon: "health" },
-    { key: "identity", title: t("identity"), subtitle: tx(lang, "cardSub"), icon: "id" },
   ];
   const backLabel = section === "today" ? t("today") : t("more");
   const healthRows = [...active(health.weight), ...active(health.workouts), ...active(health.water), ...active(health.nutrition)]
@@ -609,28 +608,21 @@ export function SelfWorkspace({
       {section === "more" && !subPage && (
         <>
           <header className="self-large"><h1>{t("more")}</h1></header>
-          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[0] ?? SVC_GROUPS.en[0]}</h3></div>
-          <div className="self-card self-menu">
+          <div className="svc-grid-lg">
             {modules.map((m) => (
-              <button key={m.key} type="button" className="self-menu-row" onClick={() => (m.key === "identity" ? onOpenCard() : setSubPage(m.key))}>
-                <span className={`self-menu-icon ${m.key}`}><CategoryIcon c={m.icon} size={20} /></span>
-                <span className="self-menu-copy"><b>{m.title}</b><small>{m.subtitle}</small></span>
-                <span className="self-chevron" aria-hidden="true">›</span>
+              <button key={m.key} type="button" className="svc-card-lg" onClick={() => setSubPage(m.key)}>
+                <span className={`svc-card-ico ${m.key}`}><CategoryIcon c={m.icon} size={28} /></span>
+                <b>{m.title}</b>
+                <small>{m.subtitle}</small>
               </button>
             ))}
-          </div>
-          <div className="self-section-head"><h3>{SVC_GROUPS[lang]?.[1] ?? SVC_GROUPS.en[1]}</h3></div>
-          <div className="self-card self-menu">
-            <div className="self-menu-row">
-              <span className="self-menu-icon bazar" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
+            <a className="svc-card-lg" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
+              <span className="svc-card-ico bazar">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
               </span>
-              <span className="self-menu-copy"><b>AMR Bazar</b><small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small></span>
-              <span className="self-menu-acts">
-                <a className="btn g" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">{OPEN_LABEL[lang] ?? OPEN_LABEL.en}</a>
-                <a className="btn p" href={installUrl("https://bazar.amrsys.net/")} target="_blank" rel="noopener">{INSTALL_LABEL[lang] ?? INSTALL_LABEL.en}</a>
-              </span>
-            </div>
+              <b>AMR Bazar</b>
+              <small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small>
+            </a>
           </div>
         </>
       )}

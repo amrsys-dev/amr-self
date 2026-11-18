@@ -714,3 +714,12 @@ p{margin:0;line-height:1.4}
 .idshare-menu{display:flex;flex-direction:column;gap:6px;margin:8px 16px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .idshare-menu button{padding:12px 16px;text-align:start;background:transparent;color:var(--t);font-size:15px;border:0;border-bottom:1px solid var(--line)}
 .idshare-menu button:last-child{border-bottom:0}
+
+.svc-grid-lg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.svc-card-lg{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--line);text-decoration:none;color:var(--t);text-align:start;min-height:120px}
+.svc-card-lg b{font-size:16px;font-weight:650}
+.svc-card-lg small{font-size:13px;color:var(--muted);line-height:1.3}
+.svc-card-ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--tint);color:var(--cyan)}
+.svc-card-ico.health{background:#E8F5E9;color:#2E7D32}
+.svc-card-ico.car{background:#E3F2FD;color:#1565C0}
+.svc-card-ico.bazar{background:#FFF3E0;color:#E65100}

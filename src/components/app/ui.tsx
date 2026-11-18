@@ -7,7 +7,6 @@ export function Brand() {
       <span className="monopl">
         <Monogram className="mono" />
       </span>
-      <span className="appname">AMR ID</span>
     </div>
   );
 }
