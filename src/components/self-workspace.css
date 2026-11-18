@@ -274,3 +274,4 @@
 .self-consent-old{font-size:14px;line-height:1.45;color:var(--t);padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--cyan) 10%,transparent)}
 .self-consent-discard{align-self:center}
 .self-consent-modal{padding:0;background:transparent;border:0;box-shadow:none}
+.self-consent-go{width:100%;margin-top:12px}

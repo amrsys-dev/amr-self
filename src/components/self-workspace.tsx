@@ -663,7 +663,6 @@ export function SelfWorkspace({
             ))}
           </div>
           <div className="self-consent-foot">
-            {data.healthConsent?.at ? <small>{healthConsentCopy(lang).given.replace("{d}", localDate(data.healthConsent.at.slice(0, 10)))}</small> : null}
             <button type="button" className="self-link-danger" onClick={() => setWithdrawOpen(true)}>{healthConsentCopy(lang).withdraw}</button>
           </div>
           </>)}
