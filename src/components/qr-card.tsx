@@ -73,6 +73,7 @@ export function CardHero({
 }) {
   const t = (k: MsgKey) => tr(lang, k);
   const [qr, setQr] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const letter = (nick.replace(/^@/, "")[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
@@ -92,13 +93,10 @@ export function CardHero({
         </>
       )}
       {onPickPhoto ? (
-        <div className="idcover-edit">
-          <label className="idchip">
-            {photo ? t("change_photo") : t("add_photo")}
-            <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
-          </label>
-          {photo && onRemovePhoto ? <button type="button" className="idchip" onClick={onRemovePhoto}>{t("remove_photo")}</button> : null}
-        </div>
+        <label className="idcover-pen" aria-label={photo ? t("change_photo") : t("add_photo")}>
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg>
+          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
+        </label>
       ) : null}
       <div className="idcard-links">
         {contacts.map((c) => {
@@ -124,13 +122,18 @@ export function CardHero({
           <button className="idbtn primary" type="button" onClick={onVcard}>{t("save_contact")}</button>
         </div>
       ) : (
-        <div className="idcard-actions three">
-          <button className="idbtn primary" type="button" onClick={onShareLink}>{t("share_link")}</button>
-          <button className="idbtn" type="button" onClick={onShareImage}>{t("share_image")}</button>
-          <button className="idbtn" type="button" onClick={onVcard}>{t("add_to_contacts")}</button>
+        <div className="idcard-actions">
+          <button className="idbtn primary" type="button" onClick={() => setShareOpen(!shareOpen)}>{t("share")}</button>
+          <button className="idbtn" type="button" onClick={() => setQr(!qr)}>{t("qr_code")}</button>
         </div>
+        {shareOpen ? (
+          <div className="idshare-menu">
+            <button type="button" onClick={() => { onShareLink?.(); setShareOpen(false); }}>{t("share_link")}</button>
+            <button type="button" onClick={() => { onShareImage?.(); setShareOpen(false); }}>{t("share_image")}</button>
+            <button type="button" onClick={() => { onVcard?.(); setShareOpen(false); }}>{t("add_to_contacts")}</button>
+          </div>
+        ) : null}
       )}
-      <button className="idqr-toggle" type="button" aria-expanded={qr} onClick={() => setQr(!qr)}>{t("qr_code")} {qr ? "⌃" : "⌄"}</button>
       {qr ? <div className="idqr"><QrMatrix value={url} label={nick} /></div> : null}
       <div className="idcard-foot">SELF · AMR</div>
     </div>

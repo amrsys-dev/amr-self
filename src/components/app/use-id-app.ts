@@ -770,6 +770,12 @@ export function useIdApp() {
     await saveProfile({ contacts });
   }
 
+  async function removeContact(c: Contact) {
+    if (!session) return;
+    const contacts = session.contacts.filter((x) => x.id !== c.id);
+    await saveProfile({ contacts });
+  }
+
   function shareCard() {
     if (!session) return;
     const data = { title: `${session.nick} · AMR ID`, text: session.nick, url: cardUrl };
@@ -1005,7 +1011,7 @@ export function useIdApp() {
     submitRebind,
     saveProfile,
     addContact,
-    toggleContact,
+    toggleContact, removeContact,
     shareCard,
     shareCardImage,
     uploadPhoto,
