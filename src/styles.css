@@ -19,7 +19,7 @@ a{color:inherit;text-decoration:none}
 .hd .appname{font-size:17px;font-weight:650;letter-spacing:-.4px;white-space:nowrap}
 .hd .ttl{flex:1;min-width:0;font-size:17px;font-weight:650;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 .hd .back,.hd .tool{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:var(--cyan);flex:none;font-size:24px;line-height:1}
-.hd .back{margin-inline-start:-6px}
+.hd .back{margin-inline-start:-6px;font-size:28px;line-height:1;min-width:40px;min-height:40px;display:grid;place-items:center}
 .hd .sp{width:36px;flex:none}
 .page{flex:1;min-height:0;overflow:auto;padding:6px 20px 24px;scrollbar-width:none}
 .page::-webkit-scrollbar{display:none}
@@ -710,6 +710,8 @@ p{margin:0;line-height:1.4}
 .skin-mini-soft{background:#F8F4F8;color:#C070A0}
 
 .idcover-pen{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:18px;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.idcard-ava-wrap{position:relative;display:inline-block}
+.idcard-ava-wrap .idcover-pen{right:-4px;bottom:-4px;background:var(--cyan);color:var(--on)}
 .idcover{position:relative}
 .idshare-menu{display:flex;flex-direction:column;gap:6px;margin:8px 16px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .idshare-menu button{padding:12px 16px;text-align:start;background:transparent;color:var(--t);font-size:15px;border:0;border-bottom:1px solid var(--line)}

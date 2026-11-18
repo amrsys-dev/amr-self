@@ -217,9 +217,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
-                <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
                 <NotificationsRow t={t} />
-                <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
                   disabled={session.nickChanged}

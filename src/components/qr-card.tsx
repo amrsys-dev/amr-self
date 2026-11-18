@@ -3,7 +3,7 @@ import type { CardTheme, PublicContact } from "@/lib/card/visibility.ts";
 import type { Lang, MsgKey } from "@/lib/i18n.ts";
 import { translate as tr } from "@/lib/i18n.ts";
 import { Ornament } from "./ornament.tsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ServiceIcon, serviceName } from "./contact-icons.tsx";
 
 export function QrMatrix({ value, label }: { value: string; label?: string }) {
@@ -74,6 +74,12 @@ export function CardHero({
   const t = (k: MsgKey) => tr(lang, k);
   const [qr, setQr] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  useEffect(() => {
+    if (!shareOpen) return;
+    const onPop = () => setShareOpen(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [shareOpen]);
   const letter = (nick.replace(/^@/, "")[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
@@ -87,7 +93,15 @@ export function CardHero({
         </div>
       ) : (
         <>
-          <div className="idcard-ava" aria-hidden="true">{letter}</div>
+          <div className="idcard-ava-wrap">
+            <div className="idcard-ava" aria-hidden="true">{letter}</div>
+            {onPickPhoto ? (
+              <label className="idcover-pen" aria-label={t("add_photo")}>
+                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg>
+                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
+              </label>
+            ) : null}
+          </div>
           <h1 className="idcard-nick">{nick}</h1>
           <div className="idcard-sub">AMR ID</div>
         </>
