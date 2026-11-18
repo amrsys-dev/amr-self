@@ -211,7 +211,7 @@ export function AuthScreens({ app }: { app: App }) {
           <p className="sub">{t("your_id_name")}</p>
           <div className="card hero" style={{ textAlign: "center", marginTop: 16 }}>
             <div className="tiny">Твой QR</div>
-            <div style={{ fontSize: 13, color: "var(--t2)", marginTop: 4 }}>Отправь его. Когда сменишь номер — обнови здесь.</div>
+            <div style={{ fontSize: 13, color: "var(--t2)", marginTop: 4 }}>Отправь его. Сменишь номер — те, у кого есть визитка, не потеряют тебя.</div>
           </div>
           <div className="gap" />
           <div className="field">
