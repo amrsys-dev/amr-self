@@ -14,6 +14,12 @@ export const CONNECT_APPS: Record<string, ConnectApp> = {
     returnUrl: "https://bazar.amrsys.net/api/auth/amrid",
     secretEnv: "AMR_ID_BAZAR_SECRET",
   },
+  safar: {
+    id: "safar",
+    title: "AMR Safar",
+    returnUrl: "https://safar.amrsys.net/api/auth/amrid",
+    secretEnv: "AMR_ID_SAFAR_SECRET",
+  },
 };
 
 export const TOKEN_TTL_SEC = 300;
