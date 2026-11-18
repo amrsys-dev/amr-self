@@ -903,10 +903,13 @@ export function detectLang(): Lang {
   if (typeof navigator !== "undefined") {
     const nav = navigator.language.toLowerCase();
     if (nav.startsWith("ar")) return "ar";
+    if (nav.startsWith("hi")) return "hi";
+    if (nav.startsWith("bn")) return "bn";
+    if (nav.startsWith("ur")) return "ur";
     if (nav.startsWith("uz")) return "uz";
     if (nav.startsWith("tg") || nav.startsWith("tj")) return "tj";
+    if (nav.startsWith("ru")) return "ru";
     if (nav.startsWith("en")) return "en";
-    if (nav.startsWith("ru")) return "en";
   }
   return "en";
 }
