@@ -39,6 +39,7 @@ import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
 import { ServiceIcon } from "../contact-icons.tsx";
+import { CardHero } from "../qr-card.tsx";
 import { CurrencySign, useCurrency } from "../self/currency.tsx";
 import { isCurrency } from "@/lib/finance/currency.ts";
 import type { App } from "./use-id-app.ts";
@@ -136,7 +137,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
   return (
     <>
     {inShell && (
@@ -180,9 +181,22 @@ export function ShellScreens({ app }: { app: App }) {
           )}
           {screen === "profile" && session && (
             <>
-              <button type="button" className="card hero set-nick" onClick={() => setScreen("card")}>
-                <div className="nick">{session.nick}</div>
-              </button>
+              <div className={`skin-page skin-${session.theme}`} style={{ margin: "0 -20px 16px", padding: "8px 0" }}>
+                <CardHero
+                  nick={session.nick}
+                  url={cardUrl}
+                  theme={session.theme}
+                  contacts={publicContacts}
+                  lang={lang}
+                  domain={origin.replace(/^https?:\/\//, "")}
+                  onShareLink={shareCard}
+                  onShareImage={() => void shareCardImage()}
+                  onVcard={saveVcard}
+                  photo={session.photo}
+                  onPickPhoto={(f) => void uploadPhoto(f)}
+                  onRemovePhoto={() => void removePhoto()}
+                />
+              </div>
               <div className="group">
                 <div className="lab">{t("show_hide")}</div>
                 <div className="card pad0 set-list">
