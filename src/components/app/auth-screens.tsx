@@ -210,8 +210,10 @@ export function AuthScreens({ app }: { app: App }) {
           <h1>{session.nick}</h1>
           <p className="sub">{t("your_id_name")}</p>
           <div className="card hero" style={{ textAlign: "center", marginTop: 16 }}>
-            <div className="tiny">Твой QR</div>
-            <div style={{ fontSize: 13, color: "var(--t2)", marginTop: 4 }}>Отправь его. Сменишь номер — те, у кого есть визитка, не потеряют тебя.</div>
+            <div className="tiny">Твой личный QR</div>
+            <div style={{ fontSize: 15, fontWeight: 700, margin: "6px 0 4px" }}>{session.nick}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Только твой. Другой человек получит свой QR со своим ником.</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>Отправь его. Сменишь номер — те, у кого есть визитка, не потеряют тебя.</div>
           </div>
           <div className="gap" />
           <div className="field">
