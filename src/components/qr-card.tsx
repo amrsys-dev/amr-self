@@ -122,17 +122,19 @@ export function CardHero({
           <button className="idbtn primary" type="button" onClick={onVcard}>{t("save_contact")}</button>
         </div>
       ) : (
-        <div className="idcard-actions">
-          <button className="idbtn primary" type="button" onClick={() => setShareOpen(!shareOpen)}>{t("share")}</button>
-          <button className="idbtn" type="button" onClick={() => setQr(!qr)}>{t("qr_code")}</button>
-        </div>
-        {shareOpen ? (
-          <div className="idshare-menu">
-            <button type="button" onClick={() => { onShareLink?.(); setShareOpen(false); }}>{t("share_link")}</button>
-            <button type="button" onClick={() => { onShareImage?.(); setShareOpen(false); }}>{t("share_image")}</button>
-            <button type="button" onClick={() => { onVcard?.(); setShareOpen(false); }}>{t("add_to_contacts")}</button>
+        <>
+          <div className="idcard-actions">
+            <button className="idbtn primary" type="button" onClick={() => setShareOpen(!shareOpen)}>{t("share")}</button>
+            <button className="idbtn" type="button" onClick={() => setQr(!qr)}>{t("qr_code")}</button>
           </div>
-        ) : null}
+          {shareOpen ? (
+            <div className="idshare-menu">
+              <button type="button" onClick={() => { onShareLink?.(); setShareOpen(false); }}>{t("share_link")}</button>
+              <button type="button" onClick={() => { onShareImage?.(); setShareOpen(false); }}>{t("share_image")}</button>
+              <button type="button" onClick={() => { onVcard?.(); setShareOpen(false); }}>{t("add_to_contacts")}</button>
+            </div>
+          ) : null}
+        </>
       )}
       {qr ? <div className="idqr"><QrMatrix value={url} label={nick} /></div> : null}
       <div className="idcard-foot">AMR ID</div>
