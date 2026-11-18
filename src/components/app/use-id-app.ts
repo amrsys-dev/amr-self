@@ -815,7 +815,7 @@ export function useIdApp() {
     if (!session) return;
     const blob = await renderCardImage({
       nick: session.nick,
-      name: session.displayName,
+      displayName: session.displayName,
       url: cardUrl,
       theme: session.theme,
       contacts: publicContacts,

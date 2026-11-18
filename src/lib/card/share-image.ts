@@ -34,7 +34,7 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
 export type ShareImageInput = {
   nick: string;
   /** Name on the card (any language); the nick goes under it. */
-  name?: string;
+  displayName?: string;
   url: string;
   theme: CardTheme;
   contacts: readonly PublicContact[];
@@ -100,7 +100,7 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.textBaseline = "top";
   ctx.fillStyle = p.text;
   ctx.font = `800 34px ${FONT}`;
-  const title = input.name?.trim() || input.nick;
+  const title = input.displayName?.trim() || input.nick;
   ctx.direction = /[\u0590-\u08FF]/.test(title) ? "rtl" : "ltr";
   ctx.textAlign = ctx.direction === "rtl" ? "right" : "left";
   const tx0 = ctx.direction === "rtl" ? W - PAD : PAD + 96;
@@ -109,7 +109,7 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.textAlign = "left";
   ctx.fillStyle = p.muted;
   ctx.font = `600 17px ${FONT}`;
-  ctx.fillText(input.name?.trim() ? `${input.nick} · AMR ID` : "AMR ID", PAD + 96, PAD + 50);
+  ctx.fillText(input.displayName?.trim() ? `${input.nick} · AMR ID` : "AMR ID", PAD + 96, PAD + 50);
 
   // Big QR on white, so any camera reads it
   const top = PAD + 76 + 28;
