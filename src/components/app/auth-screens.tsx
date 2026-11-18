@@ -10,19 +10,19 @@ export function AuthScreens({ app }: { app: App }) {
     <>
     {screen === "welcome" && (
       <>
-        <Header />
+        <Header tool={<LangPicker lang={lang} setLang={setLang} t={t} />} />
         <div className="page auth">
           <div className="kicker">{t("kicker")}</div>
           <h1>{t("welcome_title")}</h1>
           <p className="sub">{t("welcome_sub")}</p>
           <div className="gap" />
-          <div className="card hero" style={{ textAlign: "center" }}>
+          <div className="card hero" style={{ textAlign: "center", padding: "28px 20px" }}>
             <div className="tiny">{t("example_nick")}</div>
-            <div className="nick" style={{ fontSize: 28 }}>
+            <div className="nick" style={{ fontSize: 32, marginTop: 4 }}>
               name.amr
             </div>
           </div>
-          <div className="btns">
+          <div className="btns" style={{ marginTop: 24 }}>
             <button
               className="btn p"
               type="button"
@@ -40,12 +40,11 @@ export function AuthScreens({ app }: { app: App }) {
               {t("have_id")}
             </button>
           </div>
-          <div className="btns">
+          <div className="btns" style={{ marginTop: 8 }}>
             <button className="btn g ghost" type="button" onClick={startGuest}>
               {t("start_without_account")}
             </button>
           </div>
-          <LangPicker lang={lang} setLang={setLang} t={t} />
         </div>
       </>
     )}
