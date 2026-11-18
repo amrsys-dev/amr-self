@@ -34,13 +34,11 @@ export function AuthScreens({ app }: { app: App }) {
             >
               {t("create_id")}
             </button>
-          </div>
-          <div className="btns">
             <button className="btn g" type="button" onClick={() => setScreen("login")}>
               {t("have_id")}
             </button>
           </div>
-          <div className="btns" style={{ marginTop: 8 }}>
+          <div className="btns" style={{ marginTop: 10 }}>
             <button className="btn g ghost" type="button" onClick={startGuest}>
               {t("start_without_account")}
             </button>

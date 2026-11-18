@@ -399,8 +399,11 @@ p{margin:0;line-height:1.4}
 .soon p{color:var(--muted);margin-top:8px}
 #root,body,#app{min-height:100dvh}
 @media (min-width:480px){
-  body{display:flex;justify-content:center;background:#3a3f43}
-  .app{margin:12px auto;min-height:calc(100dvh - 24px);border-radius:24px;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden}
+  body{display:flex;justify-content:center;background:#1a1e22}
+  .app{margin:16px auto;min-height:calc(100dvh - 32px);border-radius:28px;box-shadow:0 16px 48px rgba(0,0,0,.4);overflow:hidden;max-width:480px}
+}
+@media (min-width:768px){
+  .app{max-width:520px;margin:24px auto}
 }
 
 /* SECURITY / Murad screens: 2FA change, delete, nick change, 18+ */
