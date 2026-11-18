@@ -29,3 +29,8 @@ describe("vcard", () => {
     assert.equal(vcardFileName("@name.amr"), "name.amr.vcf");
   });
 });
+
+it("vCard: имя на визитке в FN", () => {
+  const v = buildVcard({ nick: "abd.amr", name: "عبد الرحمن", url: "", contacts: [] });
+  assert.match(v, /FN:عبد الرحمن/);
+});

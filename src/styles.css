@@ -780,3 +780,8 @@ p{margin:0;line-height:1.4}
 @keyframes nick-pulse{50%{opacity:.3}}
 .site-ico{background:#fff;display:inline-grid;place-items:center;border:1px solid var(--line)}
 .site-ico img{object-fit:contain}
+
+/* Имя на визитке: крупно, ник под ним */
+.idcard-name{margin:0;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.4px;text-align:center;overflow-wrap:anywhere}
+.idcover-title .idcard-name{text-align:start}
+.idcard-nick-sm{margin-top:4px;font-size:17px;font-weight:650;opacity:.85;overflow-wrap:anywhere}

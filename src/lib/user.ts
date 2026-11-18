@@ -12,6 +12,8 @@ export type UserRecord = {
   dataId?: string;
   /** Card cover photo blob (random key, survives a nick change). */
   photo?: { key: string; v: number; type?: string };
+  /** Name shown on the card, any language (e.g. full Arabic or Cyrillic name). Public. */
+  displayName?: string;
   createdAt: string;
   /** Hash of the client-derived auth key (never a raw password). */
   passwordHash: string;

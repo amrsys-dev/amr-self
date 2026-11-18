@@ -23,7 +23,7 @@ export const Route = createFileRoute("/u/$nick")({
       origin = "";
     }
     const services = loaderData.contacts.map((c) => serviceName(c.kind, (k) => translate("en", k))).join(" · ");
-    const title = `${loaderData.nick} · AMR ID`;
+    const title = `${loaderData.displayName ? `${loaderData.displayName} · ` : ""}${loaderData.nick} · AMR ID`;
     const description = services || "AMR ID";
     const image = loaderData.photo ? `${origin}${loaderData.photo}` : origin ? `${origin}/icon-512.png` : "/icon-512.png";
     return {
@@ -55,13 +55,13 @@ function PublicCardPage() {
   const [lang] = useState(detectLang);
   const theme = parseCardTheme(data.theme);
   const saveContact = () => {
-    const blob = new Blob([buildVcard({ nick: data.nick, url: data.url, contacts: data.contacts })], { type: "text/vcard" });
+    const blob = new Blob([buildVcard({ nick: data.nick, name: data.displayName, url: data.url, contacts: data.contacts })], { type: "text/vcard" });
     downloadBlob(blob, vcardFileName(data.nick));
   };
   return (
     <div className={`app dark skin-${theme} pubcard`}>
       <div className="page skin-page">
-        <CardHero nick={data.nick} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} />
+        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} />
       </div>
     </div>
   );

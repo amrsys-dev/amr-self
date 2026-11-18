@@ -815,6 +815,7 @@ export function useIdApp() {
     if (!session) return;
     const blob = await renderCardImage({
       nick: session.nick,
+      name: session.displayName,
       url: cardUrl,
       theme: session.theme,
       contacts: publicContacts,
@@ -855,7 +856,7 @@ export function useIdApp() {
 
   function saveVcard() {
     if (!session) return;
-    const blob = new Blob([buildVcard({ nick: session.nick, url: cardUrl, contacts: publicContacts })], { type: "text/vcard" });
+    const blob = new Blob([buildVcard({ nick: session.nick, name: session.displayName, url: cardUrl, contacts: publicContacts })], { type: "text/vcard" });
     downloadBlob(blob, vcardFileName(session.nick));
   }
 

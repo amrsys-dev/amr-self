@@ -370,6 +370,7 @@ function sessionPayload(user: UserRecord) {
     dataVersion: user.dataVersion ?? 0,
     cardPath: publicCardPath(user.nick),
     photo: photoUrl(user),
+    displayName: user.displayName ?? "",
     passwordReset: "recovery_code_only" as const,
     nickChanged: Boolean(user.nickChanged),
     recoveryLeft: (user.recoveryHashes ?? (user.recoveryHash ? [user.recoveryHash] : [])).length,
@@ -764,6 +765,7 @@ export async function handleMe(request: Request): Promise<Response> {
 const patchSchema = z.object({
   theme: z.enum(["graphite", "minimal", "orbit", "business", "malachite", "blogger", "gamer", "craft", "bakery", "soft", "gothic", "tactic"]).optional(),
   appearance: z.enum(["dark", "light"]).optional(),
+  displayName: z.string().max(80).regex(NO_CONTROL).optional(),
   contacts: z
     .array(
       z.object({
@@ -785,6 +787,11 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   if (body.data.theme) user.theme = body.data.theme as CardTheme;
   if (body.data.appearance) user.appearance = body.data.appearance;
+  if (body.data.displayName !== undefined) {
+    const name = cleanDisplayName(body.data.displayName);
+    if (name) user.displayName = name;
+    else delete user.displayName;
+  }
   if (body.data.contacts) {
     const previous = new Map(user.contacts.map((c) => [c.id, c]));
     const next: Contact[] = [];
@@ -1472,6 +1479,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
   return json(
     {
       nick: user.nick,
+      displayName: user.displayName ?? "",
       theme,
       contacts,
       photo: photoUrl(user),
@@ -1480,6 +1488,15 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
     200,
     cardCacheHeaders(PUBLIC_CARD_CACHE),
   );
+}
+
+/** Card name: any script, single spaces, no bidi/format control characters, up to 60 characters. */
+export function cleanDisplayName(raw: string): string {
+  return raw
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
 }
 
 export { nickAvailable };

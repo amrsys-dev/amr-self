@@ -48,6 +48,8 @@ export type SessionState = {
   dataId?: string;
   /** Card cover photo URL, if the owner added one. */
   photo?: string | null;
+  /** Name on the card in any language. */
+  displayName?: string;
   theme: CardTheme;
   appearance: "dark" | "light";
   contacts: Contact[];

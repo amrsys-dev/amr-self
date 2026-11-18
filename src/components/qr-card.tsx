@@ -55,6 +55,7 @@ export function CardHero({
   onShareImage,
   onVcard,
   photo,
+  name,
   onPickPhoto,
   onRemovePhoto,
 }: {
@@ -69,6 +70,8 @@ export function CardHero({
   onShareImage?: () => void;
   onVcard?: () => void;
   photo?: string | null;
+  /** Name in any language, shown large above the nick. */
+  name?: string;
   onPickPhoto?: (file: File) => void;
   onRemovePhoto?: () => void;
 }) {
@@ -80,14 +83,15 @@ export function CardHero({
   const togglePanel = (next: "share" | "qr") => setPanel((p) => (p === next ? "" : next));
   const closePanel = () => setPanel("");
   useBackLayer(panel !== "", closePanel);
-  const letter = (nick.replace(/^@/, "")[0] ?? "A").toUpperCase();
+  const letter = ((name || nick).replace(/^@/, "").trim()[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
       {photo ? (
         <div className="idcover">
           <img src={photo} alt="" />
           <div className="idcover-title">
-            <h1 className="idcard-nick">{nick}</h1>
+            {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
+            {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
             <div className="idcard-sub">AMR ID</div>
           </div>
         </div>
@@ -102,7 +106,8 @@ export function CardHero({
               </label>
             ) : null}
           </div>
-          <h1 className="idcard-nick">{nick}</h1>
+          {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
+          {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
           <div className="idcard-sub">AMR ID</div>
         </>
       )}
