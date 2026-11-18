@@ -2,6 +2,7 @@ import React, { useState, useEffect, type ReactNode } from "react";
 import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { InstallButton } from "./install-button.tsx";
 
 const NOTIF: Record<string, [string, string, string, string]> = {
@@ -147,6 +148,9 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
   const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
+  // Back from any tab other than Home returns to Home (the usual app pattern).
+  const onTab = inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
+  useBackLayer(onTab, () => setScreen("today"));
   return (
     <>
     {inShell && (

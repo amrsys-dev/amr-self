@@ -757,3 +757,21 @@ p{margin:0;line-height:1.4}
 .svc-grid-more{margin-top:10px;animation:idpop-in .14s ease-out}
 .svc{transition:transform .12s ease}
 .svc:active{transform:scale(.96)}
+
+/* «Поделиться» — панель снизу (не сдвигает экран, закрывается жестом «Назад») */
+.sheet.idshare-sheet{position:fixed;display:flex;flex-direction:column;gap:6px;padding:8px 16px calc(20px + env(safe-area-inset-bottom));animation:sheet-up .18s ease-out}
+.dim{animation:dim-in .18s ease-out}
+.app .dim:has(+ .idshare-sheet){position:fixed}
+.idshare-sheet button{min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--t);font-size:17px;font-weight:600;text-align:start;padding:0 18px;transition:transform .12s ease,background-color .12s ease}
+.idshare-sheet button:active{transform:scale(.98);background:color-mix(in srgb,var(--cyan) 16%,var(--card))}
+@keyframes sheet-up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@keyframes dim-in{from{opacity:0}to{opacity:1}}
+
+/* Общий отклик на нажатие во всём приложении */
+.app button,.app a{-webkit-tap-highlight-color:transparent}
+.app .btn,.app .set-row,.app .nav button,.app .back,.app .self-back,.app .self-menu-row,.app .svc-more{transition:transform .12s ease,background-color .12s ease,opacity .12s ease}
+.app .btn:active,.app .back:active,.app .self-back:active,.app .svc-more:active{transform:scale(.97)}
+.app .set-row:active,.app .self-menu-row:active{background:color-mix(in srgb,var(--cyan) 10%,transparent)}
+.app .nav button:active{transform:scale(.92)}
+.app :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.sheet.idshare-sheet,.dim{animation:none}.app .btn,.app .set-row,.app .nav button{transition:none}}

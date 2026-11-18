@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
 import { renderCardImage } from "@/lib/card/share-image.ts";
 import { serviceName } from "../contact-icons.tsx";
@@ -102,12 +103,7 @@ export function useIdApp() {
   const accountIdRef = useRef<string | null>(null);
 
   const [sheet, setSheet] = useState<"kind" | "value" | null>(null);
-  useEffect(() => {
-    if (!sheet) return;
-    const onPop = () => setSheet(null);
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [sheet]);
+  useBackLayer(sheet !== null, () => setSheet(null));
   const [newKind, setNewKind] = useState<ContactKind>("telegram");
   const [newValue, setNewValue] = useState("");
 

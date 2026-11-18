@@ -5,13 +5,14 @@ import type { ContactKind } from "@/lib/card/visibility.ts";
 import { useState } from "react";
 
 /** Most used first, in one row; the rest open under «Ещё». */
-const MAIN_KINDS: ContactKind[] = ["phone", "whatsapp", "telegram", "imo", "instagram", "tiktok", "snapchat", "email"];
-const MORE_KINDS: ContactKind[] = ["youtube", "x", "facebook", "linkedin", "boosty", "signal", "discord", "steam", "other"];
+const MAIN_KINDS: ContactKind[] = ["phone", "whatsapp", "telegram", "imo", "instagram", "tiktok", "snapchat", "website"];
+const MORE_KINDS: ContactKind[] = ["email", "youtube", "x", "facebook", "linkedin", "boosty", "signal", "discord", "steam", "other"];
 
 function placeholderFor(k: ContactKind): string {
   if (k === "telegram" || k === "instagram" || k === "tiktok" || k === "x" || k === "snapchat") return "@username";
   if (k === "whatsapp" || k === "phone") return "+966…";
   if (k === "boosty") return "boosty.to/name";
+  if (k === "website") return "example.com";
   if (k === "email") return "name@mail.com";
   if (k === "youtube") return "@channel";
   return "";

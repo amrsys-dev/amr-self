@@ -61,6 +61,7 @@ export type SessionState = {
 export const GLYPH: Record<ContactKind, string> = {
   phone: "☎",
   boosty: "B",
+  website: "WWW",
   telegram: "TG",
   whatsapp: "WA",
   signal: "SG",

@@ -13,6 +13,8 @@ export function buildVcard(card: { nick: string; url: string; contacts: readonly
     if (!c.href) continue;
     if (c.kind === "phone") {
       lines.push(`TEL;TYPE=CELL:${c.href.replace(/^tel:/, "")}`);
+    } else if (c.kind === "website") {
+      lines.push(`URL:${c.href}`);
     } else if (c.kind === "email") {
       lines.push(`EMAIL;TYPE=INTERNET:${c.href.replace(/^mailto:/, "")}`);
     } else if (c.kind === "whatsapp") {

@@ -3,7 +3,8 @@ import type { CardTheme, PublicContact } from "@/lib/card/visibility.ts";
 import type { Lang, MsgKey } from "@/lib/i18n.ts";
 import { translate as tr } from "@/lib/i18n.ts";
 import { Ornament } from "./ornament.tsx";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { ServiceIcon, serviceName } from "./contact-icons.tsx";
 
 export function QrMatrix({ value, label }: { value: string; label?: string }) {
@@ -72,47 +73,13 @@ export function CardHero({
   onRemovePhoto?: () => void;
 }) {
   const t = (k: MsgKey) => tr(lang, k);
-  // One panel at a time: share menu or QR. Opening a panel adds a history step,
-  // so the phone's Back gesture closes it instead of leaving the screen.
+  // One panel at a time: share sheet or QR. The phone's Back gesture closes it.
   const [panel, setPanel] = useState<"" | "share" | "qr">("");
   const shareOpen = panel === "share";
   const qr = panel === "qr";
-  const actionsRef = useRef<HTMLDivElement>(null);
-  const togglePanel = (next: "share" | "qr") => {
-    if (panel === next) return closePanel();
-    if (!panel) {
-      try {
-        history.pushState({ ...(history.state ?? {}), amrPanel: next }, "");
-      } catch {
-        /* ignore */
-      }
-    }
-    setPanel(next);
-  };
-  const closePanel = () => {
-    if (!panel) return;
-    if ((history.state as { amrPanel?: string } | null)?.amrPanel) history.back();
-    else setPanel("");
-  };
-  useEffect(() => {
-    if (!panel) return;
-    const onPop = () => setPanel("");
-    const onDown = (e: PointerEvent) => {
-      if (panel === "share" && actionsRef.current && !actionsRef.current.contains(e.target as Node)) closePanel();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closePanel();
-    };
-    window.addEventListener("popstate", onPop);
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("popstate", onPop);
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel]);
+  const togglePanel = (next: "share" | "qr") => setPanel((p) => (p === next ? "" : next));
+  const closePanel = () => setPanel("");
+  useBackLayer(panel !== "", closePanel);
   const letter = (nick.replace(/^@/, "")[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
@@ -181,17 +148,21 @@ export function CardHero({
         </div>
       ) : (
         <>
-          <div className="idcard-actions" ref={actionsRef}>
+          <div className="idcard-actions">
             <button className={`idbtn primary${shareOpen ? " is-on" : ""}`} type="button" aria-expanded={shareOpen} aria-haspopup="menu" onClick={() => togglePanel("share")}>{t("share")}</button>
             <button className={`idbtn${qr ? " is-on" : ""}`} type="button" aria-pressed={qr} onClick={() => togglePanel("qr")}>{t("qr_code")}</button>
-            {shareOpen ? (
-              <div className="idpop" role="menu">
+          </div>
+          {shareOpen ? (
+            <>
+              <div className="dim" onClick={closePanel} />
+              <div className="sheet idshare-sheet" role="menu">
+                <div className="handle" />
                 <button type="button" role="menuitem" onClick={() => { closePanel(); onShareLink?.(); }}>{t("share_link")}</button>
                 <button type="button" role="menuitem" onClick={() => { closePanel(); onShareImage?.(); }}>{t("share_image")}</button>
                 <button type="button" role="menuitem" onClick={() => { closePanel(); onVcard?.(); }}>{t("add_to_contacts")}</button>
               </div>
-            ) : null}
-          </div>
+            </>
+          ) : null}
         </>
       )}
       {qr ? <div className="idqr"><QrMatrix value={url} label={nick} /></div> : null}

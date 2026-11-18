@@ -14,6 +14,7 @@ export const CONTACT_KINDS = [
   "linkedin",
   "youtube",
   "boosty",
+  "website",
   "email",
   "other",
 ] as const;
@@ -64,6 +65,12 @@ export function contactHref(c: Contact): string | null {
       const digits = v.replace(/[^\d]/g, "");
       if (digits.length < 6 || digits.length > 15) return null;
       return `tel:${v.trim().startsWith("+") ? "+" : ""}${digits}`;
+    }
+    case "website": {
+      // Always https; the address must have a domain with a dot.
+      const bare = v.replace(/^https?:\/\//i, "");
+      const href = `https://${bare}`;
+      return /^[a-z0-9.-]+\.[a-z]{2,}(?:[/?#]\S*)?$/i.test(bare) && isHttpsUrl(href) ? href : null;
     }
     case "boosty":
       if (/^https:\/\/(?:www\.)?boosty\.to\//i.test(v)) return v;
@@ -122,6 +129,7 @@ export function defaultContactVisible(kind: ContactKind): boolean {
 }
 
 export function displayContactValue(c: Contact, listedByOwner = ""): string {
+  if (c.kind === "website") return c.value.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
   if (c.kind === "phone") return c.value.trim().replace(/[^\d+ ()-]/g, "");
   if (c.kind === "whatsapp") return listedByOwner;
   if (c.kind === "youtube") return c.label || "YouTube";

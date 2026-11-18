@@ -1,3 +1,4 @@
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { Monogram } from "../monogram.tsx";
 import { type Lang, type MsgKey } from "@/lib/i18n.ts";
 
@@ -45,6 +46,7 @@ export function CodeBoxes({ value, onChange }: { value: string; onChange: (v: st
 }
 
 export function Header({ title, onBack, tool }: { title?: string; onBack?: () => void; tool?: React.ReactNode }) {
+  useBackLayer(Boolean(onBack), () => onBack?.());
   return (
     <div className="hd">
       {onBack ? (

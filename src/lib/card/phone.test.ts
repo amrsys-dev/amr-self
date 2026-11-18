@@ -23,3 +23,11 @@ test("vCard: телефон как TEL", () => {
   const v = buildVcard({ nick: "a.amr", url: "", contacts: toPublicContacts([c("phone", "+966 501234567")]) });
   assert.match(v, /TEL;TYPE=CELL:\+966501234567/);
 });
+
+test("сайт: всегда https, нужен домен", () => {
+  assert.equal(contactHref(c("website", "example.com")), "https://example.com");
+  assert.equal(contactHref(c("website", "http://shop.example.sa/menu")), "https://shop.example.sa/menu");
+  assert.equal(contactHref(c("website", "javascript:alert(1)")), null);
+  assert.equal(contactHref(c("website", "localhost")), null);
+  assert.equal(displayContactValue(c("website", "https://example.com/")), "example.com");
+});
