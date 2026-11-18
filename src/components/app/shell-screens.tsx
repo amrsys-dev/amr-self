@@ -258,6 +258,13 @@ export function ShellScreens({ app }: { app: App }) {
                     {t("create_id")}
                   </button>
                 </div>
+                {meta?.googleLogin ? (
+                  <div className="btns">
+                    <button className="btn g" type="button" onClick={() => googleSignIn()}>
+                      {t("google_login")}
+                    </button>
+                  </div>
+                ) : null}
                 <div className="btns">
                   <button className="btn g" type="button" onClick={() => setScreen("login")}>
                     {t("have_id")}
