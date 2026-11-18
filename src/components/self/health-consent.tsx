@@ -18,7 +18,7 @@ type Copy = {
   discard: string;
 };
 
-export const HEALTH_CONSENT_COPY: Record<Lang, Copy> = {
+export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   ru: {
     title: "Здоровье — только для вас",
     lead: "Чтобы вести этот раздел, нужно ваше согласие. Что сохраним: воду, вес, еду и калории, тренировки (минуты), даты и ваши заметки.",

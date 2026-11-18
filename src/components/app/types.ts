@@ -67,6 +67,12 @@ export const GLYPH: Record<ContactKind, string> = {
   snapchat: "SN",
   youtube: "YT",
   email: "@",
+  imo: "IM",
+  instagram: "IG",
+  tiktok: "TT",
+  x: "X",
+  facebook: "FB",
+  linkedin: "in",
   other: "+",
 };
 

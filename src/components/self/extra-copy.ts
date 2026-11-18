@@ -123,7 +123,7 @@ const tj: Copy = {
   history: "Таърихи ивазкуниҳо", noItems: "Равғани муҳаррик, қуттӣ ва филтрҳоро илова кунед.", updated: "навсозӣ {date}",
 };
 
-const COPY: Record<Lang, Copy> = { ru, en, ar, uz, tj };
+const COPY: Partial<Record<Lang, Copy>> = { ru, en, ar, uz, tj };
 export type ExtraKey = keyof Copy;
 
 /** Translate, filling {name} placeholders. */

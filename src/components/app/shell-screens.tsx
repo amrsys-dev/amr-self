@@ -4,7 +4,16 @@ import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { InstallButton } from "./install-button.tsx";
 
-function NotificationsRow({ t }: { t: (k: string) => string }) {
+const NOTIF: Record<string, [string, string, string, string]> = {
+  ru: ["Уведомления", "Включены", "Запрещены в браузере", "Включить"],
+  en: ["Notifications", "On", "Blocked in browser", "Turn on"],
+  ar: ["الإشعارات", "مفعّلة", "محظورة في المتصفح", "تفعيل"],
+  uz: ["Bildirishnomalar", "Yoqilgan", "Brauzerda bloklangan", "Yoqish"],
+  tj: ["Огоҳиномаҳо", "Фаъол", "Дар браузер манъ шудааст", "Фаъол кардан"],
+};
+
+function NotificationsRow({ lang }: { lang: string }) {
+  const [label, on, blocked, enableLbl] = NOTIF[lang] ?? NOTIF.en;
   const [status, setStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
   useEffect(() => {
     if (typeof Notification === "undefined") setStatus("unsupported");
@@ -23,13 +32,13 @@ function NotificationsRow({ t }: { t: (k: string) => string }) {
   if (status === "unsupported") return null;
   return (
     <div className="set-row">
-      <span className="set-label">{t("notifications")}</span>
+      <span className="set-label">{label}</span>
       {status === "granted" ? (
-        <span className="tiny" style={{ color: "var(--ok)" }}>{t("notifications_on")}</span>
+        <span className="tiny" style={{ color: "var(--ok)" }}>{on}</span>
       ) : status === "denied" ? (
-        <span className="tiny">{t("notifications_blocked")}</span>
+        <span className="tiny">{blocked}</span>
       ) : (
-        <button className="btn sm" type="button" onClick={() => void enable()}>{t("notifications_enable")}</button>
+        <button className="btn sm" type="button" onClick={() => void enable()}>{enableLbl}</button>
       )}
     </div>
   );
@@ -137,7 +146,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
   return (
     <>
     {inShell && (
@@ -207,7 +216,7 @@ export function ShellScreens({ app }: { app: App }) {
                       <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
                         <i />
                       </button>
-                      <button type="button" className="set-chev" aria-label={t("delete")} onClick={() => void removeContact(c)} style={{ marginInlineStart: 8 }}>×</button>
+                      <button type="button" className="set-chev" aria-label={t("delete_action")} onClick={() => void removeContact(c)} style={{ marginInlineStart: 8 }}>×</button>
                     </div>
                   ))}
                   <LinkRow label={t("add_contact")} tone="accent" onClick={() => setSheet("kind")} />
@@ -217,7 +226,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
-                <NotificationsRow t={t} />
+                <NotificationsRow lang={lang} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
                   disabled={session.nickChanged}
@@ -258,7 +267,7 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
                 {meta?.googleLogin ? (
                   <div className="btns">
-                    <button className="btn g" type="button" onClick={() => googleSignIn()}>
+                    <button className="btn g" type="button" onClick={() => startGoogle("login")}>
                       {t("google_login")}
                     </button>
                   </div>
