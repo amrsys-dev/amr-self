@@ -762,7 +762,7 @@ export async function handleMe(request: Request): Promise<Response> {
 }
 
 const patchSchema = z.object({
-  theme: z.enum(["graphite", "gothic", "tactic", "minimal", "orbit", "malachite"]).optional(),
+  theme: z.enum(["graphite", "minimal", "orbit", "business", "malachite", "blogger", "gamer", "craft", "bakery", "soft", "gothic", "tactic"]).optional(),
   appearance: z.enum(["dark", "light"]).optional(),
   contacts: z
     .array(
