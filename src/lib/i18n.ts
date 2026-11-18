@@ -1,4 +1,4 @@
-export const LANGS = ["ru", "ar", "uz", "tj", "en"] as const;
+export const LANGS = ["en", "ar", "ru", "uz", "tj", "hi", "bn", "ur"] as const;
 export type Lang = (typeof LANGS)[number];
 
 export function isRtl(lang: Lang): boolean {
@@ -891,7 +891,8 @@ const t = {
 export type MsgKey = keyof typeof t.ru;
 
 export function translate(lang: Lang, key: MsgKey): string {
-  return t[lang][key] ?? t.en[key] ?? key;
+  const pack = (t as Record<string, Record<string, string>>)[lang] ?? t.en;
+  return pack[key] ?? t.en[key] ?? key;
 }
 
 export function detectLang(): Lang {
@@ -905,7 +906,7 @@ export function detectLang(): Lang {
     if (nav.startsWith("uz")) return "uz";
     if (nav.startsWith("tg") || nav.startsWith("tj")) return "tj";
     if (nav.startsWith("en")) return "en";
-    if (nav.startsWith("ru")) return "ru";
+    if (nav.startsWith("ru")) return "en";
   }
-  return "ru";
+  return "en";
 }

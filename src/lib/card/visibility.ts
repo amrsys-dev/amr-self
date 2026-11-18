@@ -5,6 +5,7 @@ export const CONTACT_KINDS = [
   "discord",
   "steam",
   "snapchat",
+  "imo",
   "youtube",
   "email",
   "other",
@@ -69,6 +70,8 @@ export function contactHref(c: Contact): string | null {
       return `https://steamcommunity.com/id/${encodeURIComponent(v)}`;
     case "snapchat":
       return `https://www.snapchat.com/add/${encodeURIComponent(v)}`;
+    case "imo":
+      return v.startsWith("http") ? v : `https://imo.im/${encodeURIComponent(v)}`;
     case "email":
       // Only a plain address: no "?bcc=" or other mailto parameters.
       return EMAIL_RE.test(v) ? `mailto:${v}` : null;
