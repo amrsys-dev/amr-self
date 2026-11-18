@@ -7,7 +7,7 @@ input{border:0;outline:none;background:transparent;width:100%;color:var(--t)}
 a{color:inherit;text-decoration:none}
 .app{--bg:#0B0E11;--bg2:#11161A;--card:#161C22;--card2:#1C242B;--t:#EEF2F3;--muted:#8B959C;--line:#2A333A;--cyan:#68D5DF;--cyan2:#3FB4C0;--tint:#14343A;--wood:#D4B89E;--wood2:#B08A6C;--steel:#9AA7B0;--ok:#3CCB7C;--warn:#E0B15A;--bad:#D8776D;--on:#072125;--sb:#0B0E11;--tab:#10161A;--hair:rgba(255,255,255,.06);
   font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans','Segoe UI',sans-serif;
-  color:var(--t);background:var(--bg);width:100%;max-width:430px;min-height:100dvh;height:auto;margin:0 auto;position:relative;overflow:hidden;display:flex;flex-direction:column;
+  color:var(--t);background:var(--bg);width:100%;max-width:100%;min-height:100dvh;height:auto;margin:0 auto;position:relative;overflow:hidden;display:flex;flex-direction:column;
   -webkit-font-smoothing:antialiased}
 .app.light{--bg:#F3F4F2;--bg2:#EAECEB;--card:#FFFFFF;--card2:#F7F8F7;--t:#20272C;--muted:#657077;--line:#D8DFE1;--cyan:#007E8E;--cyan2:#0A6A77;--tint:#E2F2F3;--wood:#87674D;--wood2:#6F533E;--steel:#5C6B73;--ok:#1B8A4A;--warn:#B7791F;--bad:#B5483F;--on:#FFFFFF;--sb:#F3F4F2;--tab:#F3F4F2;--hair:rgba(0,0,0,.06)}
 .sb{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 6px;font-size:14px;font-weight:650;letter-spacing:.2px;background:var(--sb);flex:none;position:relative;z-index:4}
@@ -80,7 +80,7 @@ p{margin:0;line-height:1.4}
 .pill.ok{color:color-mix(in srgb,var(--ok) 80%,var(--t));border-color:color-mix(in srgb,var(--ok) 50%,transparent);background:color-mix(in srgb,var(--ok) 12%,var(--card))}
 .pill.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 55%,transparent);background:color-mix(in srgb,var(--warn) 14%,var(--card))}
 .pill.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 55%,transparent);background:color-mix(in srgb,var(--bad) 12%,var(--card))}
-.nav{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:430px;right:auto;bottom:0;height:76px;padding:6px 6px 16px;display:flex;justify-content:space-around;background:var(--tab);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:6}
+.nav{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:100%;right:auto;bottom:0;height:76px;padding:6px 6px 16px;display:flex;justify-content:space-around;background:var(--tab);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:6}
 .nav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:-.15px;padding:2px 2px 0;line-height:1.15}
 .nav button svg{width:22px;height:22px;display:block}
 .nav button.on{color:var(--cyan)}
@@ -400,10 +400,17 @@ p{margin:0;line-height:1.4}
 #root,body,#app{min-height:100dvh}
 @media (min-width:480px){
   body{display:flex;justify-content:center;background:#1a1e22}
-  .app{margin:16px auto;min-height:calc(100dvh - 32px);border-radius:28px;box-shadow:0 16px 48px rgba(0,0,0,.4);overflow:hidden;max-width:480px}
+  .app{margin:16px auto;min-height:calc(100dvh - 32px);border-radius:28px;box-shadow:0 16px 48px rgba(0,0,0,.4);overflow:hidden;max-width:520px}
+  .nav,.sheet{max-width:520px}
 }
 @media (min-width:768px){
-  .app{max-width:520px;margin:24px auto}
+  .app{max-width:640px;margin:24px auto}
+  .nav,.sheet{max-width:640px}
+  .page{padding:12px 28px 32px}
+}
+@media (min-width:1024px){
+  .app{max-width:720px}
+  .nav,.sheet{max-width:720px}
 }
 
 /* SECURITY / Murad screens: 2FA change, delete, nick change, 18+ */
@@ -546,7 +553,7 @@ p{margin:0;line-height:1.4}
 
 /* Bottom sheets and dialogs stay above the on-screen keyboard */
 .dim{position:fixed;inset:0}
-.sheet{position:fixed;left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:430px;bottom:var(--kb,0px);max-height:calc(100dvh - var(--kb,0px) - 24px);padding-bottom:calc(20px + env(safe-area-inset-bottom));transition:bottom .15s}
+.sheet{position:fixed;left:50%;right:auto;transform:translateX(-50%);width:100%;max-width:100%;bottom:var(--kb,0px);max-height:calc(100dvh - var(--kb,0px) - 24px);padding-bottom:calc(20px + env(safe-area-inset-bottom));transition:bottom .15s}
 
 /* Money: compact sign, digits only as needed */
 .money{white-space:nowrap;font-variant-numeric:tabular-nums}
