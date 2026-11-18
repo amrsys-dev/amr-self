@@ -1,12 +1,12 @@
-import type { ReactNode } from "react";
+import React, { useState, useEffect, type ReactNode } from "react";
 import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { InstallButton } from "./install-button.tsx";
 
 function NotificationsRow({ t }: { t: (k: string) => string }) {
-  const [status, setStatus] = React.useState<"default" | "granted" | "denied" | "unsupported">("default");
-  React.useEffect(() => {
+  const [status, setStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
+  useEffect(() => {
     if (typeof Notification === "undefined") setStatus("unsupported");
     else setStatus(Notification.permission as "default" | "granted" | "denied");
   }, []);
