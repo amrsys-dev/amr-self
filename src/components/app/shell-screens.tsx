@@ -3,6 +3,38 @@ import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { InstallButton } from "./install-button.tsx";
+
+function NotificationsRow({ t }: { t: (k: string) => string }) {
+  const [status, setStatus] = React.useState<"default" | "granted" | "denied" | "unsupported">("default");
+  React.useEffect(() => {
+    if (typeof Notification === "undefined") setStatus("unsupported");
+    else setStatus(Notification.permission as "default" | "granted" | "denied");
+  }, []);
+  const enable = async () => {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    setStatus(perm as "default" | "granted" | "denied");
+    if (perm === "granted" && "serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      // Subscription is prepared; server sending comes later.
+      try { await reg.pushManager.getSubscription(); } catch { /* ignore */ }
+    }
+  };
+  if (status === "unsupported") return null;
+  return (
+    <div className="set-row">
+      <span className="set-label">{t("notifications")}</span>
+      {status === "granted" ? (
+        <span className="tiny" style={{ color: "var(--ok)" }}>{t("notifications_on")}</span>
+      ) : status === "denied" ? (
+        <span className="tiny">{t("notifications_blocked")}</span>
+      ) : (
+        <button className="btn sm" type="button" onClick={() => void enable()}>{t("notifications_enable")}</button>
+      )}
+    </div>
+  );
+}
+
 import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
@@ -171,6 +203,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
                 <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
+                <NotificationsRow t={t} />
                 <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LinkRow
                   label={session.nickChanged ? t("nick_change_used") : t("change_nick")}

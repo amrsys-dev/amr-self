@@ -38,3 +38,13 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(req).then((c) => c ?? (req.mode === "navigate" ? caches.match("/offline.html") : caches.match("/")))),
   );
 });
+
+self.addEventListener("push", (event) => {
+  event.waitUntil((async () => {
+    let data = {};
+    try { data = event.data ? await event.data.json() : {}; } catch { /* ignore */ }
+    const title = data.title || "AMR ID";
+    const body = data.body || "";
+    await self.registration.showNotification(title, { body, icon: "/icon-192.png" });
+  })());
+});
