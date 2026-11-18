@@ -109,7 +109,13 @@ export function toPublicContacts(contacts: readonly Contact[], listedByOwner = "
   }));
 }
 
-export const CARD_THEMES = ["graphite", "gothic", "tactic", "minimal", "orbit", "malachite"] as const;
+export const CARD_THEMES = [
+  "graphite", "minimal", "orbit",
+  "business", "malachite",
+  "blogger", "gamer",
+  "craft", "bakery",
+  "soft", "gothic", "tactic",
+] as const;
 export type CardTheme = (typeof CARD_THEMES)[number];
 
 export function parseCardTheme(raw: string | null | undefined): CardTheme {

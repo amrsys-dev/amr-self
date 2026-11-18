@@ -50,6 +50,7 @@ export function CardScreens({ app }: { app: App }) {
               </button>
             ))}
           </div>
+          <p className="hint" style={{ marginTop: 16, textAlign: "center" }}>Выбери стиль. Потом добавь контакты — WhatsApp, Telegram, Instagram и другие.</p>
         </div>
       </>
     )}

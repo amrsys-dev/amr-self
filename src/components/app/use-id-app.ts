@@ -148,7 +148,8 @@ export function useIdApp() {
         setSession(r.data);
         setAppearance(r.data.appearance);
         const back = new URLSearchParams(window.location.search);
-        setScreen(back.get("delete") === "google" ? "account-delete" : "today");
+        const g = back.get("google");
+        setScreen(back.get("delete") === "google" ? "account-delete" : (g === "ok" ? "card" : "today"));
       }
       const g = new URLSearchParams(window.location.search).get("google");
       if (g === "ok") markGoogleSignIn();
