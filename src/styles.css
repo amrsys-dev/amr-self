@@ -798,3 +798,8 @@ p{margin:0;line-height:1.4}
 .danger-ghost,.danger-solid{min-height:50px;border-radius:14px;font-size:16px;font-weight:600}
 .danger-ghost{border:1px solid color-mix(in srgb,var(--bad) 50%,transparent);background:transparent;color:var(--bad)}
 .danger-solid{border:0;background:var(--bad);color:#fff}
+
+/* Визитка: фон-узор своей темы (лёгкий вектор), плавно уходит к низу */
+.idcard{position:relative;border-radius:24px;padding-left:12px;padding-right:12px}
+.idcard::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background-image:var(--card-pattern,none);background-size:var(--card-pattern-size,auto);background-repeat:repeat;-webkit-mask-image:linear-gradient(180deg,#000 0,#000 55%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 55%,transparent 100%)}
+.idcard > :not(.dim):not(.sheet):not(.idcover-pen){position:relative}

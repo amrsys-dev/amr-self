@@ -3,8 +3,9 @@ import type { CardTheme, PublicContact } from "@/lib/card/visibility.ts";
 import type { Lang, MsgKey } from "@/lib/i18n.ts";
 import { translate as tr } from "@/lib/i18n.ts";
 import { Ornament } from "./ornament.tsx";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useBackLayer } from "@/lib/back-stack.ts";
+import { cardPatternUrl, cardPatternSize } from "@/lib/card/patterns.ts";
 import { ServiceIcon, SiteIcon, serviceName } from "./contact-icons.tsx";
 
 export function QrMatrix({ value, label }: { value: string; label?: string }) {
@@ -83,9 +84,10 @@ export function CardHero({
   const togglePanel = (next: "share" | "qr") => setPanel((p) => (p === next ? "" : next));
   const closePanel = () => setPanel("");
   useBackLayer(panel !== "", closePanel);
+  const pattern = cardPatternUrl(theme);
   const letter = ((name || nick).replace(/^@/, "").trim()[0] ?? "A").toUpperCase();
   return (
-    <div className="idcard">
+    <div className="idcard" style={pattern ? ({ "--card-pattern": pattern, "--card-pattern-size": `${cardPatternSize(theme)}px` } as CSSProperties) : undefined}>
       {photo ? (
         <div className="idcover">
           <img src={photo} alt="" />

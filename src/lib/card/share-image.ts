@@ -3,6 +3,7 @@
  * nick, every visible contact with its service icon, and a QR code to the card page.
  * Browser only (canvas).
  */
+import { cardPatternUrl } from "./patterns.ts";
 import { encode } from "uqr";
 import type { CardTheme, PublicContact } from "./visibility.ts";
 import { CARD_PALETTE } from "./palette.ts";
@@ -71,6 +72,28 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, W, H);
+  // The theme's background pattern, the same as on the card page
+  const pat = cardPatternUrl(input.theme);
+  if (pat) {
+    try {
+      const img = new Image();
+      img.src = pat.slice(5, -2); // url("...") -> data URL
+      await img.decode();
+      // Check on a scratch canvas that the SVG does not block export (some browsers taint it)
+      const probe = document.createElement("canvas");
+      probe.width = probe.height = 4;
+      const pc = probe.getContext("2d")!;
+      pc.drawImage(img, 0, 0);
+      pc.getImageData(0, 0, 1, 1);
+      const fill = ctx.createPattern(img, "repeat");
+      if (fill) {
+        ctx.fillStyle = fill;
+        ctx.fillRect(0, 0, W, H);
+      }
+    } catch {
+      /* plain background */
+    }
+  }
 
   // Header: round photo or first letter, nick, "AMR ID"
   const ax = PAD + 38;
