@@ -742,3 +742,18 @@ p{margin:0;line-height:1.4}
 .idpop button:active{background:color-mix(in srgb,var(--cyan) 16%,transparent)}
 @keyframes idpop-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.idpop{animation:none}.idbtn{transition:none}}
+
+/* Телефон — особая кнопка «Позвонить» первой на визитке */
+.idlink.idcall{background:color-mix(in srgb,#34C759 16%,var(--card));border-color:color-mix(in srgb,#34C759 55%,var(--line))}
+.idlink.idcall b{font-size:17px}
+.idlink.idcall small{font-size:15px;color:var(--t);font-variant-numeric:tabular-nums}
+.idlink{transition:transform .12s ease,background-color .12s ease}
+.idlink:active{transform:scale(.98)}
+/* Выбор контакта: основные + «Ещё» */
+.svc.svc-phone{box-shadow:0 0 0 1.5px color-mix(in srgb,#34C759 60%,transparent)}
+.svc-more{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin-top:10px;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--t);font-size:15px;font-weight:600}
+.svc-more span{font-size:20px;line-height:1}
+.svc-more.is-on{border-style:solid;background:var(--card)}
+.svc-grid-more{margin-top:10px;animation:idpop-in .14s ease-out}
+.svc{transition:transform .12s ease}
+.svc:active{transform:scale(.96)}

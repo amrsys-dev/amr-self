@@ -1,4 +1,5 @@
 export const CONTACT_KINDS = [
+  "phone",
   "telegram",
   "whatsapp",
   "signal",
@@ -12,6 +13,7 @@ export const CONTACT_KINDS = [
   "facebook",
   "linkedin",
   "youtube",
+  "boosty",
   "email",
   "other",
 ] as const;
@@ -27,7 +29,7 @@ export type Contact = {
   label?: string;
 };
 
-export type ContactAction = "write" | "open";
+export type ContactAction = "write" | "open" | "call";
 
 export type PublicContact = {
   id: string;
@@ -57,6 +59,15 @@ export function contactHref(c: Contact): string | null {
   const v = c.value.trim();
   if (!v) return null;
   switch (c.kind) {
+    case "phone": {
+      // tel: link with digits only (and a leading +)
+      const digits = v.replace(/[^\d]/g, "");
+      if (digits.length < 6 || digits.length > 15) return null;
+      return `tel:${v.trim().startsWith("+") ? "+" : ""}${digits}`;
+    }
+    case "boosty":
+      if (/^https:\/\/(?:www\.)?boosty\.to\//i.test(v)) return v;
+      return `https://boosty.to/${encodeURIComponent(v.replace(/^@/, ""))}`;
     case "telegram":
       if (/^https:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i.test(v)) return v;
       return `https://t.me/${encodeURIComponent(v.replace(/^@/, ""))}`;
@@ -102,6 +113,7 @@ export function contactHref(c: Contact): string | null {
 }
 
 export function contactAction(kind: ContactKind): ContactAction {
+  if (kind === "phone") return "call";
   return WRITE_KINDS.has(kind) ? "write" : "open";
 }
 
@@ -110,6 +122,7 @@ export function defaultContactVisible(kind: ContactKind): boolean {
 }
 
 export function displayContactValue(c: Contact, listedByOwner = ""): string {
+  if (c.kind === "phone") return c.value.trim().replace(/[^\d+ ()-]/g, "");
   if (c.kind === "whatsapp") return listedByOwner;
   if (c.kind === "youtube") return c.label || "YouTube";
   if (c.kind === "telegram" || c.kind === "signal") {

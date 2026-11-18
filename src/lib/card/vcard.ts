@@ -11,7 +11,9 @@ export function buildVcard(card: { nick: string; url: string; contacts: readonly
   if (card.url) lines.push(`URL;TYPE=AMR ID:${card.url}`);
   for (const c of card.contacts) {
     if (!c.href) continue;
-    if (c.kind === "email") {
+    if (c.kind === "phone") {
+      lines.push(`TEL;TYPE=CELL:${c.href.replace(/^tel:/, "")}`);
+    } else if (c.kind === "email") {
       lines.push(`EMAIL;TYPE=INTERNET:${c.href.replace(/^mailto:/, "")}`);
     } else if (c.kind === "whatsapp") {
       const digits = c.href.replace(/^https:\/\/wa\.me\//, "").replace(/\D/g, "");

@@ -146,7 +146,18 @@ export function CardHero({
         </label>
       ) : null}
       <div className="idcard-links">
-        {contacts.map((c) => {
+        {[...contacts].sort((a, b) => Number(b.kind === "phone") - Number(a.kind === "phone")).map((c) => {
+          if (c.kind === "phone" && c.href) {
+            return (
+              <a key={c.id} className="idlink idcall" href={c.href}>
+                <ServiceIcon kind="phone" size={44} />
+                <span className="idlink-copy">
+                  <b>{t("call")}</b>
+                  <small dir="ltr">{c.display}</small>
+                </span>
+              </a>
+            );
+          }
           const body = (
             <>
               <ServiceIcon kind={c.kind} size={44} />
