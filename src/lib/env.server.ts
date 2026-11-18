@@ -48,12 +48,12 @@ export function emailOtpEnabled(): boolean {
   return v === "true" || v === "1" || v === "yes";
 }
 
-/** One-time recovery codes issued at signup. Default 10; also supports 1. */
+/** One-time recovery codes issued at signup. Default 1 (fast signup on phones); up to 10. */
 export function recoveryCodesCount(): number {
   const raw = env("AMR_RECOVERY_CODES");
-  const n = raw == null ? 10 : Number(raw);
+  const n = raw == null ? 1 : Number(raw);
   if (Number.isInteger(n) && n >= 1 && n <= 10) return n;
-  return 10;
+  return 1;
 }
 
 export type DoConfig = { url: string; secret: string };

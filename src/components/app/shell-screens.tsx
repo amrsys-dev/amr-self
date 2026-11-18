@@ -43,6 +43,48 @@ function DisplayNameField({ value, lang, onSave }: { value: string; lang: string
   );
 }
 
+const EDIT_COPY: Record<string, [string, string, string, string, string]> = {
+  ru: ["Изменить", "Сохранить", "Удалить контакт", "Удалить этот контакт?", "Этот контакт подтверждён для входа — его можно только удалить и добавить заново."],
+  en: ["Edit", "Save", "Delete contact", "Delete this contact?", "This contact is verified for sign-in — you can only delete it and add it again."],
+  ar: ["تعديل", "حفظ", "حذف جهة الاتصال", "حذف جهة الاتصال هذه؟", "هذه الجهة مؤكدة لتسجيل الدخول — يمكن حذفها وإضافتها من جديد فقط."],
+  uz: ["Tahrirlash", "Saqlash", "Kontaktni o‘chirish", "Bu kontakt o‘chirilsinmi?", "Bu kontakt kirish uchun tasdiqlangan — faqat o‘chirib, qayta qo‘shish mumkin."],
+  tj: ["Таҳрир", "Нигоҳ доштан", "Нест кардани контакт", "Ин контакт нест карда шавад?", "Ин контакт барои воридшавӣ тасдиқ шудааст — танҳо нест кардан ва аз нав илова кардан мумкин."],
+};
+
+/** One contact: change the value or delete it, in a bottom sheet (Back closes it). */
+function ContactEditSheet({ contact, lang, name, onClose, onSave, onDelete }: { contact: Contact; lang: string; name: string; onClose: () => void; onSave: (v: string) => void; onDelete: () => void }) {
+  const [label, save, del, confirmQ, verifiedNote] = EDIT_COPY[lang] ?? EDIT_COPY.en;
+  const [v, setV] = useState(contact.value);
+  const [confirm, setConfirm] = useState(false);
+  useBackLayer(true, onClose);
+  return (
+    <>
+      <div className="dim fixed-dim" onClick={onClose} />
+      <div className="sheet idshare-sheet contact-edit" role="dialog" aria-label={label}>
+        <div className="handle" />
+        <h2 className="contact-edit-title"><ServiceIcon kind={contact.kind} size={34} /> {name}</h2>
+        {contact.verified ? (
+          <p className="hint">{verifiedNote}</p>
+        ) : (
+          <>
+            <div className="field">
+              <div className="box">
+                <input value={v} dir="auto" autoCapitalize="off" autoCorrect="off" spellCheck={false} aria-label={name} onChange={(e) => setV(e.target.value)} />
+              </div>
+            </div>
+            <button type="button" className="btn p" disabled={!v.trim() || v.trim() === contact.value} onClick={() => onSave(v.trim())}>{save}</button>
+          </>
+        )}
+        {confirm ? (
+          <button type="button" className="danger-solid" onClick={onDelete}>{confirmQ}</button>
+        ) : (
+          <button type="button" className="danger-ghost" onClick={() => setConfirm(true)}>{del}</button>
+        )}
+      </div>
+    </>
+  );
+}
+
 function NotificationsRow({ lang }: { lang: string }) {
   const [label, on, blocked, enableLbl] = NOTIF[lang] ?? NOTIF.en;
   const [status, setStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
@@ -78,7 +120,8 @@ function NotificationsRow({ lang }: { lang: string }) {
 import type { Lang } from "@/lib/i18n.ts";
 import { SelfWorkspace } from "../self-workspace.tsx";
 import { accountIdOf } from "./types.ts";
-import { ServiceIcon } from "../contact-icons.tsx";
+import { ServiceIcon, serviceName } from "../contact-icons.tsx";
+import type { Contact } from "@/lib/card/visibility.ts";
 import { CardHero } from "../qr-card.tsx";
 import { CurrencySign, useCurrency } from "../self/currency.tsx";
 import { isCurrency } from "@/lib/finance/currency.ts";
@@ -181,8 +224,25 @@ export function ShellScreens({ app }: { app: App }) {
   // Back from any tab other than Home returns to Home (the usual app pattern).
   const onTab = inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
   useBackLayer(onTab, () => setScreen("today"));
+  const [editing, setEditing] = useState<Contact | null>(null);
   return (
     <>
+    {editing && session ? (
+      <ContactEditSheet
+        contact={editing}
+        lang={lang}
+        name={serviceName(editing.kind, t)}
+        onClose={() => setEditing(null)}
+        onSave={(value) => {
+          void saveProfile({ contacts: session.contacts.map((x) => (x.id === editing.id ? { ...x, value } : x)) });
+          setEditing(null);
+        }}
+        onDelete={() => {
+          void removeContact(editing);
+          setEditing(null);
+        }}
+      />
+    ) : null}
     {inShell && (
       <>
         {/* Tabs show only the product mark; each screen carries its own large title. */}
@@ -252,7 +312,9 @@ export function ShellScreens({ app }: { app: App }) {
                       <button className={`toggle ${c.visible ? "on" : ""}`} type="button" onClick={() => void toggleContact(c)} aria-label={t("show_hide")} aria-pressed={c.visible}>
                         <i />
                       </button>
-                      <button type="button" className="set-chev" aria-label={t("delete_action")} onClick={() => void removeContact(c)} style={{ marginInlineStart: 8 }}>×</button>
+                      <button type="button" className="set-pen" aria-label={EDIT_COPY[lang]?.[0] ?? EDIT_COPY.en[0]} onClick={() => setEditing(c)}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8" /></svg>
+                      </button>
                     </div>
                   ))}
                   <LinkRow label={t("add_contact")} tone="accent" onClick={() => setSheet("kind")} />
@@ -263,9 +325,9 @@ export function ShellScreens({ app }: { app: App }) {
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
                 <NotificationsRow lang={lang} />
+{session.nickChanged ? null : (
                 <LinkRow
-                  label={session.nickChanged ? t("nick_change_used") : t("change_nick")}
-                  disabled={session.nickChanged}
+                  label={t("change_nick")}
                   onClick={() => {
                     setNewNick("");
                     setNewNickStatus("");
@@ -274,6 +336,7 @@ export function ShellScreens({ app }: { app: App }) {
                     setScreen("nick-change");
                   }}
                 />
+                )}
                 {session.contacts.some((c) => c.verified && c.kind === "telegram") ? (
                   <LinkRow
                     label={t("change_channel")}

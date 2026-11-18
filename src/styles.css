@@ -785,3 +785,16 @@ p{margin:0;line-height:1.4}
 .idcard-name{margin:0;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.4px;text-align:center;overflow-wrap:anywhere}
 .idcover-title .idcard-name{text-align:start}
 .idcard-nick-sm{margin-top:4px;font-size:17px;font-weight:650;opacity:.85;overflow-wrap:anywhere}
+
+.set-row.pwa-set:empty{display:none}
+
+/* Контакт: карандаш → панель «Изменить / Удалить» */
+.set-pen{display:inline-grid;place-items:center;width:40px;height:40px;margin-inline-start:6px;border-radius:12px;border:0;background:transparent;color:var(--muted);transition:transform .12s ease,background-color .12s ease}
+.set-pen:active{transform:scale(.92);background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+.dim.fixed-dim{position:fixed}
+.contact-edit{gap:12px}
+.contact-edit-title{display:flex;align-items:center;gap:10px;font-size:20px;margin:4px 0 2px}
+.contact-edit .btn.p:disabled{opacity:.5}
+.danger-ghost,.danger-solid{min-height:50px;border-radius:14px;font-size:16px;font-weight:600}
+.danger-ghost{border:1px solid color-mix(in srgb,var(--bad) 50%,transparent);background:transparent;color:var(--bad)}
+.danger-solid{border:0;background:var(--bad);color:#fff}
