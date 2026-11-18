@@ -176,7 +176,7 @@ export function useIdApp() {
     accountIdRef.current = session ? accountIdOf(session) : null;
   }, [session]);
 
-  const origin = meta?.cardOrigin || (typeof window !== "undefined" ? window.location.origin : "");
+  const origin = "https://self.amrsys.net"; // public card always on the production domain, never a Vercel preview
   const cardUrl = session ? `${origin}${session.cardPath}` : origin;
   const publicContacts: PublicContact[] = useMemo(
     () => (session ? toPublicContacts(session.contacts, t("listed_by_owner")) : []),
