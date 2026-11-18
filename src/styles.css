@@ -742,3 +742,46 @@ p{margin:0;line-height:1.4}
 .idpop button:active{background:color-mix(in srgb,var(--cyan) 16%,transparent)}
 @keyframes idpop-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.idpop{animation:none}.idbtn{transition:none}}
+
+/* Телефон — особая кнопка «Позвонить» первой на визитке */
+.idlink.idcall{background:color-mix(in srgb,#34C759 16%,var(--card));border-color:color-mix(in srgb,#34C759 55%,var(--line))}
+.idlink.idcall b{font-size:17px}
+.idlink.idcall small{font-size:15px;color:var(--t);font-variant-numeric:tabular-nums}
+.idlink{transition:transform .12s ease,background-color .12s ease}
+.idlink:active{transform:scale(.98)}
+/* Выбор контакта: основные + «Ещё» */
+.svc.svc-phone{box-shadow:0 0 0 1.5px color-mix(in srgb,#34C759 60%,transparent)}
+.svc-more{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin-top:10px;border-radius:12px;border:1px dashed var(--line);background:transparent;color:var(--t);font-size:15px;font-weight:600}
+.svc-more span{font-size:20px;line-height:1}
+.svc-more.is-on{border-style:solid;background:var(--card)}
+.svc-grid-more{margin-top:10px;animation:idpop-in .14s ease-out}
+.svc{transition:transform .12s ease}
+.svc:active{transform:scale(.96)}
+
+/* «Поделиться» — панель снизу (не сдвигает экран, закрывается жестом «Назад») */
+.sheet.idshare-sheet{position:fixed;display:flex;flex-direction:column;gap:6px;padding:8px 16px calc(20px + env(safe-area-inset-bottom));animation:sheet-up .18s ease-out}
+.dim{animation:dim-in .18s ease-out}
+.app .dim:has(+ .idshare-sheet){position:fixed}
+.idshare-sheet button{min-height:54px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--t);font-size:17px;font-weight:600;text-align:start;padding:0 18px;transition:transform .12s ease,background-color .12s ease}
+.idshare-sheet button:active{transform:scale(.98);background:color-mix(in srgb,var(--cyan) 16%,var(--card))}
+@keyframes sheet-up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@keyframes dim-in{from{opacity:0}to{opacity:1}}
+
+/* Общий отклик на нажатие во всём приложении */
+.app button,.app a{-webkit-tap-highlight-color:transparent}
+.app .btn,.app .set-row,.app .nav button,.app .back,.app .self-back,.app .self-menu-row,.app .svc-more{transition:transform .12s ease,background-color .12s ease,opacity .12s ease}
+.app .btn:active,.app .back:active,.app .self-back:active,.app .svc-more:active{transform:scale(.97)}
+.app .set-row:active,.app .self-menu-row:active{background:color-mix(in srgb,var(--cyan) 10%,transparent)}
+.app .nav button:active{transform:scale(.92)}
+.app :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.sheet.idshare-sheet,.dim{animation:none}.app .btn,.app .set-row,.app .nav button{transition:none}}
+.nick-status.wait{color:var(--muted)}
+.nick-status.wait .dot{animation:nick-pulse 1s ease-in-out infinite}
+@keyframes nick-pulse{50%{opacity:.3}}
+.site-ico{background:#fff;display:inline-grid;place-items:center;border:1px solid var(--line)}
+.site-ico img{object-fit:contain}
+
+/* Имя на визитке: крупно, ник под ним */
+.idcard-name{margin:0;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.4px;text-align:center;overflow-wrap:anywhere}
+.idcover-title .idcard-name{text-align:start}
+.idcard-nick-sm{margin-top:4px;font-size:17px;font-weight:650;opacity:.85;overflow-wrap:anywhere}

@@ -33,6 +33,8 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
 
 export type ShareImageInput = {
   nick: string;
+  /** Name on the card (any language); the nick goes under it. */
+  displayName?: string;
   url: string;
   theme: CardTheme;
   contacts: readonly PublicContact[];
@@ -98,10 +100,16 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.textBaseline = "top";
   ctx.fillStyle = p.text;
   ctx.font = `800 34px ${FONT}`;
-  ctx.fillText(fit(ctx, input.nick, W - PAD * 2 - 96), PAD + 96, PAD + 8);
+  const title = input.displayName?.trim() || input.nick;
+  ctx.direction = /[\u0590-\u08FF]/.test(title) ? "rtl" : "ltr";
+  ctx.textAlign = ctx.direction === "rtl" ? "right" : "left";
+  const tx0 = ctx.direction === "rtl" ? W - PAD : PAD + 96;
+  ctx.fillText(fit(ctx, title, W - PAD * 2 - 96), tx0, PAD + 8);
+  ctx.direction = "ltr";
+  ctx.textAlign = "left";
   ctx.fillStyle = p.muted;
   ctx.font = `600 17px ${FONT}`;
-  ctx.fillText("AMR ID", PAD + 96, PAD + 50);
+  ctx.fillText(input.displayName?.trim() ? `${input.nick} · AMR ID` : "AMR ID", PAD + 96, PAD + 50);
 
   // Big QR on white, so any camera reads it
   const top = PAD + 76 + 28;
@@ -130,7 +138,16 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     const ix = lx + 12;
     const iy = y + 12;
     if (s.bg !== "none") {
-      ctx.fillStyle = s.bg;
+      if (s.bg.startsWith("radial-gradient")) {
+        // Instagram: canvas cannot take a CSS gradient, so draw the same brand gradient
+        const g = ctx.createRadialGradient(ix + 12, iy + 43, 2, ix + 12, iy + 43, 52);
+        g.addColorStop(0, "#FDF497");
+        g.addColorStop(0.05, "#FDF497");
+        g.addColorStop(0.45, "#FD5949");
+        g.addColorStop(0.6, "#D6249F");
+        g.addColorStop(0.9, "#285AEB");
+        ctx.fillStyle = g;
+      } else ctx.fillStyle = s.bg;
       rr(ctx, ix, iy, 40, 40, 11);
       ctx.fill();
     }
@@ -142,6 +159,8 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     ctx.lineJoin = "round";
     for (const layer of s.layers) {
       const p2 = new Path2D(layer.d);
+      ctx.save();
+      if (layer.dx || layer.dy) ctx.translate(layer.dx ?? 0, layer.dy ?? 0);
       if (layer.stroke) {
         ctx.lineWidth = 1.9;
         ctx.strokeStyle = layer.color;
@@ -153,8 +172,9 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
           ctx.stroke(p2);
         }
         ctx.fillStyle = layer.color;
-        ctx.fill(p2);
+        ctx.fill(p2, layer.evenodd ? "evenodd" : "nonzero");
       }
+      ctx.restore();
     }
     ctx.restore();
     const tx = ix + 52;

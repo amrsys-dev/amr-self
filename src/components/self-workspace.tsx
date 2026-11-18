@@ -1,3 +1,4 @@
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   derivePasswordKeys,
@@ -238,8 +239,11 @@ export function SelfWorkspace({
   const [saveError, setSaveError] = useState(false);
   const [subPage, setSubPage] = useState<SubPage>(null);
   const [modal, setModal] = useState<ModalKind>(null);
+  useBackLayer(subPage !== null, () => setSubPage(null));
+  useBackLayer(modal !== null, () => setModal(null));
   const [showDone, setShowDone] = useState(false);
   const [customize, setCustomize] = useState(false);
+  useBackLayer(customize, () => setCustomize(false));
   function updateBlocks(next: FinanceBlock[]) {
     setBlocks(next);
     saveBlocks(next);

@@ -6,12 +6,17 @@ import type { PublicContact } from "./visibility.ts";
 
 const esc = (v: string) => v.replace(/\r/g, "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
 
-export function buildVcard(card: { nick: string; url: string; contacts: readonly PublicContact[] }): string {
-  const lines = ["BEGIN:VCARD", "VERSION:3.0", `FN:${esc(card.nick)}`, `N:${esc(card.nick)};;;;`, `NICKNAME:${esc(card.nick)}`];
+export function buildVcard(card: { nick: string; name?: string; url: string; contacts: readonly PublicContact[] }): string {
+  const fn = card.name?.trim() || card.nick;
+  const lines = ["BEGIN:VCARD", "VERSION:3.0", `FN:${esc(fn)}`, `N:${esc(fn)};;;;`, `NICKNAME:${esc(card.nick)}`];
   if (card.url) lines.push(`URL;TYPE=AMR ID:${card.url}`);
   for (const c of card.contacts) {
     if (!c.href) continue;
-    if (c.kind === "email") {
+    if (c.kind === "phone") {
+      lines.push(`TEL;TYPE=CELL:${c.href.replace(/^tel:/, "")}`);
+    } else if (c.kind === "website") {
+      lines.push(`URL:${c.href}`);
+    } else if (c.kind === "email") {
       lines.push(`EMAIL;TYPE=INTERNET:${c.href.replace(/^mailto:/, "")}`);
     } else if (c.kind === "whatsapp") {
       const digits = c.href.replace(/^https:\/\/wa\.me\//, "").replace(/\D/g, "");

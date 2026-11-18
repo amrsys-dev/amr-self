@@ -2,6 +2,7 @@ import React, { useState, useEffect, type ReactNode } from "react";
 import { UI_THEMES, type UiMode, type UiTheme } from "./use-id-app.ts";
 import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
+import { useBackLayer } from "@/lib/back-stack.ts";
 import { InstallButton } from "./install-button.tsx";
 
 const NOTIF: Record<string, [string, string, string, string]> = {
@@ -11,6 +12,36 @@ const NOTIF: Record<string, [string, string, string, string]> = {
   uz: ["Bildirishnomalar", "Yoqilgan", "Brauzerda bloklangan", "Yoqish"],
   tj: ["Огоҳиномаҳо", "Фаъол", "Дар браузер манъ шудааст", "Фаъол кардан"],
 };
+
+const NAME_COPY: Record<string, [string, string, string]> = {
+  ru: ["Имя на визитке", "Например: Мурад Алиев", "На любом языке. Видно всем, кто открывает визитку."],
+  en: ["Name on the card", "e.g. John Smith", "Any language. Everyone who opens your card sees it."],
+  ar: ["الاسم على البطاقة", "مثال: عبد الرحمن بن محمد", "بأي لغة. يراه كل من يفتح بطاقتك."],
+  uz: ["Vizitkadagi ism", "Masalan: Aziz Karimov", "Istalgan tilda. Vizitkani ochgan har kim ko‘radi."],
+  tj: ["Ном дар визитка", "Масалан: Ҷамшед Қодиров", "Бо ҳар забон. Ҳар кӣ визиткаро кушояд, мебинад."],
+};
+
+/** Name on the card in any language; saved when the field loses focus or Enter is pressed. */
+function DisplayNameField({ value, lang, onSave }: { value: string; lang: string; onSave: (v: string) => void }) {
+  const [label, placeholder, hint] = NAME_COPY[lang] ?? NAME_COPY.en;
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const commit = () => {
+    const next = v.replace(/\s+/g, " ").trim().slice(0, 60);
+    if (next !== value) onSave(next);
+  };
+  return (
+    <div className="group">
+      <div className="lab">{label}</div>
+      <div className="field">
+        <div className="box">
+          <input value={v} dir="auto" maxLength={60} placeholder={placeholder} aria-label={label} onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+        </div>
+      </div>
+      <p className="hint">{hint}</p>
+    </div>
+  );
+}
 
 function NotificationsRow({ lang }: { lang: string }) {
   const [label, on, blocked, enableLbl] = NOTIF[lang] ?? NOTIF.en;
@@ -146,7 +177,10 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
+  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto, saveProfile } = app;
+  // Back from any tab other than Home returns to Home (the usual app pattern).
+  const onTab = inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
+  useBackLayer(onTab, () => setScreen("today"));
   return (
     <>
     {inShell && (
@@ -193,6 +227,7 @@ export function ShellScreens({ app }: { app: App }) {
               <div className={`skin-page skin-${session.theme}`} style={{ margin: "0 -20px 16px", padding: "8px 0" }}>
                 <CardHero
                   nick={session.nick}
+                  name={session.displayName}
                   url={cardUrl}
                   theme={session.theme}
                   contacts={publicContacts}
@@ -206,6 +241,7 @@ export function ShellScreens({ app }: { app: App }) {
                   onRemovePhoto={() => void removePhoto()}
                 />
               </div>
+              <DisplayNameField value={session.displayName ?? ""} lang={lang} onSave={(v) => void saveProfile({ displayName: v })} />
               <div className="group">
                 <div className="lab">{t("show_hide")}</div>
                 <div className="card pad0 set-list">

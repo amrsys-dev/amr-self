@@ -15,6 +15,7 @@ export function CardScreens({ app }: { app: App }) {
         <div className={`page skin-page skin-${session.theme}`}>
           <CardHero
             nick={session.nick}
+            name={session.displayName}
             url={cardUrl}
             theme={session.theme}
             contacts={publicContacts}

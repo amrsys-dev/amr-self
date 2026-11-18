@@ -4,6 +4,7 @@ import type { CardTheme, PublicContact } from "./visibility.ts";
 
 export type CardPayload = {
   nick: string;
+  displayName?: string;
   theme: CardTheme;
   contacts: PublicContact[];
   photo?: string | null;

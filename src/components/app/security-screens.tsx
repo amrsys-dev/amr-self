@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import type { MsgKey } from "@/lib/i18n.ts";
-import { NickInput } from "./auth-screens.tsx";
+import { NickInput, NickStatusLine } from "./auth-screens.tsx";
 import { Header, TestBanner, CodeBoxes } from "./ui.tsx";
 import type { App } from "./use-id-app.ts";
 
 /** Nick change, 2FA channel change, account deletion, 2FA rebind. */
 export function SecurityScreens({ app }: { app: App }) {
-  const { t, screen, setScreen, session, err, busy, testOtp, nick, setNick, password, setPassword, otpId, code, setCode, recovery, setRecovery, reauthPassword, setReauthPassword, newNick, setNewNick, newNickStatus, rebindDest, setRebindDest, checkNickStatus, submitNickChange, submitChannelChange, submitDeleteAccount, submitRebind, sendDeleteCode, deleteResendAt, deleteMethod, deleteGoogleReady, googleAction, googleProof, googleResendAt, sendGoogleCode, submitGoogleLink } = app;
+  const { t, lang, screen, setScreen, session, err, busy, testOtp, nick, setNick, password, setPassword, otpId, code, setCode, recovery, setRecovery, reauthPassword, setReauthPassword, newNick, setNewNick, newNickStatus, rebindDest, setRebindDest, checkNickStatus, submitNickChange, submitChannelChange, submitDeleteAccount, submitRebind, sendDeleteCode, deleteResendAt, deleteMethod, deleteGoogleReady, googleAction, googleProof, googleResendAt, sendGoogleCode, submitGoogleLink } = app;
   return (
     <>
     {session && screen === "nick-change" && (
@@ -27,12 +27,7 @@ export function SecurityScreens({ app }: { app: App }) {
                 }}
               />
             </div>
-            {newNickStatus ? (
-              <div className={`nick-status ${newNickStatus === "free" ? "ok" : "bad"}`}>
-                <span className="dot" />
-                {newNickStatus === "free" ? t("nick_free") : t("nick_taken")}
-              </div>
-            ) : null}
+            <NickStatusLine status={newNickStatus} lang={lang} />
           </div>
           <p className="hint">{t("nick_suffix_hint")}</p>
           <div className="note">{t("nick_change_hint")}</div>

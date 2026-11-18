@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBackLayer } from "@/lib/back-stack.ts";
+
+export type NickState = "" | "checking" | "free" | "taken" | "format" | "reserved" | "offline";
 import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
 import { renderCardImage } from "@/lib/card/share-image.ts";
 import { serviceName } from "../contact-icons.tsx";
@@ -42,6 +45,16 @@ const LEGACY_THEME: Record<string, [UiTheme, UiMode | null]> = {
   "wood-metal": ["bronze", null], "cream-lavender": ["bronze", null], "rose-champagne": ["bronze", null],
 };
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
+/** The open tab survives a page reload (per browser tab, not across sessions). */
+const LAST_TAB_KEY = "self.lastTab";
+function lastTab(): Screen {
+  try {
+    const v = sessionStorage.getItem(LAST_TAB_KEY) as Screen | null;
+    return v && SHELL_SCREENS.includes(v) ? v : "today";
+  } catch {
+    return "today";
+  }
+}
 
 /** All app state and actions. Screens read what they need from the returned object. */
 export function useIdApp() {
@@ -82,7 +95,7 @@ export function useIdApp() {
   const [backupMsg, setBackupMsg] = useState<MsgKey | "">("");
 
   const [nick, setNick] = useState("");
-  const [nickStatus, setNickStatus] = useState<"free" | "taken" | "format" | "">("");
+  const [nickStatus, setNickStatus] = useState<NickState>("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [channel, setChannel] = useState<"telegram" | "email">("telegram");
@@ -95,19 +108,14 @@ export function useIdApp() {
   const [showPassword2, setShowPassword2] = useState(false);
   const [reauthPassword, setReauthPassword] = useState("");
   const [newNick, setNewNick] = useState("");
-  const [newNickStatus, setNewNickStatus] = useState<"free" | "taken" | "format" | "">("");
+  const [newNickStatus, setNewNickStatus] = useState<NickState>("");
   const [pendingContactId, setPendingContactId] = useState("");
   const [rebindDest, setRebindDest] = useState("");
   const dataKeyRef = useRef<Uint8Array | null>(null);
   const accountIdRef = useRef<string | null>(null);
 
   const [sheet, setSheet] = useState<"kind" | "value" | null>(null);
-  useEffect(() => {
-    if (!sheet) return;
-    const onPop = () => setSheet(null);
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [sheet]);
+  useBackLayer(sheet !== null, () => setSheet(null));
   const [newKind, setNewKind] = useState<ContactKind>("telegram");
   const [newValue, setNewValue] = useState("");
 
@@ -137,7 +145,7 @@ export function useIdApp() {
     }
     if (localStorage.getItem(GUEST_FLAG) === "1") {
       setGuest(true);
-      setScreen("today");
+      setScreen(lastTab());
     }
     void api<Meta>("/api/meta").then((r) => {
       if (r.ok) setMeta(r.data);
@@ -155,7 +163,7 @@ export function useIdApp() {
         setAppearance(r.data.appearance);
         const back = new URLSearchParams(window.location.search);
         const g = back.get("google");
-        setScreen(back.get("delete") === "google" ? "account-delete" : (g === "ok" ? "card" : "today"));
+        setScreen(back.get("delete") === "google" ? "account-delete" : (g === "ok" ? "card" : lastTab()));
       }
       const g = new URLSearchParams(window.location.search).get("google");
       if (g === "ok") markGoogleSignIn();
@@ -209,15 +217,34 @@ export function useIdApp() {
     }
   }
 
-  async function checkNick(value: string) {
-    setNick(value);
-    if (value.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").length < 3) {
-      setNickStatus("");
+  // Live nick check: waits until typing pauses, ignores late answers, retries when rate-limited.
+  const nickSeq = useRef(0);
+  const nickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function liveNickCheck(value: string, set: (s: NickState) => void, delay = 350) {
+    const seq = ++nickSeq.current;
+    if (nickTimer.current) clearTimeout(nickTimer.current);
+    if (value.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").replace(/[._-]+$/, "").length < 3) {
+      set("");
       return;
     }
-    const r = await api<{ ok: boolean; reason?: string }>(`/api/nick/check?nick=${encodeURIComponent(value)}`);
-    if (!r.ok) return;
-    setNickStatus(r.data.ok ? "free" : ((r.data.reason as "taken" | "format") ?? "taken"));
+    set("checking");
+    nickTimer.current = setTimeout(async () => {
+      try {
+        const r = await api<{ ok: boolean; reason?: string; retryAfterMs?: number }>(`/api/nick/check?nick=${encodeURIComponent(value)}`);
+        if (seq !== nickSeq.current) return; // a newer value is being checked
+        if (r.status === 429) return liveNickCheck(value, set, Math.min(3000, r.data.retryAfterMs ?? 1000));
+        if (!r.ok) return set("offline");
+        const reason = r.data.reason;
+        set(r.data.ok ? "free" : reason === "format" || reason === "reserved" ? reason : "taken");
+      } catch {
+        if (seq === nickSeq.current) set("offline");
+      }
+    }, delay);
+  }
+
+  function checkNick(value: string) {
+    setNick(value);
+    liveNickCheck(value, setNickStatus);
   }
 
   async function submitSignup() {
@@ -425,14 +452,8 @@ export function useIdApp() {
   }
 
 
-  async function checkNickStatus(value: string) {
-    if (value.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").length < 3) {
-      setNewNickStatus("");
-      return;
-    }
-    const r = await api<{ ok: boolean; reason?: string }>(`/api/nick/check?nick=${encodeURIComponent(value)}`);
-    if (!r.ok) return;
-    setNewNickStatus(r.data.ok ? "free" : ((r.data.reason as "taken" | "format") ?? "taken"));
+  function checkNickStatus(value: string) {
+    liveNickCheck(value, setNewNickStatus);
   }
 
   async function submitNickChange() {
@@ -794,6 +815,7 @@ export function useIdApp() {
     if (!session) return;
     const blob = await renderCardImage({
       nick: session.nick,
+      displayName: session.displayName,
       url: cardUrl,
       theme: session.theme,
       contacts: publicContacts,
@@ -834,7 +856,7 @@ export function useIdApp() {
 
   function saveVcard() {
     if (!session) return;
-    const blob = new Blob([buildVcard({ nick: session.nick, url: cardUrl, contacts: publicContacts })], { type: "text/vcard" });
+    const blob = new Blob([buildVcard({ nick: session.nick, name: session.displayName, url: cardUrl, contacts: publicContacts })], { type: "text/vcard" });
     downloadBlob(blob, vcardFileName(session.nick));
   }
 
@@ -856,6 +878,14 @@ export function useIdApp() {
     setAppearance(ap);
     if (session) void saveProfile({ appearance: ap });
   }
+  useEffect(() => {
+    if (!SHELL_SCREENS.includes(screen)) return;
+    try {
+      sessionStorage.setItem(LAST_TAB_KEY, screen);
+    } catch {
+      /* ignore */
+    }
+  }, [screen]);
   const inShell = Boolean(session || guest) && SHELL_SCREENS.includes(screen);
   /** Passed to the workspace in guest mode; stable so it does not reload on every render. */
   const guestStore = useMemo(() => ({ load: loadGuestData, save: saveGuestData }), []);

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ApiMetaRouteImport } from './routes/api/meta'
 import { Route as ApiRatesRouteImport } from './routes/api/rates'
+import { Route as ApiFaviconRouteImport } from './routes/api/favicon'
 import { Route as UNickRouteImport } from './routes/u.$nick'
 import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
@@ -57,6 +58,11 @@ const ApiMetaRoute = ApiMetaRouteImport.update({
 const ApiRatesRoute = ApiRatesRouteImport.update({
   id: '/api/rates',
   path: '/api/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFaviconRoute = ApiFaviconRouteImport.update({
+  id: '/api/favicon',
+  path: '/api/favicon',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UNickRoute = UNickRouteImport.update({
@@ -190,6 +196,7 @@ export interface FileRoutesByFullPath {
   '/connect': typeof ConnectRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/api/favicon': typeof ApiFaviconRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/connect': typeof ConnectRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/api/favicon': typeof ApiFaviconRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -253,6 +261,7 @@ export interface FileRoutesById {
   '/connect': typeof ConnectRoute
   '/api/meta': typeof ApiMetaRoute
   '/api/rates': typeof ApiRatesRoute
+  '/api/favicon': typeof ApiFaviconRoute
   '/u/$nick': typeof UNickRoute
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/api/meta'
     | '/api/rates'
+    | '/api/favicon'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/api/meta'
     | '/api/rates'
+    | '/api/favicon'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -348,6 +359,7 @@ export interface FileRouteTypes {
     | '/connect'
     | '/api/meta'
     | '/api/rates'
+    | '/api/favicon'
     | '/u/$nick'
     | '/api/auth/kdf'
     | '/api/auth/login'
@@ -380,6 +392,7 @@ export interface RootRouteChildren {
   ConnectRoute: typeof ConnectRoute
   ApiMetaRoute: typeof ApiMetaRoute
   ApiRatesRoute: typeof ApiRatesRoute
+  ApiFaviconRoute: typeof ApiFaviconRoute
   UNickRoute: typeof UNickRoute
   ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
@@ -435,6 +448,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rates'
       fullPath: '/api/rates'
       preLoaderRoute: typeof ApiRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/favicon': {
+      id: '/api/favicon'
+      path: '/api/favicon'
+      fullPath: '/api/favicon'
+      preLoaderRoute: typeof ApiFaviconRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/u/$nick': {
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConnectRoute: ConnectRoute,
   ApiMetaRoute: ApiMetaRoute,
   ApiRatesRoute: ApiRatesRoute,
+  ApiFaviconRoute: ApiFaviconRoute,
   UNickRoute: UNickRoute,
   ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
