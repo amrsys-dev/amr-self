@@ -728,3 +728,17 @@ p{margin:0;line-height:1.4}
 
 .btns{flex-wrap:wrap}
 .btns .btn{flex:1 1 0;min-width:0}
+
+/* Визитка: кнопки «Поделиться» / «QR-код» и меню под кнопкой */
+.idcard-actions{position:relative}
+.idbtn{transition:transform .12s ease,background-color .12s ease,box-shadow .12s ease;-webkit-tap-highlight-color:transparent}
+.idbtn:active{transform:scale(.97);opacity:1}
+.idbtn:not(.primary).is-on{background:color-mix(in srgb,var(--cyan) 18%,var(--card));border-color:var(--cyan)}
+.idbtn.primary.is-on{filter:brightness(.92)}
+.idpop{position:absolute;top:calc(100% + 6px);inset-inline-start:0;width:calc(50% - 4px);min-width:180px;z-index:20;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,.45);overflow:hidden;animation:idpop-in .14s ease-out;transform-origin:top left}
+[dir=rtl] .idpop{transform-origin:top right}
+.idpop button{min-height:48px;padding:0 16px;text-align:start;background:transparent;color:var(--t);font-size:16px;border:0;border-bottom:1px solid var(--line);transition:background-color .1s ease}
+.idpop button:last-child{border-bottom:0}
+.idpop button:active{background:color-mix(in srgb,var(--cyan) 16%,transparent)}
+@keyframes idpop-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.idpop{animation:none}.idbtn{transition:none}}
