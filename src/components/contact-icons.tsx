@@ -1,3 +1,4 @@
+import { useState } from "react";
 /**
  * Contact service icons. Messenger and social logos are the official marks from
  * Simple Icons (CC0, https://simpleicons.org); imo traced from the official app icon; email and "other" are plain UI icons.
@@ -73,6 +74,23 @@ export function ServiceIcon({ kind, size = 40 }: { kind: ContactKind; size?: num
           />
         ))}
       </svg>
+    </span>
+  );
+}
+
+/** Website contact: the site's own icon (fetched by our server), the globe if it has none. */
+export function SiteIcon({ href, size = 40 }: { href: string | null; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  let host = "";
+  try {
+    host = href ? new URL(href).hostname : "";
+  } catch {
+    host = "";
+  }
+  if (!host || failed) return <ServiceIcon kind="website" size={size} />;
+  return (
+    <span className="svc-ico site-ico" style={{ width: size, height: size, borderRadius: size * 0.27 }} aria-hidden="true">
+      <img src={`/api/favicon?d=${encodeURIComponent(host)}`} alt="" width={Math.round(size * 0.7)} height={Math.round(size * 0.7)} loading="lazy" decoding="async" onError={() => setFailed(true)} />
     </span>
   );
 }

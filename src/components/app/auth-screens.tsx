@@ -1,3 +1,4 @@
+import { toNickChars } from "@/lib/nick-translit.ts";
 import { Header, TestBanner, LangPicker } from "./ui.tsx";
 import { RecoveryForm } from "./recovery-form.tsx";
 import { checkPassword } from "@/lib/password-policy.ts";
@@ -58,19 +59,7 @@ export function AuthScreens({ app }: { app: App }) {
               <NickInput value={nick} onChange={(v) => void checkNick(v)} />
             </div>
           </div>
-          {nickStatus === "free" && (
-            <div className="nick-status ok">
-              <i className="dot" /> {t("nick_free")}
-            </div>
-          )}
-          {nickStatus === "taken" && (
-            <>
-              <div className="nick-status bad">
-                <i className="dot" /> {t("nick_taken")}
-              </div>
-              <p className="hint">{t("nick_taken_hint")}</p>
-            </>
-          )}
+          <NickStatusLine status={nickStatus} lang={lang} />
           <p className="hint">{t("nick_suffix_hint")}</p>
           <div className="btns">
             <button className={`btn p ${nickStatus !== "free" ? "off" : ""}`} type="button" onClick={() => setScreen("signup-pass")}>
@@ -342,6 +331,26 @@ export function AuthScreens({ app }: { app: App }) {
 }
 
 /** Nick field: the user types only the name, ".amr" is always shown and added. */
+const NICK_MSG: Record<string, Record<string, string>> = {
+  ru: { checking: "Проверяю…", free: "свободен", taken: "занят — попробуйте добавить фамилию, город или цифры", format: "3–32 символа: латинские буквы, цифры, точка, дефис", reserved: "это служебное слово AMR — выберите другой ник", offline: "Нет связи, проверю позже" },
+  en: { checking: "Checking…", free: "available", taken: "taken — try adding a surname, city or numbers", format: "3–32 characters: Latin letters, digits, dot, hyphen", reserved: "this is a reserved AMR word — choose another nick", offline: "No connection, will check later" },
+  ar: { checking: "جارٍ التحقق…", free: "متاح", taken: "محجوز — أضف اسم العائلة أو المدينة أو أرقامًا", format: "من 3 إلى 32 حرفًا: أحرف لاتينية وأرقام ونقطة وشرطة", reserved: "هذه كلمة محجوزة لـ AMR — اختر اسمًا آخر", offline: "لا يوجد اتصال" },
+  uz: { checking: "Tekshirilmoqda…", free: "bo‘sh", taken: "band — familiya, shahar yoki raqam qo‘shing", format: "3–32 belgi: lotin harflari, raqamlar, nuqta, chiziqcha", reserved: "bu AMR xizmat so‘zi — boshqa nik tanlang", offline: "Aloqa yo‘q" },
+  tj: { checking: "Санҷиш…", free: "озод", taken: "банд — насаб, шаҳр ё рақам илова кунед", format: "3–32 аломат: ҳарфҳои лотинӣ, рақам, нуқта, тире", reserved: "ин калимаи хидматии AMR — ники дигар интихоб кунед", offline: "Пайваст нест" },
+};
+
+/** One status line under every nick field: checking / free / taken / format / reserved. */
+export function NickStatusLine({ status, lang }: { status: string; lang: string }) {
+  if (!status) return null;
+  const m = NICK_MSG[lang] ?? NICK_MSG.en;
+  const cls = status === "free" ? "ok" : status === "checking" || status === "offline" ? "wait" : "bad";
+  return (
+    <div className={`nick-status ${cls}`} role="status" aria-live="polite">
+      <i className="dot" /> {m[status] ?? m.taken}
+    </div>
+  );
+}
+
 export function NickInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const handle = value.replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "");
   return (
@@ -354,7 +363,7 @@ export function NickInput({ value, onChange }: { value: string; onChange: (v: st
         autoComplete="username"
         spellCheck={false}
         onChange={(e) => {
-          const clean = e.target.value.trim().toLowerCase().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "").replace(/[^a-z0-9._-]/g, "");
+          const clean = toNickChars(e.target.value.replace(/^\s*@/, "").replace(/(?:\.amr|@amr)$/i, ""));
           onChange(clean ? `${clean}.amr` : "");
         }}
       />

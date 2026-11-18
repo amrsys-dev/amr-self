@@ -12,7 +12,7 @@ import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 /** Contact values are single-line text: no control characters (blocks header/vCard/link injection). */
 const NO_CONTROL = /^[^\u0000-\u001f\u007f]*$/;
 import { nickReissueAllowed, reservedNickKey, type ReservedNick } from "../nick-reserve.ts";
-import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
+import { generateNick, nickProblem, normalizeNick, parseNickFormat, publicCardPath } from "../nick.ts";
 import { getStores } from "../storage/index.ts";
 import { isTelegramUserId, telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
 import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, sessionKey, sessionsOfKey, type OtpChannel, type UserRecord } from "../user.ts";
@@ -403,7 +403,7 @@ export async function handleNickCheck(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const raw = url.searchParams.get("nick") ?? "";
   const n = normalizeNick(raw, fmt());
-  if (!n) return json({ ok: false, reason: "format" });
+  if (!n) return json({ ok: false, reason: nickProblem(raw) ?? "format" });
   const free = await nickAvailable(n);
   // Dummy argon2id so a missing nick is not cheaper than a taken one.
   await dummyNickProbe(n);

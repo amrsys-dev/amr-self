@@ -9,7 +9,7 @@ export type NickFormat = {
 const PREFIX = "AMR";
 const DIGITS = "0123456789";
 const LEGACY_PATTERN = /^@?AMR-\d{3,8}(?:-\d{3,8})+$/i;
-const HANDLE_PATTERN = /^(?=.{3,24}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/i;
+const HANDLE_PATTERN = /^(?=.{3,32}$)[a-z0-9]+(?:[._-][a-z0-9]+)*$/i;
 
 export function parseNickFormat(spec?: string): NickFormat {
   const raw = (spec ?? defaultNickFormatSpec()).trim().toLowerCase();
@@ -38,8 +38,7 @@ export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat())
   let handle = trimmed.replace(/^@/, "");
   handle = handle.replace(/(?:\.amr|@amr)$/i, "");
   if (!HANDLE_PATTERN.test(handle)) return null;
-  const reserved = new Set(["admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u"]);
-  if (reserved.has(handle.toLowerCase())) return null;
+  if (RESERVED_NICKS.has(handle.toLowerCase())) return null;
   return `${handle.toLowerCase()}.amr`;
 }
 
@@ -63,3 +62,12 @@ export function publicCardPath(nick: string): string {
 export const RESERVED_NICKS = new Set(
   ["admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u"].map((s) => s.toLowerCase()),
 );
+
+/** Why a typed nick cannot be used: wrong format or a reserved service word. null = fine. */
+export function nickProblem(raw: string): "format" | "reserved" | null {
+  const handle = raw.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "");
+  if (LEGACY_PATTERN.test(raw.trim())) return null;
+  if (!HANDLE_PATTERN.test(handle)) return "format";
+  if (RESERVED_NICKS.has(handle.toLowerCase())) return "reserved";
+  return null;
+}

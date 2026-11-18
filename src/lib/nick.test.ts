@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { generateNick, normalizeNick, parseNickFormat, publicCardPath } from "./nick.ts";
+import { generateNick, nickProblem, normalizeNick, parseNickFormat, publicCardPath } from "./nick.ts";
 
 describe("AMR human-readable nicknames", () => {
   const fmt = parseNickFormat();
@@ -33,4 +33,13 @@ describe("AMR human-readable nicknames", () => {
     assert.equal(nick, "member-ebhci.amr");
     assert.equal(normalizeNick(nick, fmt), nick);
   });
+});
+
+it("nickProblem: служебные слова отдельно от формата, длина до 32", () => {
+  assert.equal(nickProblem("system"), "reserved");
+  assert.equal(nickProblem("AMR.amr"), "reserved");
+  assert.equal(nickProblem("ab"), "format");
+  assert.equal(nickProblem("abdulrahman.bin.mohammed.alqahtani"), "format");
+  assert.equal(nickProblem("abdulrahman.bin.mohammed"), null);
+  assert.equal(nickProblem("amrsystems"), null);
 });

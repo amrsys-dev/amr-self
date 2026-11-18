@@ -5,7 +5,7 @@ import { translate as tr } from "@/lib/i18n.ts";
 import { Ornament } from "./ornament.tsx";
 import { useState } from "react";
 import { useBackLayer } from "@/lib/back-stack.ts";
-import { ServiceIcon, serviceName } from "./contact-icons.tsx";
+import { ServiceIcon, SiteIcon, serviceName } from "./contact-icons.tsx";
 
 export function QrMatrix({ value, label }: { value: string; label?: string }) {
   const { data, size } = encode(value, { ecc: "M" });
@@ -127,7 +127,7 @@ export function CardHero({
           }
           const body = (
             <>
-              <ServiceIcon kind={c.kind} size={44} />
+              {c.kind === "website" ? <SiteIcon href={c.href} size={44} /> : <ServiceIcon kind={c.kind} size={44} />}
               <span className="idlink-copy">
                 <b>{serviceName(c.kind, t)}</b>
                 <small>{contactDetail(c, t)}</small>
