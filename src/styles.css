@@ -5,11 +5,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none;padding:0}
 input{border:0;outline:none;background:transparent;width:100%;color:var(--t)}
 a{color:inherit;text-decoration:none}
-.app{--bg:#0B0E11;--bg2:#11161A;--card:#161C22;--card2:#1C242B;--t:#EEF2F3;--muted:#8B959C;--line:#2A333A;--cyan:#68D5DF;--cyan2:#3FB4C0;--tint:#14343A;--wood:#D4B89E;--wood2:#B08A6C;--steel:#9AA7B0;--ok:#3CCB7C;--warn:#E0B15A;--bad:#D8776D;--on:#072125;--sb:#0B0E11;--tab:#10161A;--hair:rgba(255,255,255,.06);
+.app{--bg:#0B0E11;--bg2:#11161A;--card:#161C22;--card2:#1C242B;--t:#EEF2F3;--muted:#8B959C;--line:#2A333A;--cyan:#19D18F;--cyan2:#0A9F6C;--tint:#14343A;--wood:#D4B89E;--wood2:#B08A6C;--steel:#9AA7B0;--ok:#3CCB7C;--warn:#E0B15A;--bad:#D8776D;--on:#072125;--sb:#0B0E11;--tab:#10161A;--hair:rgba(255,255,255,.06);
   font-family:Inter,-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans','Segoe UI',sans-serif;
   color:var(--t);background:var(--bg);width:100%;max-width:100%;min-height:100dvh;height:auto;margin:0 auto;position:relative;overflow:hidden;display:flex;flex-direction:column;
   -webkit-font-smoothing:antialiased}
-.app.light{--bg:#F3F4F2;--bg2:#EAECEB;--card:#FFFFFF;--card2:#F7F8F7;--t:#20272C;--muted:#657077;--line:#D8DFE1;--cyan:#007E8E;--cyan2:#0A6A77;--tint:#E2F2F3;--wood:#87674D;--wood2:#6F533E;--steel:#5C6B73;--ok:#1B8A4A;--warn:#B7791F;--bad:#B5483F;--on:#FFFFFF;--sb:#F3F4F2;--tab:#F3F4F2;--hair:rgba(0,0,0,.06)}
+.app.light{--bg:#F3F4F2;--bg2:#EAECEB;--card:#FFFFFF;--card2:#F7F8F7;--t:#20272C;--muted:#657077;--line:#D8DFE1;--cyan:#0A8F5E;--cyan2:#06704A;--tint:#E2F2F3;--wood:#87674D;--wood2:#6F533E;--steel:#5C6B73;--ok:#1B8A4A;--warn:#B7791F;--bad:#B5483F;--on:#FFFFFF;--sb:#F3F4F2;--tab:#F3F4F2;--hair:rgba(0,0,0,.06)}
 .sb{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 6px;font-size:14px;font-weight:650;letter-spacing:.2px;background:var(--sb);flex:none;position:relative;z-index:4}
 .sbr{display:flex;align-items:center;gap:6px}
 .sbr svg{display:block}
@@ -798,3 +798,47 @@ p{margin:0;line-height:1.4}
 .danger-ghost,.danger-solid{min-height:50px;border-radius:14px;font-size:16px;font-weight:600}
 .danger-ghost{border:1px solid color-mix(in srgb,var(--bad) 50%,transparent);background:transparent;color:var(--bad)}
 .danger-solid{border:0;background:var(--bad);color:#fff}
+
+/* ===== Живой интерфейс (золотая серия AMR) =====
+   Один цвет приложения (--acc) оживляет полоски, тени, кольца и кнопки.
+   Только цвет, свет и тень на CSS: без картинок, без постоянной анимации. */
+.app{--acc:var(--cyan);--acc2:var(--cyan2);--gold:#E6C266;--on:#04140D;--tint:color-mix(in srgb,var(--acc) 14%,#0B0E11);
+  --glow:color-mix(in srgb,var(--acc) 42%,transparent);--edge:color-mix(in srgb,var(--acc) 26%,var(--line));
+  background-color:var(--bg);
+  background-image:radial-gradient(120% 48% at 50% -8%,color-mix(in srgb,var(--acc) 17%,transparent),transparent 62%);
+  background-repeat:no-repeat}
+.app.light{--glow:color-mix(in srgb,var(--acc) 22%,transparent);--edge:color-mix(in srgb,var(--acc) 22%,var(--line))}
+.app .sb,.app .hd{background:transparent}
+
+/* карточки: тонкий край цвета приложения и цветная тень снизу */
+.app .card,.app .self-card,.app .self-metric{border-color:var(--edge);
+  box-shadow:0 12px 26px -18px var(--glow),inset 0 1px 0 rgba(255,255,255,.04)}
+.app.light .card,.app.light .self-card,.app.light .self-metric{box-shadow:0 10px 22px -16px var(--glow)}
+
+/* главные карточки: светящаяся полоска слева и пятно света в углу */
+.app .self-hero,.app .card.hero{position:relative;overflow:hidden;isolation:isolate}
+.app .self-hero::before,.app .card.hero::before{content:"";position:absolute;inset-inline-start:0;top:16px;bottom:16px;width:4px;border-radius:0 4px 4px 0;
+  background:linear-gradient(var(--acc),var(--acc2));box-shadow:0 0 12px var(--acc);z-index:1}
+[dir=rtl] .app .self-hero::before,[dir=rtl] .app .card.hero::before{border-radius:4px 0 0 4px}
+.app .self-hero::after,.app .card.hero::after{content:"";position:absolute;inset-inline-end:-40px;top:-50px;width:170px;height:170px;border-radius:50%;
+  background:radial-gradient(closest-side,color-mix(in srgb,var(--acc) 28%,transparent),transparent);z-index:-1;pointer-events:none}
+
+/* прогресс и отметки светятся */
+.app .self-progress i{background:linear-gradient(90deg,var(--acc2),var(--acc));box-shadow:0 0 8px var(--glow)}
+.app .self-task-row.is-done .self-check{background:linear-gradient(135deg,var(--acc),var(--acc2));border-color:transparent;box-shadow:0 0 10px var(--glow)}
+
+/* главная кнопка: заливка цвета приложения и мягкое свечение */
+.app .btn.p{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 82%,#fff),var(--acc));color:var(--on);box-shadow:0 8px 20px -8px var(--glow)}
+.app .btn.p:active,.app .btn.g:active{transform:scale(.98);opacity:1}
+.app .btn{transition:transform .12s ease}
+
+/* нижние вкладки: активная подсвечена */
+.app .nav button.on{color:var(--acc);background:color-mix(in srgb,var(--acc) 15%,transparent);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 40%,transparent),0 0 16px -4px var(--glow)}
+
+/* суммы и важные цифры — золото */
+.app .self-balance strong{color:var(--t)}
+.app .self-balance strong .cur,.app .num small{color:var(--gold)}
+.app.light .self-balance strong .cur,.app.light .num small{color:#A5802A}
+
+@media (prefers-reduced-motion:reduce){.app .btn{transition:none}}
