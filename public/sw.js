@@ -1,5 +1,5 @@
 /* AMR ID service worker — cache the app shell, network-first for API. */
-const SHELL = "amrself-shell-v11";
+const SHELL = "amrself-shell-v12";
 const SHELL_URLS = ["/manifest.webmanifest", "/amr-monogram.svg", "/icon-192.png", "/fonts/Inter.ttf", "/offline.html"];
 
 self.addEventListener("install", (event) => {
