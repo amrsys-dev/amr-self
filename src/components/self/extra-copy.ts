@@ -2,6 +2,7 @@
 import type { Lang } from "@/lib/i18n.ts";
 
 const ru = {
+  needAmount: "Введите сумму больше нуля", confirmDel: "Удалить?", loadFail: "Не удалось прочитать данные. Записи не удалены — откройте приложение ещё раз.", reLogin: "Войдите заново, чтобы открыть данные.", monthChart: "Баланс за месяц",
   customize: "Настроить экран", blockRecent: "Последние записи",
   add: "Добавить",
   balanceTotal: "Баланс", moneyIn: "Пришло", moneyOut: "Ушло", yesterday: "Вчера", todayLbl: "Сегодня", upcoming: "Предстоящие", noDate: "Без даты", showDone: "Выполненные · {n}", thisWeek: "Эта неделя", weekLine: "{n} трен. · {m} мин", streak: "Серия: {n} нед. подряд", prevMonth: "Предыдущий месяц", nextMonth: "Следующий месяц",
@@ -28,6 +29,7 @@ const ru = {
 type Copy = { [K in keyof typeof ru]: string };
 
 const en: Copy = {
+  needAmount: "Enter an amount above zero", confirmDel: "Delete?", loadFail: "Could not read your data. Nothing was deleted — open the app again.", reLogin: "Sign in again to open your data.", monthChart: "Balance this month",
   customize: "Edit screen", blockRecent: "Recent records",
   add: "Add",
   balanceTotal: "Balance", moneyIn: "In", moneyOut: "Out", yesterday: "Yesterday", todayLbl: "Today", upcoming: "Upcoming", noDate: "No date", showDone: "Completed · {n}", thisWeek: "This week", weekLine: "{n} workouts · {m} min", streak: "Streak: {n} weeks in a row", prevMonth: "Previous month", nextMonth: "Next month",
@@ -52,6 +54,7 @@ const en: Copy = {
 };
 
 const ar: Copy = {
+  needAmount: "أدخل مبلغًا أكبر من صفر", confirmDel: "حذف؟", loadFail: "تعذّرت قراءة البيانات. لم يُحذف شيء — افتح التطبيق مرة أخرى.", reLogin: "سجّل الدخول مرة أخرى لفتح بياناتك.", monthChart: "الرصيد هذا الشهر",
   customize: "تخصيص الشاشة", blockRecent: "آخر السجلات",
   add: "إضافة",
   balanceTotal: "الرصيد", moneyIn: "وارد", moneyOut: "صادر", yesterday: "أمس", todayLbl: "اليوم", upcoming: "القادمة", noDate: "بدون تاريخ", showDone: "المكتملة · {n}", thisWeek: "هذا الأسبوع", weekLine: "{n} تمارين · {m} دقيقة", streak: "سلسلة: {n} أسابيع متتالية", prevMonth: "الشهر السابق", nextMonth: "الشهر التالي",
@@ -76,6 +79,7 @@ const ar: Copy = {
 };
 
 const uz: Copy = {
+  needAmount: "Noldan katta summa kiriting", confirmDel: "O‘chirilsinmi?", loadFail: "Ma’lumotlarni o‘qib bo‘lmadi. Hech narsa o‘chirilmadi — ilovani qayta oching.", reLogin: "Ma’lumotlarni ochish uchun qayta kiring.", monthChart: "Oy davomida balans",
   customize: "Ekranni sozlash", blockRecent: "So‘nggi yozuvlar",
   add: "Qo‘shish",
   balanceTotal: "Balans", moneyIn: "Kirim", moneyOut: "Chiqim", yesterday: "Kecha", todayLbl: "Bugun", upcoming: "Kelgusi", noDate: "Sanasiz", showDone: "Bajarilgan · {n}", thisWeek: "Shu hafta", weekLine: "{n} mashg‘ulot · {m} daq", streak: "Ketma-ket: {n} hafta", prevMonth: "Oldingi oy", nextMonth: "Keyingi oy",
@@ -100,6 +104,7 @@ const uz: Copy = {
 };
 
 const tj: Copy = {
+  needAmount: "Маблағи аз сифр зиёдро ворид кунед", confirmDel: "Нест кунем?", loadFail: "Маълумот хонда нашуд. Ҳеҷ чиз нест нашуд — барномаро аз нав кушоед.", reLogin: "Барои кушодани маълумот аз нав ворид шавед.", monthChart: "Тавозун дар ин моҳ",
   customize: "Танзими экран", blockRecent: "Сабтҳои охирин",
   add: "Илова",
   balanceTotal: "Тавозун", moneyIn: "Омад", moneyOut: "Рафт", yesterday: "Дирӯз", todayLbl: "Имрӯз", upcoming: "Оянда", noDate: "Бе сана", showDone: "Иҷрошуда · {n}", thisWeek: "Ин ҳафта", weekLine: "{n} тамрин · {m} дақ", streak: "Пайдарпай: {n} ҳафта", prevMonth: "Моҳи гузашта", nextMonth: "Моҳи оянда",

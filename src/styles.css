@@ -842,3 +842,18 @@ p{margin:0;line-height:1.4}
 .app.light .self-balance strong .cur,.app.light .num small{color:#A5802A}
 
 @media (prefers-reduced-motion:reduce){.app .btn{transition:none}}
+
+/* Кольца, линия баланса, удаление в два касания */
+.app .self-ring-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.app .self-ring{width:40px;height:40px;flex:none}
+.app .self-ring circle{fill:none;stroke-width:5}
+.app .self-ring .bg{stroke:color-mix(in srgb,var(--t) 10%,transparent)}
+.app .self-ring .fg{stroke-linecap:round;transition:stroke-dasharray .4s ease}
+.app .self-ring.gold .fg{stroke:var(--gold);filter:drop-shadow(0 0 4px color-mix(in srgb,var(--gold) 70%,transparent))}
+.app .self-ring.sky .fg{stroke:#38BDF8;filter:drop-shadow(0 0 4px rgba(56,189,248,.7))}
+.app .self-ring.acc .fg{stroke:var(--acc);filter:drop-shadow(0 0 4px var(--glow))}
+.app .self-spark{display:block;width:100%;height:54px;margin:6px 0 2px;overflow:visible}
+.app .self-spark .line{fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;filter:drop-shadow(0 0 5px var(--glow))}
+.app .self-spark .area{fill:color-mix(in srgb,var(--acc) 16%,transparent);stroke:none}
+.app .self-delete.armed{width:auto;padding:0 10px;font-size:13px;font-weight:600;border-radius:10px;color:#fff;background:#D9534F}
+@media (prefers-reduced-motion:reduce){.app .self-ring .fg{transition:none}}
