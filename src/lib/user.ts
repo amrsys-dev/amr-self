@@ -12,6 +12,8 @@ export type UserRecord = {
   dataId?: string;
   /** Card cover photo blob (random key, survives a nick change). */
   photo?: { key: string; v: number; type?: string };
+  /** Small round face photo on the card (like WhatsApp Business); the cover is `photo`. */
+  avatar?: { key: string; v: number; type?: string };
   /** Name shown on the card, any language (e.g. full Arabic or Cyrillic name). Public. */
   displayName?: string;
   createdAt: string;

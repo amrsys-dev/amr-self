@@ -102,7 +102,7 @@ export function BillsCard({ data, persist, lang, money, cur, amountLabel, labels
             <label>{tx(lang, "billTitle")}<input value={title} onChange={(e) => setTitle(e.target.value)} /></label>
             <label>{amountLabel}<input type="text" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
             <label>{tx(lang, "payDay")}<input type="number" min="1" max="31" inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value)} /></label>
-            <CategoryPicker options={EXPENSE_CATEGORIES} value={category} onChange={(v) => setCategory(v as ExpenseCategory)} lang={lang} label={tx(lang, "byCategory")} />
+            <CategoryPicker options={EXPENSE_CATEGORIES} value={category} onChange={(v) => setCategory(v as ExpenseCategory)} lang={lang} label={tx(lang, "category")} />
             <div className="self-modal-actions">
               <button type="button" className="self-secondary" onClick={() => setOpen(false)}>{labels.cancel}</button>
               <button type="button" className="self-primary" onClick={() => void add()}>{labels.save}</button>

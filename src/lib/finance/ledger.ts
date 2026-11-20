@@ -24,6 +24,24 @@ export function monthFlow(income: readonly FinanceRecord[], expense: readonly Fi
   return { in: round2(i), out: round2(o), net: round2(i - o) };
 }
 
+/**
+ * Balance at the end of each day of a month ("YYYY-MM"), carried over from
+ * earlier months. Stops at `lastDay` (today) so the line does not run into the future.
+ */
+export function balanceSeries(income: readonly FinanceRecord[], expense: readonly FinanceRecord[], month: string, lastDay?: string): number[] {
+  const [y, m] = month.split("-").map(Number) as [number, number];
+  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const start = totalBalance(income, expense, `${month}-00`);
+  const delta = new Array<number>(days).fill(0);
+  for (const r of live(income)) if ((r.date ?? "").startsWith(month)) delta[Number(r.date!.slice(8, 10)) - 1] += amountOf(r);
+  for (const r of live(expense)) if ((r.date ?? "").startsWith(month)) delta[Number(r.date!.slice(8, 10)) - 1] -= amountOf(r);
+  const end = lastDay && lastDay.startsWith(month) ? Number(lastDay.slice(8, 10)) : days;
+  const out: number[] = [];
+  let bal = start;
+  for (let d = 0; d < end; d++) { bal += delta[d] ?? 0; out.push(round2(bal)); }
+  return out;
+}
+
 /** "2026-11" shifted by n months. */
 export function shiftMonth(month: string, n: number): string {
   const [y, m] = month.split("-").map(Number) as [number, number];

@@ -16,7 +16,7 @@ import { categoryLabel, formatKm, tx } from "./self/extra-copy.ts";
 import { CategoryIcon, CategoryPicker } from "./self/parts.tsx";
 import { BillsCard, dueBillsTotal } from "./self/bills-card.tsx";
 import { CarPage, carOf, itemName } from "./self/car-page.tsx";
-import { groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
+import { balanceSeries, groupByDay, monthFlow, shiftMonth, totalBalance } from "@/lib/finance/ledger.ts";
 import { groupTasks } from "@/lib/tasks/groups.ts";
 import { weekStreak, weekSummary } from "@/lib/health/week.ts";
 import { addHealthEntry, discardHealthWithoutConsent, grantHealthConsent, hasHealthConsent, hasLiveHealthEntries, withdrawHealthConsent } from "@/lib/health/consent.ts";
@@ -237,6 +237,14 @@ export function SelfWorkspace({
   const [unlockError, setUnlockError] = useState(false);
   const [unlockBusy, setUnlockBusy] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [formError, setFormError] = useState("");
+  // Delete in two taps: the first one asks «Удалить?», the second one deletes.
+  const [armed, setArmed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!armed) return;
+    const id = setTimeout(() => setArmed(null), 3000);
+    return () => clearTimeout(id);
+  }, [armed]);
   const [subPage, setSubPage] = useState<SubPage>(null);
   const [modal, setModal] = useState<ModalKind>(null);
   useBackLayer(subPage !== null, () => setSubPage(null));
@@ -301,6 +309,8 @@ export function SelfWorkspace({
   const balanceAll = totalBalance(finIn, finEx);
   const flowNow = monthFlow(finIn, finEx, month);
   const flowSel = monthFlow(finIn, finEx, financeMonth);
+  const seriesNow = useMemo(() => balanceSeries(finIn, finEx, month, today), [finIn, finEx, month, today]);
+  const seriesSel = useMemo(() => balanceSeries(finIn, finEx, financeMonth, today), [finIn, finEx, financeMonth, today]);
   const monthName = (m: string) => new Date(m + "-15T12:00:00").toLocaleDateString(locale, { month: "long", year: "numeric" });
   const dayGroups = groupByDay(entries.filter((e) => (e.date ?? "").startsWith(financeMonth) && (transactionFilter === "all" || e.kind === transactionFilter)));
   const yesterday = (() => { const d = new Date(today + "T12:00:00"); d.setDate(d.getDate() - 1); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); })();
@@ -342,6 +352,7 @@ export function SelfWorkspace({
     setNote("");
     setDate(today);
     setPriority("medium");
+    setFormError("");
     setModal(kind);
   }
 
@@ -350,7 +361,8 @@ export function SelfWorkspace({
     const recordId = makeId();
     if (modal === "income" || modal === "expense") {
       const value = parseAmount(amount);
-      if (!title.trim() || !Number.isFinite(value) || value <= 0) return;
+      if (!Number.isFinite(value) || value <= 0) { setFormError(tx(lang, "needAmount")); return; }
+      // Title is optional: without it the category name is shown.
       const record: FinanceRecord = { id: recordId, updatedAt: now, title: title.trim(), amount: value, currency: cur, category, date, note: note.trim() || undefined };
       const field = modal === "income" ? "income" : "expense";
       const next = { ...data, finance: { ...data.finance, [field]: [...data.finance[field], record] } };
@@ -362,7 +374,7 @@ export function SelfWorkspace({
     } else if (modal === "weight" || modal === "meal" || modal === "workout") {
       if (!healthOk) { setModal(null); return; }
       const value = Number(amount.replace(",", "."));
-      if (!Number.isFinite(value) || value <= 0) return;
+      if (!Number.isFinite(value) || value <= 0) { setFormError(tx(lang, "needAmount")); return; }
       const kind = modal;
       const record: HealthEntry = {
         id: recordId, updatedAt: now, kind, title: title.trim() || (kind === "weight" ? t("weight") : kind === "meal" ? t("meal") : t("workout")),
@@ -429,14 +441,14 @@ export function SelfWorkspace({
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" onKeyDown={(e) => { if (e.key === "Enter") void unlock(); }} />
         </div>
         {unlockError ? <div className="self-error">{t("unlockError")}</div> : null}
-        {!wrapPassword || !passwordKdf ? <div className="self-error">Session key metadata is unavailable. Sign in again to unlock your data.</div> : null}
+        {!wrapPassword || !passwordKdf ? <div className="self-error">{tx(lang, "reLogin")}</div> : null}
         <button className="self-primary" type="button" disabled={unlockBusy || !wrapPassword || !passwordKdf} onClick={() => void unlock()}>{unlockBusy ? t("loading") : t("unlock")}</button>
       </div>
     );
   }
 
   if (loading) return <div className="self-loading">{t("loading")}</div>;
-  if (loadError) return <div className="self-lock"><h2>{t("noData")}</h2><p>Could not read local or synchronized data. Your encrypted records have not been deleted.</p></div>;
+  if (loadError) return <div className="self-lock"><h2>{t("noData")}</h2><p>{tx(lang, "loadFail")}</p></div>;
 
   const bills = dueBillsTotal(data, toCur);
   const carInfo = carOf(data);
@@ -467,6 +479,7 @@ export function SelfWorkspace({
           <div className="self-card self-balance self-hero">
             <span>{tx(lang, "balanceTotal")}</span>
             <strong>{money(balanceAll)}</strong>
+            <Spark values={seriesNow} label={tx(lang, "monthChart")} />
             <FlowSplit flow={flowNow} money={money} labelIn={tx(lang, "moneyIn")} labelOut={tx(lang, "moneyOut")} />
             <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
           </div>
@@ -474,8 +487,7 @@ export function SelfWorkspace({
           <div className="self-grid self-grid-2">
             <button type="button" className="self-metric self-tile" onClick={() => onNavigate?.("work")}>
               <span><CategoryIcon c="freelance" size={16} />{t("tasksDone")}</span>
-              <strong>{doneTasks.length}<i> / {active(data.work.tasks).length}</i></strong>
-              <div className="self-progress"><i style={{ width: progress + "%" }} /></div>
+              <div className="self-ring-row"><strong>{doneTasks.length}<i> / {active(data.work.tasks).length}</i></strong><Ring pct={progress} tone="gold" /></div>
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => onNavigate?.("finance")}>
               <span><CategoryIcon c="housing" size={16} />{tx(lang, "billsDue")}</span>
@@ -489,14 +501,13 @@ export function SelfWorkspace({
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => setSubPage("health")}>
               <span><CategoryIcon c="water" size={16} />{t("waterToday")}</span>
-              <strong>{healthOk ? waterToday : "—"}<i>{healthOk ? " ml" : ""}</i></strong>
-              <div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div>
+              <div className="self-ring-row"><strong>{healthOk ? waterToday : "—"}<i>{healthOk ? " ml" : ""}</i></strong><Ring pct={healthOk ? Math.min(100, waterToday / 2000 * 100) : 0} tone="sky" /></div>
             </button>
           </div>
 
           <div className="self-section-head"><h3>{t("todayTasks")}</h3><button onClick={() => openModal("task")} type="button">+ {t("add")}</button></div>
           <div className="self-card">
-            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 5).map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}
+            {todayTasks.length === 0 ? <div className="self-empty">{t("noTasks")}</div> : todayTasks.slice(0, 5).map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => { setArmed(null); void removeTask(task); }} armed={armed === task.id} onArm={() => setArmed(task.id)} ask={tx(lang, "confirmDel")} t={t} />)}
           </div>
         </>
       )}
@@ -512,6 +523,7 @@ export function SelfWorkspace({
           <div className="self-card self-balance self-hero">
             <span>{tx(lang, "balanceTotal")}</span>
             <strong>{money(balanceAll)}</strong>
+            <Spark values={seriesSel} label={tx(lang, "monthChart")} />
             <FlowSplit flow={flowSel} money={money} labelIn={tx(lang, "moneyIn")} labelOut={tx(lang, "moneyOut")} />
             <div className="self-finance-actions"><button type="button" onClick={() => openModal("income")}>+ {t("income")}</button><button type="button" onClick={() => openModal("expense")}>− {t("expense")}</button></div>
           </div>
@@ -525,7 +537,7 @@ export function SelfWorkspace({
             <section key={g.date} className="self-day">
               <div className="self-day-head"><span>{dayLabel(g.date)}</span><span className={g.net >= 0 ? "income" : "expense"}>{money(g.net, true)}</span></div>
               <div className="self-card">
-                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{money(entry.kind === "income" ? amountOf(entry) : -amountOf(entry), true)}</strong><button className="self-delete" type="button" onClick={() => void removeEntry(entry)} aria-label={t("delete")}>×</button></div>)}
+                {g.entries.map((entry) => <div className="self-list-row" key={entry.id}><div className={"self-list-mark " + entry.kind}><CategoryIcon c={entry.category} /></div><div className="self-list-copy"><b>{entry.title || categoryLabel(lang, entry.category)}</b><small>{categoryLabel(lang, entry.category)}</small></div><strong className={entry.kind}>{money(entry.kind === "income" ? amountOf(entry) : -amountOf(entry), true)}</strong><DeleteButton armed={armed === entry.id} onArm={() => setArmed(entry.id)} onDelete={() => { setArmed(null); void removeEntry(entry); }} label={t("delete")} ask={tx(lang, "confirmDel")} /></div>)}
               </div>
             </section>
           ))}
@@ -597,13 +609,13 @@ export function SelfWorkspace({
           ] as const).map(([key, label, list]) => list.length === 0 ? null : (
             <section key={key} className={"self-day " + key}>
               <div className="self-day-head"><span>{label}</span><span>{list.length}</span></div>
-              <div className="self-card">{list.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}</div>
+              <div className="self-card">{list.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => { setArmed(null); void removeTask(task); }} armed={armed === task.id} onArm={() => setArmed(task.id)} ask={tx(lang, "confirmDel")} t={t} />)}</div>
             </section>
           ))}
           {taskGroups.done.length > 0 && (
             <section className="self-day">
               <button type="button" className="self-day-head self-toggle" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}><span>{tx(lang, "showDone", { n: taskGroups.done.length })}</span><span aria-hidden="true">{showDone ? "⌃" : "⌄"}</span></button>
-              {showDone && <div className="self-card">{taskGroups.done.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => void removeTask(task)} t={t} />)}</div>}
+              {showDone && <div className="self-card">{taskGroups.done.map((task) => <TaskRow key={task.id} task={task} today={today} onToggle={() => void toggleTask(task)} onDelete={() => { setArmed(null); void removeTask(task); }} armed={armed === task.id} onArm={() => setArmed(task.id)} ask={tx(lang, "confirmDel")} t={t} />)}</div>}
             </section>
           )}
         </>
@@ -615,15 +627,13 @@ export function SelfWorkspace({
           <div className="svc-grid-lg">
             {modules.map((m) => (
               <button key={m.key} type="button" className="svc-card-lg" onClick={() => setSubPage(m.key)}>
-                <span className={`svc-card-ico ${m.key}`}><CategoryIcon c={m.icon} size={28} /></span>
+                <img className="svc-card-img" src={`/apps/${m.key === "health" ? "fitness" : "car"}.webp`} alt="" width="56" height="56" />
                 <b>{m.title}</b>
                 <small>{m.subtitle}</small>
               </button>
             ))}
             <a className="svc-card-lg" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
-              <span className="svc-card-ico bazar">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
-              </span>
+              <img className="svc-card-img" src="/apps/bazar.webp" alt="" width="56" height="56" />
               <b>AMR Bazar</b>
               <small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small>
             </a>
@@ -684,6 +694,7 @@ export function SelfWorkspace({
             {modal === "task" && <label>{t("priority")}<select value={priority} onChange={(e) => setPriority(e.target.value as typeof priority)}><option value="low">{t("low")}</option><option value="medium">{t("medium")}</option><option value="high">{t("high")}</option></select></label>}
             <label>{modal === "task" ? t("dueDate") : t("date")}<input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
             {(modal === "income" || modal === "expense" || modal === "meal") && <label>{t("note")}<textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></label>}
+            {formError ? <div className="self-error" role="alert">{formError}</div> : null}
             <div className="self-modal-actions"><button type="button" className="self-secondary" onClick={() => setModal(null)}>{t("cancel")}</button><button type="button" className="self-primary" onClick={() => void saveModal()}>{t("save")}</button></div>
           </section>
         </div>
@@ -696,8 +707,8 @@ export function SelfWorkspace({
   );
 }
 
-function TaskRow({ task, today, onToggle, onDelete, t }: {
-  task: TaskRecord; today: string; onToggle: () => void; onDelete: () => void; t: (key: CopyKey) => string;
+function TaskRow({ task, today, onToggle, onDelete, armed, onArm, ask, t }: {
+  task: TaskRecord; today: string; onToggle: () => void; onDelete: () => void; armed: boolean; onArm: () => void; ask: string; t: (key: CopyKey) => string;
 }) {
   const overdue = !task.completed && !!task.dueDate && task.dueDate < today;
   const prio = task.priority ?? "medium";
@@ -705,8 +716,44 @@ function TaskRow({ task, today, onToggle, onDelete, t }: {
     <div className={"self-task-row " + (task.completed ? "is-done" : "") + (overdue ? " is-overdue" : "")}>
       <button className={"self-check prio-" + prio} type="button" onClick={onToggle} aria-label={task.completed ? t("open") : t("done")}>{task.completed ? "✓" : ""}</button>
       <div className="self-task-copy"><b>{task.title}</b><small>{task.dueDate ? <span className="self-due">{localDate(task.dueDate)}</span> : null}{prio !== "medium" ? <span className={"self-prio " + prio}>{t(prio)}</span> : null}</small></div>
-      <button className="self-delete" type="button" onClick={onDelete} aria-label={t("delete")}>×</button>
+      <DeleteButton armed={armed} onArm={onArm} onDelete={onDelete} label={t("delete")} ask={ask} />
     </div>
+  );
+}
+
+/** × first, then «Удалить?» for 3 seconds — protects against a slip of the finger. */
+function DeleteButton({ armed, onArm, onDelete, label, ask }: { armed: boolean; onArm: () => void; onDelete: () => void; label: string; ask: string }) {
+  return armed
+    ? <button className="self-delete armed" type="button" onClick={onDelete}>{ask}</button>
+    : <button className="self-delete" type="button" onClick={onArm} aria-label={label}>×</button>;
+}
+
+/** Small glowing ring for 0–100%. */
+function Ring({ pct, tone }: { pct: number; tone: "gold" | "sky" | "acc" }) {
+  const c = 2 * Math.PI * 16;
+  const v = Math.max(0, Math.min(100, pct));
+  return (
+    <svg className={"self-ring " + tone} viewBox="0 0 40 40" aria-hidden="true">
+      <circle cx="20" cy="20" r="16" className="bg" />
+      {v > 0 ? <circle cx="20" cy="20" r="16" className="fg" strokeDasharray={`${(v / 100) * c} ${c}`} transform="rotate(-90 20 20)" /> : null}
+    </svg>
+  );
+}
+
+/** Glowing balance line for the month. Nothing is drawn until there are two days. */
+function Spark({ values, label }: { values: number[]; label: string }) {
+  if (values.length < 2) return null;
+  const w = 300, h = 54, pad = 4;
+  const min = Math.min(...values), max = Math.max(...values);
+  if (max === min) return null;
+  const span = max - min;
+  const pts = values.map((v, i) => [pad + (i / (values.length - 1)) * (w - pad * 2), pad + (1 - (v - min) / span) * (h - pad * 2)] as const);
+  const line = pts.map(([x, y], i) => (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join("");
+  return (
+    <svg className="self-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={label}>
+      <path className="area" d={`${line}L${pts[pts.length - 1]![0].toFixed(1)} ${h}L${pts[0]![0].toFixed(1)} ${h}Z`} />
+      <path className="line" d={line} vectorEffect="non-scaling-stroke" />
+    </svg>
   );
 }
 
