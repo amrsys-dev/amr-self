@@ -18,6 +18,7 @@ import { Route as UNickRouteImport } from './routes/u.$nick'
 import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
+import { Route as ApiAuthAmridRouteImport } from './routes/api/auth/amrid'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
 import { Route as ApiAuthRecoveryRouteImport } from './routes/api/auth/recovery'
 import { Route as ApiAuthSignupRouteImport } from './routes/api/auth/signup'
@@ -83,6 +84,11 @@ const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
 const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
   id: '/api/auth/logout',
   path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthAmridRoute = ApiAuthAmridRouteImport.update({
+  id: '/api/auth/amrid',
+  path: '/api/auth/amrid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthOtpRoute = ApiAuthOtpRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
@@ -233,6 +240,7 @@ export interface FileRoutesByTo {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
   '/api/auth/signup': typeof ApiAuthSignupRoute
@@ -300,6 +309,7 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
     | '/api/auth/signup'
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
+  ApiAuthAmridRoute: typeof ApiAuthAmridRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
   ApiAuthRecoveryRoute: typeof ApiAuthRecoveryRoute
   ApiAuthSignupRoute: typeof ApiAuthSignupRoute
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/logout'
       fullPath: '/api/auth/logout'
       preLoaderRoute: typeof ApiAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/amrid': {
+      id: '/api/auth/amrid'
+      path: '/api/auth/amrid'
+      fullPath: '/api/auth/amrid'
+      preLoaderRoute: typeof ApiAuthAmridRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/otp': {
@@ -645,6 +665,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
+  ApiAuthAmridRoute: ApiAuthAmridRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,
   ApiAuthRecoveryRoute: ApiAuthRecoveryRoute,
   ApiAuthSignupRoute: ApiAuthSignupRoute,

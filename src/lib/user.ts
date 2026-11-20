@@ -31,6 +31,8 @@ export type UserRecord = {
   };
   contacts: Contact[];
   theme: CardTheme;
+  /** Cover photo vertical position, 0–100 (50 = centre). */
+  coverY?: number;
   wrapPassword: WrappedKey;
   wrapRecovery: WrappedKey;
   /** One wrap per unused recovery code, same order as recoveryHashes. */

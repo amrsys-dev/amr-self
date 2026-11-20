@@ -35,3 +35,16 @@ test("адрес возврата и имя", () => {
   assert.equal(u.searchParams.get("state"), STATE);
   assert.equal(displayNameOf("Name.amr"), "Name");
 });
+
+test("проверка токена для SELF: подпись, приложение, state, срок", async () => {
+  const { verifyConnectToken } = await import("./connect.ts");
+  const secret = "k".repeat(40);
+  const tok = signConnectToken({ sub: "id-9", nick: "murad.amr", name: "murad", aud: "self", state: STATE }, secret, 1000, "j9");
+  assert.deepEqual(verifyConnectToken(tok, secret, "self", STATE, 1100), { sub: "id-9", nick: "murad.amr" });
+  assert.equal(verifyConnectToken(tok, secret, "bazar", STATE, 1100), null);
+  assert.equal(verifyConnectToken(tok, secret, "self", "otherState_123456", 1100), null);
+  assert.equal(verifyConnectToken(tok, secret, "self", STATE, 1000 + TOKEN_TTL_SEC + 1), null);
+  assert.equal(verifyConnectToken(tok, "x".repeat(40), "self", STATE, 1100), null);
+  assert.equal(verifyConnectToken(tok + "a", secret, "self", STATE, 1100), null);
+  assert.equal(verifyConnectToken(tok + ".x", secret, "self", STATE, 1100), null);
+});

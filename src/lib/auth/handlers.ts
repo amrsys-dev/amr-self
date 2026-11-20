@@ -1,6 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { z } from "zod";
-import { defaultContactVisible, isHttpsUrl, parseCardTheme, toPublicContacts, type Contact, type CardTheme } from "../card/visibility.ts";
+import { CARD_THEMES, clampCoverY, defaultContactVisible, isHttpsUrl, parseCardTheme, toPublicContacts, type Contact, type CardTheme } from "../card/visibility.ts";
 import { argon2idMaster, decodeAuthKey, type KdfParams, type WrappedKey } from "../crypto.ts";
 import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
@@ -362,7 +362,8 @@ function sessionPayload(user: UserRecord) {
   return {
     nick: user.nick,
     dataId: user.dataId ?? user.nick,
-    theme: user.theme,
+    theme: parseCardTheme(user.theme),
+    coverY: clampCoverY(user.coverY),
     appearance: user.appearance,
     contacts: user.contacts,
     wrapPassword: user.wrapPassword,
@@ -486,7 +487,7 @@ export async function handleSignup(request: Request): Promise<Response> {
     // External platforms are optional profile links, not account prerequisites.
     otp: {},
     contacts: [],
-    theme: "graphite",
+    theme: "own",
     wrapPassword: body.data.wrapPassword as WrappedKey,
     wrapRecovery: wrapList[0]!,
     wrapRecoveries: wrapList,
@@ -764,7 +765,8 @@ export async function handleMe(request: Request): Promise<Response> {
 }
 
 const patchSchema = z.object({
-  theme: z.enum(["graphite", "minimal", "orbit", "business", "malachite", "blogger", "gamer", "craft", "bakery", "soft", "gothic", "tactic"]).optional(),
+  theme: z.enum(CARD_THEMES).optional(),
+  coverY: z.number().min(0).max(100).optional(),
   appearance: z.enum(["dark", "light"]).optional(),
   displayName: z.string().max(80).regex(NO_CONTROL).optional(),
   contacts: z
@@ -788,6 +790,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (!body.success) return json({ error: "invalid" }, 400);
   if (body.data.theme) user.theme = body.data.theme as CardTheme;
   if (body.data.appearance) user.appearance = body.data.appearance;
+  if (body.data.coverY !== undefined) user.coverY = clampCoverY(body.data.coverY);
   if (body.data.displayName !== undefined) {
     const name = cleanDisplayName(body.data.displayName);
     if (name) user.displayName = name;
@@ -812,7 +815,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
     user.contacts = next;
   }
   await getStores().kv.put(nickKey(user.nick), JSON.stringify(user));
-  return json({ ok: true, contacts: user.contacts, theme: user.theme, appearance: user.appearance });
+  return json({ ok: true, contacts: user.contacts, theme: parseCardTheme(user.theme), appearance: user.appearance, coverY: clampCoverY(user.coverY) });
 }
 
 const addContactSchema = z.object({
@@ -1483,6 +1486,8 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
       nick: user.nick,
       displayName: user.displayName ?? "",
       theme,
+      coverY: clampCoverY(user.coverY),
+      appearance: user.appearance === "light" ? "light" : "dark",
       contacts,
       photo: photoUrl(user),
       avatar: avatarUrl(user),

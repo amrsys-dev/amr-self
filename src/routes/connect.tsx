@@ -8,15 +8,16 @@ export const Route = createFileRoute("/connect")({ component: ConnectPage });
 
 const APPS: Record<string, { title: string; home: string; returnUrl: string }> = {
   bazar: { title: "AMR Bazar", home: "https://bazar.amrsys.net/", returnUrl: "https://bazar.amrsys.net/api/auth/amrid" },
+  self: { title: "SELF", home: "https://self.amrsys.net/", returnUrl: "https://self.amrsys.net/api/auth/amrid" },
   safar: { title: "AMR Safar", home: "https://safar.amrsys.net/", returnUrl: "https://safar.amrsys.net/api/auth/amrid" },
 };
 
 const T: Record<string, Record<string, string>> = {
-  ru: { ask: "Разрешить {app} видеть ваш ник и имя?", only: "Телефон, почта и скрытые контакты не передаются.", allow: "Разрешить", cancel: "Отмена", login: "Сначала войдите в SELF или создайте AMR ID.", loginBtn: "Войти или создать AMR ID", bad: "Неверная ссылка входа.", fail: "Не получилось. Попробуйте ещё раз.", wait: "Проверяю…" },
-  en: { ask: "Allow {app} to see your nickname and name?", only: "Phone, email and hidden contacts are not shared.", allow: "Allow", cancel: "Cancel", login: "First sign in to SELF or create an AMR ID.", loginBtn: "Sign in or create AMR ID", bad: "Invalid sign-in link.", fail: "Something went wrong. Try again.", wait: "Checking…" },
-  ar: { ask: "هل تسمح لـ {app} برؤية اسم المستخدم والاسم؟", only: "لا تتم مشاركة الهاتف والبريد وجهات الاتصال المخفية.", allow: "سماح", cancel: "إلغاء", login: "سجّل الدخول إلى SELF أو أنشئ AMR ID أولًا.", loginBtn: "تسجيل الدخول أو إنشاء AMR ID", bad: "رابط الدخول غير صالح.", fail: "حدث خطأ. حاول مرة أخرى.", wait: "جارٍ التحقق…" },
-  uz: { ask: "{app} sizning nik va ismingizni ko‘rishiga ruxsat berasizmi?", only: "Telefon, pochta va yashirin kontaktlar berilmaydi.", allow: "Ruxsat berish", cancel: "Bekor qilish", login: "Avval SELF’ga kiring yoki AMR ID yarating.", loginBtn: "Kirish yoki AMR ID yaratish", bad: "Kirish havolasi noto‘g‘ri.", fail: "Xatolik. Qayta urinib ko‘ring.", wait: "Tekshirilmoqda…" },
-  tj: { ask: "Ба {app} иҷозат медиҳед, ки ник ва номи шуморо бинад?", only: "Телефон, почта ва контактҳои пинҳон дода намешаванд.", allow: "Иҷозат додан", cancel: "Бекор кардан", login: "Аввал ба SELF ворид шавед ё AMR ID созед.", loginBtn: "Ворид шудан ё сохтани AMR ID", bad: "Пайванди воридшавӣ нодуруст аст.", fail: "Хато шуд. Боз кӯшиш кунед.", wait: "Санҷиш…" },
+  ru: { ask: "Разрешить {app} видеть ваш ник и имя?", only: "Телефон, почта и скрытые контакты не передаются.", allow: "Разрешить", cancel: "Отмена", login: "Сначала войдите в AMR ID или создайте его.", loginBtn: "Войти или создать AMR ID", bad: "Неверная ссылка входа.", fail: "Не получилось. Попробуйте ещё раз.", wait: "Проверяю…" },
+  en: { ask: "Allow {app} to see your nickname and name?", only: "Phone, email and hidden contacts are not shared.", allow: "Allow", cancel: "Cancel", login: "First sign in to AMR ID or create one.", loginBtn: "Sign in or create AMR ID", bad: "Invalid sign-in link.", fail: "Something went wrong. Try again.", wait: "Checking…" },
+  ar: { ask: "هل تسمح لـ {app} برؤية اسم المستخدم والاسم؟", only: "لا تتم مشاركة الهاتف والبريد وجهات الاتصال المخفية.", allow: "سماح", cancel: "إلغاء", login: "سجّل الدخول إلى AMR ID أو أنشئه أولًا.", loginBtn: "تسجيل الدخول أو إنشاء AMR ID", bad: "رابط الدخول غير صالح.", fail: "حدث خطأ. حاول مرة أخرى.", wait: "جارٍ التحقق…" },
+  uz: { ask: "{app} sizning nik va ismingizni ko‘rishiga ruxsat berasizmi?", only: "Telefon, pochta va yashirin kontaktlar berilmaydi.", allow: "Ruxsat berish", cancel: "Bekor qilish", login: "Avval AMR ID’ga kiring yoki uni yarating.", loginBtn: "Kirish yoki AMR ID yaratish", bad: "Kirish havolasi noto‘g‘ri.", fail: "Xatolik. Qayta urinib ko‘ring.", wait: "Tekshirilmoqda…" },
+  tj: { ask: "Ба {app} иҷозат медиҳед, ки ник ва номи шуморо бинад?", only: "Телефон, почта ва контактҳои пинҳон дода намешаванд.", allow: "Иҷозат додан", cancel: "Бекор кардан", login: "Аввал ба AMR ID ворид шавед ё онро созед.", loginBtn: "Ворид шудан ё сохтани AMR ID", bad: "Пайванди воридшавӣ нодуруст аст.", fail: "Хато шуд. Боз кӯшиш кунед.", wait: "Санҷиш…" },
 };
 
 export const CONNECT_PENDING_KEY = "amr-connect-pending";

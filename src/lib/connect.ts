@@ -3,7 +3,7 @@
  * Токен: base64url(JSON) + "." + base64url(HMAC-SHA256(<base64url-JSON-строка>, секрет приложения)).
  * Возврат — только на адрес из белого списка (защита от открытого редиректа).
  */
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export type ConnectApp = { id: string; title: string; returnUrl: string; secretEnv: string };
 
@@ -13,6 +13,12 @@ export const CONNECT_APPS: Record<string, ConnectApp> = {
     title: "AMR Bazar",
     returnUrl: "https://bazar.amrsys.net/api/auth/amrid",
     secretEnv: "AMR_ID_BAZAR_SECRET",
+  },
+  self: {
+    id: "self",
+    title: "SELF",
+    returnUrl: "https://self.amrsys.net/api/auth/amrid",
+    secretEnv: "", // derived from the session secret (same server), see connectSecret
   },
   safar: {
     id: "safar",
@@ -49,6 +55,29 @@ export function signConnectToken(
   const body = b64u(JSON.stringify(payload));
   const sig = b64u(createHmac("sha256", secret).update(body).digest());
   return `${body}.${sig}`;
+}
+
+/** Checks a token made by signConnectToken: signature, audience, expiry and state. null = reject. */
+export function verifyConnectToken(
+  token: string,
+  secret: string,
+  aud: string,
+  state: string,
+  nowSec = Math.floor(Date.now() / 1000),
+): { sub: string; nick: string } | null {
+  const [body, sig, extra] = token.split(".");
+  if (!body || !sig || extra !== undefined || !STATE_RE.test(state)) return null;
+  const want = createHmac("sha256", secret).update(body).digest();
+  const got = Buffer.from(sig, "base64url");
+  if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
+  try {
+    const p = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as Record<string, unknown>;
+    if (p.aud !== aud || p.state !== state || typeof p.exp !== "number" || p.exp < nowSec) return null;
+    if (typeof p.sub !== "string" || typeof p.nick !== "string" || !p.nick) return null;
+    return { sub: p.sub, nick: p.nick };
+  } catch {
+    return null;
+  }
 }
 
 export function connectRedirect(req: ConnectRequest, token: string): string {

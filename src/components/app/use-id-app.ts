@@ -45,14 +45,36 @@ const LEGACY_THEME: Record<string, [UiTheme, UiMode | null]> = {
   "wood-metal": ["bronze", null], "cream-lavender": ["bronze", null], "rose-champagne": ["bronze", null],
 };
 const SHELL_SCREENS: readonly Screen[] = ["today", "finance", "work", "more", "profile"];
+
+/**
+ * AMR ID runs on its own address (id.amrsys.net): sign in / create an ID, then the profile and card.
+ * No SELF tabs there. Previews: open once with ?mode=id (kept for the browser tab).
+ */
+export function isIdHost(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.location.hostname.startsWith("id.")) return true;
+  try {
+    const q = new URLSearchParams(window.location.search).get("mode");
+    if (q === "id") sessionStorage.setItem("amr.mode", "id");
+    if (q === "self") sessionStorage.removeItem("amr.mode");
+    return sessionStorage.getItem("amr.mode") === "id";
+  } catch {
+    return false;
+  }
+}
+/** First screen after sign-in: the profile on AMR ID, Today in SELF. */
+export function homeScreen(): Screen {
+  return isIdHost() ? "profile" : "today";
+}
 /** The open tab survives a page reload (per browser tab, not across sessions). */
 const LAST_TAB_KEY = "self.lastTab";
 function lastTab(): Screen {
   try {
     const v = sessionStorage.getItem(LAST_TAB_KEY) as Screen | null;
+    if (isIdHost()) return "profile";
     return v && SHELL_SCREENS.includes(v) ? v : "today";
   } catch {
-    return "today";
+    return homeScreen();
   }
 }
 
@@ -61,6 +83,9 @@ export function useIdApp() {
   const [lang, setLang] = useState<Lang>(() => detectLang());
   const t = (k: MsgKey) => translate(lang, k);
   const [screen, setScreen] = useState<Screen>("welcome");
+  /** true on id.amrsys.net: AMR ID on its own, without the SELF tabs. */
+  const [idMode, setIdMode] = useState(false);
+  useEffect(() => setIdMode(isIdHost()), []);
   const [appearance, setAppearance] = useState<"dark" | "light">("dark");
   const [uiTheme, setUiTheme] = useState<UiTheme | null>(null);
   const [uiMode, setUiMode] = useState<UiMode>("system");
@@ -144,7 +169,7 @@ export function useIdApp() {
       setSystemDark(mq.matches);
       mq.addEventListener?.("change", (e) => setSystemDark(e.matches));
     }
-    if (localStorage.getItem(GUEST_FLAG) === "1") {
+    if (localStorage.getItem(GUEST_FLAG) === "1" && !isIdHost()) {
       setGuest(true);
       setScreen(lastTab());
     }
@@ -375,7 +400,7 @@ export function useIdApp() {
         setAppearance(r.data.appearance);
         setTestOtp(undefined);
         setKeyVersion((v) => v + 1);
-        setScreen("today");
+        setScreen(homeScreen());
         return;
       }
       loginWrapKey.current = pwd.wrapKey;
@@ -777,7 +802,7 @@ export function useIdApp() {
       setTestOtp(undefined);
       setOtpId("");
       setCode("");
-      setScreen("today");
+      setScreen(homeScreen());
     } catch {
       setErr(t("error"));
     } finally {
@@ -843,6 +868,7 @@ export function useIdApp() {
         return c.display || own?.value || contactDetail(c, t);
       },
       photo: session.photo,
+      coverY: session.coverY,
       avatar: session.avatar,
     });
     const file = new File([blob], `${session.nick.replace(/^@/, "")}.jpg`, { type: "image/jpeg" });
@@ -874,7 +900,9 @@ export function useIdApp() {
       if (res.status === 429) return t("photo_wait");
       if (!res.ok) return t("photo_failed");
       const data = (await res.json()) as { photo: string | null; avatar: string | null };
-      setSession((s) => (s ? { ...s, photo: data.photo, avatar: data.avatar } : s));
+      setSession((s) => (s ? { ...s, photo: data.photo, avatar: data.avatar, ...(slot === "cover" ? { theme: "own" as const, coverY: 50 } : {}) } : s));
+      // A new cover becomes the card background, centred; the owner can move it after.
+      if (slot === "cover") void api("/api/me", { method: "PATCH", body: JSON.stringify({ theme: "own", coverY: 50 }) });
       return "";
     } catch {
       // e.g. a HEIC photo the browser cannot open
@@ -900,7 +928,7 @@ export function useIdApp() {
     downloadBlob(blob, vcardFileName(session.nick));
   }
 
-  const skin = session && (screen === "card" || screen === "card-themes") ? `skin-${session.theme}` : "";
+  const skin = "";
   /** Device-level look: theme family + Light/Dark/System. The public card keeps its own theme. */
   const theme: UiTheme = uiTheme ?? "emerald";
   const mode: "light" | "dark" = uiMode === "system" ? (systemDark ? "dark" : "light") : uiMode;
@@ -991,6 +1019,7 @@ export function useIdApp() {
   }
 
   return {
+    idMode,
     lang,
     setLang,
     t,
@@ -1100,6 +1129,7 @@ export function useIdApp() {
     chooseTheme,
     chooseMode,
     uiMode,
+    systemDark,
     guest,
     setGuest,
     backupMsg,

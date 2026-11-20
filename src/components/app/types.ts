@@ -53,6 +53,7 @@ export type SessionState = {
   /** Name on the card in any language. */
   displayName?: string;
   theme: CardTheme;
+  coverY?: number;
   appearance: "dark" | "light";
   contacts: Contact[];
   googleLinked?: boolean;

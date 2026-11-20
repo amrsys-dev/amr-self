@@ -1,10 +1,10 @@
 import { Header } from "./ui.tsx";
 import { CardHero } from "../qr-card.tsx";
-import { CARD_THEMES } from "@/lib/card/visibility.ts";
+import { CARD_THEMES, cardBackground } from "@/lib/card/visibility.ts";
 import { type MsgKey } from "@/lib/i18n.ts";
 import type { App } from "./use-id-app.ts";
 
-/** Business card and its theme picker. */
+/** Business card and its background picker: own photo or a ready picture by occupation. */
 export function CardScreens({ app }: { app: App }) {
   const { lang, t, screen, setScreen, session, origin, cardUrl, publicContacts, saveProfile, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto } = app;
   return (
@@ -12,7 +12,7 @@ export function CardScreens({ app }: { app: App }) {
     {session && screen === "card" && (
       <>
         <Header title={t("card")} onBack={() => setScreen("profile")} />
-        <div className={`page skin-page skin-${session.theme}`}>
+        <div className="page">
           <CardHero
             nick={session.nick}
             name={session.displayName}
@@ -28,6 +28,9 @@ export function CardScreens({ app }: { app: App }) {
             avatar={session.avatar}
             onPickPhoto={(f, slot) => uploadPhoto(f, slot)}
             onRemovePhoto={(slot) => removePhoto(slot)}
+            coverY={session.coverY}
+            onMoveCover={(y) => void saveProfile({ coverY: y })}
+            onPickBackground={() => setScreen("card-themes")}
           />
         </div>
       </>
@@ -35,24 +38,29 @@ export function CardScreens({ app }: { app: App }) {
 
     {session && screen === "card-themes" && (
       <>
-        <Header title={t("card_theme")} onBack={() => setScreen("card")} />
+        <Header title={t("card_bg")} onBack={() => setScreen("profile")} />
         <div className="page">
-          <div className="thum-grid">
-            {CARD_THEMES.map((th) => (
-              <button
-                key={th}
-                type="button"
-                className={`thum ${session.theme === th ? "on" : ""}`}
-                onClick={() => void saveProfile({ theme: th })}
-              >
-                <div className={`thum-prev skin-mini-${th}`}>
-                  <b>{session.nick}</b>
-                </div>
-                <div className="thum-name">{t(`theme_${th}` as MsgKey)}</div>
-              </button>
-            ))}
+          <div className="bg-grid">
+            {CARD_THEMES.map((th) => {
+              const pic = th === "own" ? session.photo : cardBackground(th);
+              return (
+                <button
+                  key={th}
+                  type="button"
+                  className={`bg-pick${session.theme === th ? " on" : ""}`}
+                  aria-pressed={session.theme === th}
+                  onClick={() => {
+                    void saveProfile({ theme: th });
+                    setScreen("profile");
+                  }}
+                >
+                  <span className="bg-prev">{pic ? <img src={pic} alt="" loading="lazy" style={th === "own" ? { objectPosition: `center ${session.coverY ?? 50}%` } : undefined} /> : <i aria-hidden="true">＋</i>}</span>
+                  <span className="bg-name">{t(`bg_${th}` as MsgKey)}</span>
+                </button>
+              );
+            })}
           </div>
-          <p className="hint" style={{ marginTop: 16, textAlign: "center" }}>Выбери стиль. Потом добавь контакты — WhatsApp, Telegram, Instagram и другие.</p>
+          <p className="hint" style={{ marginTop: 16, textAlign: "center" }}>{t("bg_own_hint")}</p>
         </div>
       </>
     )}
