@@ -843,6 +843,7 @@ export function useIdApp() {
         return c.display || own?.value || contactDetail(c, t);
       },
       photo: session.photo,
+      avatar: session.avatar,
     });
     const file = new File([blob], `${session.nick.replace(/^@/, "")}.jpg`, { type: "image/jpeg" });
     if (navigator.canShare?.({ files: [file] })) {
@@ -852,22 +853,45 @@ export function useIdApp() {
     downloadBlob(blob, file.name);
   }
 
-  /** Cover photo for the card: shrunk on the phone to ~1000 px WebP (JPEG fallback) before upload. */
-  async function uploadPhoto(file: File) {
-    if (!session) return;
-    // WebP for photos (smaller); browsers that cannot encode it (older Safari) fall back to JPEG.
-    let blob = await shrinkImage(file, 1080, 0.8, "image/webp");
-    if (blob.type !== "image/webp") blob = await shrinkImage(file, 1080, 0.8, "image/jpeg");
-    const res = await fetch("/api/me/photo", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": blob.type }, body: blob });
-    if (!res.ok) return;
-    const data = (await res.json()) as { photo: string | null };
-    setSession({ ...session, photo: data.photo });
+  /**
+   * Card pictures, like WhatsApp Business: the cover (background of the card and of the
+   * shared picture) and the small round face photo. Shrunk on the phone before upload.
+   * Returns "" on success or the message to show.
+   */
+  async function uploadPhoto(file: File, slot: "cover" | "avatar" = "cover"): Promise<string> {
+    if (!session) return "";
+    const max = slot === "avatar" ? 512 : 1080;
+    try {
+      let blob: Blob | null = null;
+      for (const q of [0.82, 0.65, 0.5]) {
+        // WebP is smaller; browsers that cannot encode it (older Safari) fall back to JPEG.
+        blob = await shrinkImage(file, max, q, "image/webp");
+        if (blob.type !== "image/webp") blob = await shrinkImage(file, max, q, "image/jpeg");
+        if (blob.size <= 390 * 1024) break;
+      }
+      if (!blob) return t("photo_failed");
+      const res = await fetch(`/api/me/photo?slot=${slot}`, { method: "PUT", credentials: "same-origin", headers: { "Content-Type": blob.type }, body: blob });
+      if (res.status === 429) return t("photo_wait");
+      if (!res.ok) return t("photo_failed");
+      const data = (await res.json()) as { photo: string | null; avatar: string | null };
+      setSession((s) => (s ? { ...s, photo: data.photo, avatar: data.avatar } : s));
+      return "";
+    } catch {
+      // e.g. a HEIC photo the browser cannot open
+      return t("photo_failed");
+    }
   }
 
-  async function removePhoto() {
-    if (!session) return;
-    await api("/api/me/photo", { method: "DELETE" });
-    setSession({ ...session, photo: null });
+  async function removePhoto(slot: "cover" | "avatar" = "cover"): Promise<string> {
+    if (!session) return "";
+    try {
+      const r = await api<{ photo: string | null; avatar: string | null }>(`/api/me/photo?slot=${slot}`, { method: "DELETE" });
+      if (!r.ok) return t(r.status === 429 ? "photo_wait" : "photo_failed");
+      setSession((s) => (s ? { ...s, photo: r.data.photo, avatar: r.data.avatar } : s));
+      return "";
+    } catch {
+      return t("photo_failed");
+    }
   }
 
   function saveVcard() {

@@ -42,7 +42,10 @@ export type ShareImageInput = {
   name: (c: PublicContact) => string;
   /** The username, number or address itself, e.g. "@amr_userb" or "+966 57…". */
   value: (c: PublicContact) => string;
+  /** Cover: drawn as the background of the whole picture. */
   photo?: string | null;
+  /** Round face photo next to the name. */
+  avatar?: string | null;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
@@ -71,11 +74,25 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   const ctx = canvas.getContext("2d")!;
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, W, H);
+  // Cover photo fills the background, darkened so text and contacts stay readable.
+  const cover = input.photo ? await loadImage(input.photo) : null;
+  if (cover) {
+    const k = Math.max(W / cover.naturalWidth, H / cover.naturalHeight);
+    ctx.drawImage(cover, (W - cover.naturalWidth * k) / 2, (H - cover.naturalHeight * k) / 2, cover.naturalWidth * k, cover.naturalHeight * k);
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "rgba(0,0,0,.35)");
+    g.addColorStop(0.35, "rgba(0,0,0,.6)");
+    g.addColorStop(1, "rgba(0,0,0,.72)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  const textC = cover ? "#FFFFFF" : p.text;
+  const mutedC = cover ? "rgba(255,255,255,.78)" : p.muted;
 
   // Header: round photo or first letter, nick, "AMR ID"
   const ax = PAD + 38;
   const ay = PAD + 38;
-  const photo = input.photo ? await loadImage(input.photo) : null;
+  const photo = input.avatar ? await loadImage(input.avatar) : null;
   ctx.save();
   ctx.beginPath();
   ctx.arc(ax, ay, 38, 0, Math.PI * 2);
@@ -98,7 +115,7 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.restore();
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillStyle = p.text;
+  ctx.fillStyle = textC;
   ctx.font = `800 34px ${FONT}`;
   const title = input.displayName?.trim() || input.nick;
   ctx.direction = /[\u0590-\u08FF]/.test(title) ? "rtl" : "ltr";
@@ -107,7 +124,7 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.fillText(fit(ctx, title, W - PAD * 2 - 96), tx0, PAD + 8);
   ctx.direction = "ltr";
   ctx.textAlign = "left";
-  ctx.fillStyle = p.muted;
+  ctx.fillStyle = mutedC;
   ctx.font = `600 17px ${FONT}`;
   ctx.fillText(input.displayName?.trim() ? `${input.nick} · AMR ID` : "AMR ID", PAD + 96, PAD + 50);
 
@@ -190,7 +207,7 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
     y += ROW + GAP;
   }
 
-  ctx.fillStyle = p.muted;
+  ctx.fillStyle = mutedC;
   ctx.font = `500 16px ${FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "top";

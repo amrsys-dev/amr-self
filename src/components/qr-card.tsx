@@ -7,6 +7,8 @@ import { useState } from "react";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { ServiceIcon, SiteIcon, serviceName } from "./contact-icons.tsx";
 
+type PhotoSlot = "cover" | "avatar";
+
 export function QrMatrix({ value, label }: { value: string; label?: string }) {
   const { data, size } = encode(value, { ecc: "M" });
   const cells: string[] = [];
@@ -55,6 +57,7 @@ export function CardHero({
   onShareImage,
   onVcard,
   photo,
+  avatar,
   name,
   onPickPhoto,
   onRemovePhoto,
@@ -69,53 +72,75 @@ export function CardHero({
   onShareLink?: () => void;
   onShareImage?: () => void;
   onVcard?: () => void;
+  /** Cover: background of the card header, the QR panel and the shared picture. */
   photo?: string | null;
+  /** Round face photo, like WhatsApp Business. */
+  avatar?: string | null;
   /** Name in any language, shown large above the nick. */
   name?: string;
-  onPickPhoto?: (file: File) => void;
-  onRemovePhoto?: () => void;
+  onPickPhoto?: (file: File, slot: PhotoSlot) => Promise<string> | void;
+  onRemovePhoto?: (slot: PhotoSlot) => Promise<string> | void;
 }) {
   const t = (k: MsgKey) => tr(lang, k);
   // One panel at a time: share sheet or QR. The phone's Back gesture closes it.
-  const [panel, setPanel] = useState<"" | "share" | "qr">("");
+  const [panel, setPanel] = useState<"" | "share" | "qr" | "cover" | "avatar">("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const edit = panel === "cover" || panel === "avatar" ? panel : null;
+  async function pick(file: File, slot: PhotoSlot) {
+    setPanel("");
+    setBusy(true);
+    setMsg("");
+    const m = (await onPickPhoto?.(file, slot)) ?? "";
+    setBusy(false);
+    setMsg(m);
+  }
+  async function remove(slot: PhotoSlot) {
+    setPanel("");
+    setMsg((await onRemovePhoto?.(slot)) ?? "");
+  }
   const shareOpen = panel === "share";
   const qr = panel === "qr";
-  const togglePanel = (next: "share" | "qr") => setPanel((p) => (p === next ? "" : next));
+  const togglePanel = (next: "share" | "qr" | "cover" | "avatar") => setPanel((p) => (p === next ? "" : next));
   const closePanel = () => setPanel("");
   useBackLayer(panel !== "", closePanel);
   const letter = ((name || nick).replace(/^@/, "").trim()[0] ?? "A").toUpperCase();
   return (
     <div className="idcard">
-      {photo ? (
-        <div className="idcover">
-          <img src={photo} alt="" />
-          <div className="idcover-title">
-            {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
-            {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
-            <div className="idcard-sub">AMR ID</div>
-          </div>
+      <div className="idhead">
+        <div className={`idbg${photo ? " has" : ""}`}>
+          {photo ? <img src={photo} alt="" /> : null}
+          {onPickPhoto ? (
+            <button type="button" className="idpen idpen-bg" aria-label={t("cover_photo")} onClick={() => togglePanel("cover")}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg></button>
+          ) : null}
         </div>
-      ) : (
+        <div className="idava">
+          {avatar ? <img src={avatar} alt="" /> : <span aria-hidden="true">{letter}</span>}
+          {onPickPhoto ? (
+            <button type="button" className="idpen idpen-ava" aria-label={t("face_photo")} onClick={() => togglePanel("avatar")}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg></button>
+          ) : null}
+        </div>
+        {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
+        {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
+        <div className="idcard-sub">AMR ID</div>
+        {busy ? <div className="idmsg">{t("photo_busy")}</div> : msg ? <div className="idmsg err" role="alert">{msg}</div> : null}
+      </div>
+      {edit ? (
         <>
-          <div className="idcard-ava-wrap">
-            <div className="idcard-ava" aria-hidden="true">{letter}</div>
-            {onPickPhoto ? (
-              <label className="idcover-pen" aria-label={t("add_photo")}>
-                <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg>
-                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
-              </label>
+          <div className="dim" onClick={closePanel} />
+          <div className="sheet idshare-sheet" role="menu">
+            <div className="handle" />
+            <b className="sheet-title">{t(edit === "cover" ? "cover_photo" : "face_photo")}</b>
+            <label role="menuitem" className="sheet-item">
+              {t("pick_photo")}
+              <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void pick(f, edit); }} />
+            </label>
+            {(edit === "cover" ? photo : avatar) ? (
+              <button type="button" role="menuitem" className="danger" onClick={() => void remove(edit)}>{t("remove_photo")}</button>
             ) : null}
+            <button type="button" role="menuitem" onClick={closePanel}>{t("cancel")}</button>
           </div>
-          {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
-          {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
-          <div className="idcard-sub">AMR ID</div>
         </>
-      )}
-      {onPickPhoto ? (
-        <label className="idcover-pen" aria-label={photo ? t("change_photo") : t("add_photo")}>
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg>
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onPickPhoto(f); e.target.value = ""; }} />
-        </label>
       ) : null}
       <div className="idcard-links">
         {[...contacts].sort((a, b) => Number(b.kind === "phone") - Number(a.kind === "phone")).map((c) => {
@@ -170,7 +195,16 @@ export function CardHero({
           ) : null}
         </>
       )}
-      {qr ? <div className="idqr"><QrMatrix value={url} label={nick} /></div> : null}
+      {qr ? (
+        <div className={`idqr idqr-card${photo ? " has" : ""}`}>
+          {photo ? <img className="idqr-bg" src={photo} alt="" /> : null}
+          <div className="idqr-who">
+            <span className="idqr-ava">{avatar ? <img src={avatar} alt="" /> : letter}</span>
+            <b dir="auto">{name || nick}</b>
+          </div>
+          <div className="idqr-code"><QrMatrix value={url} label={nick} /></div>
+        </div>
+      ) : null}
       <div className="idcard-foot">AMR ID</div>
     </div>
   );

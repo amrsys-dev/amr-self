@@ -8,6 +8,7 @@ export type CardPayload = {
   theme: CardTheme;
   contacts: PublicContact[];
   photo?: string | null;
+  avatar?: string | null;
   url: string;
 };
 

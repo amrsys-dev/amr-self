@@ -4,7 +4,7 @@ import { handlePhotoGet } from "@/lib/auth/photo.ts";
 export const Route = createFileRoute("/api/card-photo/$nick")({
   server: {
     handlers: {
-      GET: ({ params }) => handlePhotoGet(params.nick),
+      GET: ({ params, request }) => handlePhotoGet(params.nick, new URL(request.url).searchParams.get("slot")),
     },
   },
 });

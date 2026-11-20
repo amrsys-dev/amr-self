@@ -25,8 +25,9 @@ export function CardScreens({ app }: { app: App }) {
             onShareImage={() => void shareCardImage()}
             onVcard={saveVcard}
             photo={session.photo}
-            onPickPhoto={(f) => void uploadPhoto(f)}
-            onRemovePhoto={() => void removePhoto()}
+            avatar={session.avatar}
+            onPickPhoto={(f, slot) => uploadPhoto(f, slot)}
+            onRemovePhoto={(slot) => removePhoto(slot)}
           />
         </div>
       </>

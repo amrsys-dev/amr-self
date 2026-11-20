@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { PHOTO_CACHE_CONTROL, photoType, photoUrl } from "./photo.ts";
+import { PHOTO_CACHE_CONTROL, avatarUrl, photoSlot, photoType, photoUrl } from "./photo.ts";
 
 describe("card photo", () => {
   it("accepts only JPEG and WebP bytes", () => {
@@ -16,5 +16,12 @@ describe("card photo", () => {
   it("uses a short cache so a deleted photo disappears within minutes", () => {
     assert.equal(PHOTO_CACHE_CONTROL, "public, max-age=60, s-maxage=60, stale-while-revalidate=300");
     assert.doesNotMatch(PHOTO_CACHE_CONTROL, /immutable|86400/);
+  });
+  it("avatar has its own URL and slot", () => {
+    assert.equal(avatarUrl({ nick: "name.amr", avatar: { key: "a", v: 3 } }), "/api/card-photo/name.amr?slot=avatar&v=3");
+    assert.equal(avatarUrl({ nick: "name.amr" }), null);
+    assert.equal(photoSlot("avatar"), "avatar");
+    assert.equal(photoSlot("x"), "cover");
+    assert.equal(photoSlot(null), "cover");
   });
 });
