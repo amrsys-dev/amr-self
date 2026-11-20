@@ -2,6 +2,7 @@
 import type { Lang } from "@/lib/i18n.ts";
 
 const ru = {
+  category: "Категория",
   needAmount: "Введите сумму больше нуля", confirmDel: "Удалить?", loadFail: "Не удалось прочитать данные. Записи не удалены — откройте приложение ещё раз.", reLogin: "Войдите заново, чтобы открыть данные.", monthChart: "Баланс за месяц",
   customize: "Настроить экран", blockRecent: "Последние записи",
   add: "Добавить",
@@ -29,6 +30,7 @@ const ru = {
 type Copy = { [K in keyof typeof ru]: string };
 
 const en: Copy = {
+  category: "Category",
   needAmount: "Enter an amount above zero", confirmDel: "Delete?", loadFail: "Could not read your data. Nothing was deleted — open the app again.", reLogin: "Sign in again to open your data.", monthChart: "Balance this month",
   customize: "Edit screen", blockRecent: "Recent records",
   add: "Add",
@@ -54,6 +56,7 @@ const en: Copy = {
 };
 
 const ar: Copy = {
+  category: "الفئة",
   needAmount: "أدخل مبلغًا أكبر من صفر", confirmDel: "حذف؟", loadFail: "تعذّرت قراءة البيانات. لم يُحذف شيء — افتح التطبيق مرة أخرى.", reLogin: "سجّل الدخول مرة أخرى لفتح بياناتك.", monthChart: "الرصيد هذا الشهر",
   customize: "تخصيص الشاشة", blockRecent: "آخر السجلات",
   add: "إضافة",
@@ -79,6 +82,7 @@ const ar: Copy = {
 };
 
 const uz: Copy = {
+  category: "Toifa",
   needAmount: "Noldan katta summa kiriting", confirmDel: "O‘chirilsinmi?", loadFail: "Ma’lumotlarni o‘qib bo‘lmadi. Hech narsa o‘chirilmadi — ilovani qayta oching.", reLogin: "Ma’lumotlarni ochish uchun qayta kiring.", monthChart: "Oy davomida balans",
   customize: "Ekranni sozlash", blockRecent: "So‘nggi yozuvlar",
   add: "Qo‘shish",
@@ -104,6 +108,7 @@ const uz: Copy = {
 };
 
 const tj: Copy = {
+  category: "Категория",
   needAmount: "Маблағи аз сифр зиёдро ворид кунед", confirmDel: "Нест кунем?", loadFail: "Маълумот хонда нашуд. Ҳеҷ чиз нест нашуд — барномаро аз нав кушоед.", reLogin: "Барои кушодани маълумот аз нав ворид шавед.", monthChart: "Тавозун дар ин моҳ",
   customize: "Танзими экран", blockRecent: "Сабтҳои охирин",
   add: "Илова",

@@ -627,15 +627,13 @@ export function SelfWorkspace({
           <div className="svc-grid-lg">
             {modules.map((m) => (
               <button key={m.key} type="button" className="svc-card-lg" onClick={() => setSubPage(m.key)}>
-                <span className={`svc-card-ico ${m.key}`}><CategoryIcon c={m.icon} size={28} /></span>
+                <img className="svc-card-img" src={`/apps/${m.key === "health" ? "fitness" : "car"}.webp`} alt="" width="56" height="56" />
                 <b>{m.title}</b>
                 <small>{m.subtitle}</small>
               </button>
             ))}
             <a className="svc-card-lg" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
-              <span className="svc-card-ico bazar">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></svg>
-              </span>
+              <img className="svc-card-img" src="/apps/bazar.webp" alt="" width="56" height="56" />
               <b>AMR Bazar</b>
               <small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small>
             </a>
@@ -737,7 +735,7 @@ function Ring({ pct, tone }: { pct: number; tone: "gold" | "sky" | "acc" }) {
   return (
     <svg className={"self-ring " + tone} viewBox="0 0 40 40" aria-hidden="true">
       <circle cx="20" cy="20" r="16" className="bg" />
-      <circle cx="20" cy="20" r="16" className="fg" strokeDasharray={`${(v / 100) * c} ${c}`} transform="rotate(-90 20 20)" />
+      {v > 0 ? <circle cx="20" cy="20" r="16" className="fg" strokeDasharray={`${(v / 100) * c} ${c}`} transform="rotate(-90 20 20)" /> : null}
     </svg>
   );
 }
@@ -747,7 +745,8 @@ function Spark({ values, label }: { values: number[]; label: string }) {
   if (values.length < 2) return null;
   const w = 300, h = 54, pad = 4;
   const min = Math.min(...values), max = Math.max(...values);
-  const span = max - min || 1;
+  if (max === min) return null;
+  const span = max - min;
   const pts = values.map((v, i) => [pad + (i / (values.length - 1)) * (w - pad * 2), pad + (1 - (v - min) / span) * (h - pad * 2)] as const);
   const line = pts.map(([x, y], i) => (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join("");
   return (

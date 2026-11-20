@@ -857,3 +857,4 @@ p{margin:0;line-height:1.4}
 .app .self-spark .area{fill:color-mix(in srgb,var(--acc) 16%,transparent);stroke:none}
 .app .self-delete.armed{width:auto;padding:0 10px;font-size:13px;font-weight:600;border-radius:10px;color:#fff;background:#D9534F}
 @media (prefers-reduced-motion:reduce){.app .self-ring .fg{transition:none}}
+.app .svc-card-img{width:56px;height:56px;border-radius:15px;display:block;box-shadow:0 8px 18px -8px rgba(0,0,0,.6)}
