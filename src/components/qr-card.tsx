@@ -1,9 +1,8 @@
 import { encode } from "uqr";
-import type { CardTheme, PublicContact } from "@/lib/card/visibility.ts";
+import { cardBackground, type CardTheme, type PublicContact } from "@/lib/card/visibility.ts";
 import type { Lang, MsgKey } from "@/lib/i18n.ts";
 import { translate as tr } from "@/lib/i18n.ts";
-import { Ornament } from "./ornament.tsx";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { ServiceIcon, SiteIcon, serviceName } from "./contact-icons.tsx";
 
@@ -21,18 +20,6 @@ export function QrMatrix({ value, label }: { value: string; label?: string }) {
     <svg className="qr" viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg" aria-label={label ?? "QR"}>
       <path d={cells.join(" ")} fill="currentColor" />
     </svg>
-  );
-}
-
-export function QrStage({ url, theme, label }: { url: string; theme: CardTheme; label?: string }) {
-  return (
-    <div className="qrwrap">
-      {theme !== "minimal" ? <div className="glow" /> : null}
-      <Ornament theme={theme} />
-      <div className="qrpad">
-        <QrMatrix value={url} label={label} />
-      </div>
-    </div>
   );
 }
 
@@ -61,6 +48,9 @@ export function CardHero({
   name,
   onPickPhoto,
   onRemovePhoto,
+  coverY = 50,
+  onMoveCover,
+  onPickBackground,
 }: {
   nick: string;
   url: string;
@@ -80,6 +70,12 @@ export function CardHero({
   name?: string;
   onPickPhoto?: (file: File, slot: PhotoSlot) => Promise<string> | void;
   onRemovePhoto?: (slot: PhotoSlot) => Promise<string> | void;
+  /** Cover photo position, 0 (top) … 100 (bottom). */
+  coverY?: number;
+  /** Owner fixed a new cover position. */
+  onMoveCover?: (y: number) => void;
+  /** Owner wants to choose a ready background. */
+  onPickBackground?: () => void;
 }) {
   const t = (k: MsgKey) => tr(lang, k);
   // One panel at a time: share sheet or QR. The phone's Back gesture closes it.
@@ -105,12 +101,53 @@ export function CardHero({
   const closePanel = () => setPanel("");
   useBackLayer(panel !== "", closePanel);
   const letter = ((name || nick).replace(/^@/, "").trim()[0] ?? "A").toUpperCase();
+  // Background: a ready picture by occupation, or the owner's own cover photo.
+  const preset = cardBackground(theme);
+  const bg = preset ?? photo ?? null;
+  const own = !preset && Boolean(photo);
+  const [moving, setMoving] = useState(false);
+  const [y, setY] = useState(coverY);
+  const drag = useRef<{ start: number; y0: number; span: number } | null>(null);
+  const shownY = moving ? y : coverY;
+  function startMove() {
+    setPanel("");
+    setY(coverY);
+    setMoving(true);
+  }
+  function onDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (!moving) return;
+    const box = e.currentTarget.getBoundingClientRect();
+    const img = e.currentTarget.querySelector("img");
+    const rh = img && img.naturalWidth ? (box.width * img.naturalHeight) / img.naturalWidth : box.height;
+    drag.current = { start: e.clientY, y0: y, span: Math.max(1, rh - box.height) };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onMove(e: React.PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    if (!moving || !d) return;
+    setY(Math.min(100, Math.max(0, Math.round(d.y0 - ((e.clientY - d.start) / d.span) * 100))));
+  }
   return (
     <div className="idcard">
       <div className="idhead">
-        <div className={`idbg${photo ? " has" : ""}`}>
-          {photo ? <img src={photo} alt="" /> : null}
-          {onPickPhoto ? (
+        <div
+          className={`idbg${bg ? " has" : ""}${moving ? " moving" : ""}`}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={() => { drag.current = null; }}
+          onPointerCancel={() => { drag.current = null; }}
+        >
+          {bg ? <img src={bg} alt="" draggable={false} style={own ? { objectPosition: `center ${shownY}%` } : undefined} /> : null}
+          {moving ? (
+            <div className="idmove">
+              <span>{t("bg_move_hint")}</span>
+              <div>
+                <button type="button" onClick={() => setMoving(false)}>{t("cancel")}</button>
+                <button type="button" className="on" onClick={() => { setMoving(false); onMoveCover?.(y); }}>{t("bg_fix")}</button>
+              </div>
+            </div>
+          ) : null}
+          {onPickPhoto && !moving ? (
             <button type="button" className="idpen idpen-bg" aria-label={t("cover_photo")} onClick={() => togglePanel("cover")}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg></button>
           ) : null}
         </div>
@@ -131,6 +168,12 @@ export function CardHero({
           <div className="sheet idshare-sheet" role="menu">
             <div className="handle" />
             <b className="sheet-title">{t(edit === "cover" ? "cover_photo" : "face_photo")}</b>
+            {edit === "cover" && own && onMoveCover ? (
+              <button type="button" role="menuitem" onClick={startMove}>{t("bg_move")}</button>
+            ) : null}
+            {edit === "cover" && onPickBackground ? (
+              <button type="button" role="menuitem" onClick={() => { closePanel(); onPickBackground(); }}>{t("card_bg")}</button>
+            ) : null}
             <label role="menuitem" className="sheet-item">
               {t("pick_photo")}
               <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void pick(f, edit); }} />
@@ -196,8 +239,8 @@ export function CardHero({
         </>
       )}
       {qr ? (
-        <div className={`idqr idqr-card${photo ? " has" : ""}`}>
-          {photo ? <img className="idqr-bg" src={photo} alt="" /> : null}
+        <div className={`idqr idqr-card${bg ? " has" : ""}`}>
+          {bg ? <img className="idqr-bg" src={bg} alt="" style={own ? { objectPosition: `center ${coverY}%` } : undefined} /> : null}
           <div className="idqr-who">
             <span className="idqr-ava">{avatar ? <img src={avatar} alt="" /> : letter}</span>
             <b dir="auto">{name || nick}</b>

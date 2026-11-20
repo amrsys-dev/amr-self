@@ -189,6 +189,19 @@ function AppearanceRows({ theme, chooseTheme, mode, chooseMode, t }: { theme: Ui
   );
 }
 
+/** Dark theme on/off (until the owner picks, the phone's setting is followed). */
+function DarkRow({ mode, systemDark, chooseMode, t }: { mode: UiMode; systemDark: boolean; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
+  const dark = mode === "system" ? systemDark : mode === "dark";
+  return (
+    <div className="set-row">
+      <span className="set-label">{t("dark_theme")}</span>
+      <button className={`toggle ${dark ? "on" : ""}`} type="button" role="switch" aria-checked={dark} aria-label={t("dark_theme")} onClick={() => chooseMode(dark ? "light" : "dark")}>
+        <i />
+      </button>
+    </div>
+  );
+}
+
 function LangRow({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
   const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
   return (
@@ -222,7 +235,8 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 export function ShellScreens({ app }: { app: App }) {
   const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto, saveProfile } = app;
   // Back from any tab other than Home returns to Home (the usual app pattern).
-  const onTab = inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
+  const idMode = app.idMode;
+  const onTab = !idMode && inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
   useBackLayer(onTab, () => setScreen("today"));
   const [editing, setEditing] = useState<Contact | null>(null);
   return (
@@ -247,7 +261,7 @@ export function ShellScreens({ app }: { app: App }) {
       <>
         {/* Tabs show only the product mark; each screen carries its own large title. */}
         <Header />
-        <div className="page withnav">
+        <div className={idMode ? "page" : "page withnav"}>
           {(screen === "today" || screen === "finance" || screen === "work" || screen === "more") && !session && guest && (
             <SelfWorkspace
               section={screen}
@@ -284,7 +298,7 @@ export function ShellScreens({ app }: { app: App }) {
           )}
           {screen === "profile" && session && (
             <>
-              <div className={`skin-page skin-${session.theme}`} style={{ margin: "0 -20px 16px", padding: "8px 0" }}>
+              <div style={{ margin: "0 0 16px" }}>
                 <CardHero
                   nick={session.nick}
                   name={session.displayName}
@@ -300,6 +314,9 @@ export function ShellScreens({ app }: { app: App }) {
             avatar={session.avatar}
                   onPickPhoto={(f, slot) => uploadPhoto(f, slot)}
                   onRemovePhoto={(slot) => removePhoto(slot)}
+                  coverY={session.coverY}
+                  onMoveCover={(y) => void saveProfile({ coverY: y })}
+                  onPickBackground={() => setScreen("card-themes")}
                 />
               </div>
               <DisplayNameField value={session.displayName ?? ""} lang={lang} onSave={(v) => void saveProfile({ displayName: v })} />
@@ -322,9 +339,10 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
-                <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
+                <LinkRow label={t("card_bg")} onClick={() => setScreen("card-themes")} />
+                <DarkRow mode={uiMode} systemDark={app.systemDark} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
-                <CurrencyRow t={t} />
+                {idMode ? null : <CurrencyRow t={t} />}
 {session.nickChanged ? null : (
                 <LinkRow
                   label={t("change_nick")}
@@ -355,14 +373,27 @@ export function ShellScreens({ app }: { app: App }) {
               </div>
             </>
           )}
+          {screen === "profile" && session && idMode && (
+            <div className="group">
+              <div className="lab">{t("id_apps")}</div>
+              <div className="card pad0 set-list">
+                {([["SELF", "https://self.amrsys.net/", "self"], ["AMR Bazar", "https://bazar.amrsys.net/", "bazar"], ["AMR Safar", "https://safar.amrsys.net/", "safar"]] as const).map(([name, href, ic]) => (
+                  <a key={ic} className="set-row" href={href}>
+                    <img className="set-appic" src={`/apps/${ic}.webp`} alt="" width={32} height={32} />
+                    <span className="set-label">{name}</span>
+                    <span className="set-chev" aria-hidden="true">›</span>
+                  </a>
+                ))}
+              </div>
+              <p className="hint">{t("id_apps_hint")}</p>
+            </div>
+          )}
           {screen === "profile" && !session && (
             <>
               <div className="card hero" style={{ textAlign: "center" }}>
                 <h2>{t("guest_title")}</h2>
                 <div className="btns">
-                  <button className="btn p" type="button" onClick={() => { setNick(""); setNickStatus(""); setScreen("signup-nick"); }}>
-                    {t("create_id")}
-                  </button>
+                  <a className="btn p" href="/api/auth/amrid">{t("self_login_id")}</a>
                 </div>
                 {meta?.googleLogin ? (
                   <div className="btns">
@@ -371,21 +402,15 @@ export function ShellScreens({ app }: { app: App }) {
                     </button>
                   </div>
                 ) : null}
-                <div className="btns">
-                  <button className="btn g" type="button" onClick={() => setScreen("login")}>
-                    {t("have_id")}
-                  </button>
-                </div>
               </div>
               <div className="card pad0 set-list">
-                <LinkRow label={t("card_theme")} onClick={() => setScreen("card-themes")} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 <CurrencyRow t={t} />
                 <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
               </div>
             </>
           )}
-          {screen === "profile" && (
+          {screen === "profile" && !idMode && (
             <div className="group">
               <div className="lab">{t("backup")}</div>
               <div className="card pad0 set-list">
@@ -430,7 +455,7 @@ export function ShellScreens({ app }: { app: App }) {
           )}
           {screen === "profile" && session && meta?.testMode ? <p className="tiny">{t("test_banner")}</p> : null}
         </div>
-        <nav className="nav" aria-label={t("sections")}>
+        {idMode ? null : <nav className="nav" aria-label={t("sections")}>
           {([
             ["today", t("nav_home")],
             ["finance", t("finance")],
@@ -443,7 +468,7 @@ export function ShellScreens({ app }: { app: App }) {
               <span>{label}</span>
             </button>
           ))}
-        </nav>
+        </nav>}
       </>
     )}
 

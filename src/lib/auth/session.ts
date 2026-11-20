@@ -9,7 +9,7 @@ const COOKIE = "amrid_session";
 const TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** How this session was signed in; deleting the account asks again with the same method. Old sessions: "password". */
-export type SignInMethod = "password" | "telegram" | "google";
+export type SignInMethod = "password" | "telegram" | "google" | "amrid";
 export type Session = { id: string; nick: string; exp: number; method?: SignInMethod; authAt?: number };
 
 function sign(id: string): string {

@@ -59,9 +59,9 @@ function PublicCardPage() {
     downloadBlob(blob, vcardFileName(data.nick));
   };
   return (
-    <div className={`app dark skin-${theme} pubcard`}>
-      <div className="page skin-page">
-        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} avatar={data.avatar} />
+    <div className={`app ${data.appearance === "light" ? "light" : "dark"} ds ds-emerald pubcard`}>
+      <div className="page">
+        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ export type CardPayload = {
   nick: string;
   displayName?: string;
   theme: CardTheme;
+  coverY?: number;
+  appearance?: "dark" | "light";
   contacts: PublicContact[];
   photo?: string | null;
   avatar?: string | null;

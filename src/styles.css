@@ -885,3 +885,17 @@ p{margin:0;line-height:1.4}
 .idqr-ava{width:42px;height:42px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--cyan);color:var(--on);font-weight:700;border:2px solid #fff}
 .idqr-ava img{width:100%;height:100%;object-fit:cover}
 .idqr-code{position:relative;background:#fff;padding:12px;border-radius:16px}
+.set-appic{width:32px;height:32px;border-radius:8px;flex:none}
+a.btn{text-decoration:none}
+.idbg.moving{cursor:grab;touch-action:none;outline:3px solid var(--cyan);outline-offset:-3px}
+.idbg.moving img{user-select:none;-webkit-user-drag:none}
+.idmove{position:absolute;inset:auto 0 0 0;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:13px;font-weight:600}
+.idmove div{display:flex;gap:8px}
+.idmove button{min-height:36px;padding:0 16px;border-radius:18px;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.35);color:#fff;font-weight:700;cursor:pointer}
+.idmove button.on{background:#fff;color:#111;border-color:#fff}
+.bg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.bg-pick{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:18px;border:2px solid transparent;background:var(--card);cursor:pointer;color:var(--t);text-align:start}
+.bg-pick.on{border-color:var(--cyan);box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 25%,transparent)}
+.bg-prev{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:13px;overflow:hidden;background:color-mix(in srgb,var(--cyan) 14%,var(--bg));color:var(--cyan);font-size:28px}
+.bg-prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.bg-name{font-size:14px;font-weight:600;padding:0 4px 2px}

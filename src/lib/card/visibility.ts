@@ -150,18 +150,31 @@ export function toPublicContacts(contacts: readonly Contact[], listedByOwner = "
   }));
 }
 
-export const CARD_THEMES = [
-  "graphite", "minimal", "orbit",
-  "business", "malachite",
-  "blogger", "gamer",
-  "craft", "bakery",
-  "soft", "gothic", "tactic",
-] as const;
+/**
+ * Card background: "own" = the owner's cover photo; the rest are ready pictures by occupation.
+ * The card itself follows the owner's dark/light setting — no colour schemes.
+ */
+export const CARD_THEMES = ["own", "business", "owner", "taxi", "gamer", "blogger", "craft", "sew", "bakery"] as const;
 export type CardTheme = (typeof CARD_THEMES)[number];
+
+/** Old colour themes (before backgrounds) → the nearest background. */
+const LEGACY_THEME: Record<string, CardTheme> = { malachite: "business", gothic: "owner", tactic: "gamer", orbit: "gamer", soft: "sew" };
 
 export function parseCardTheme(raw: string | null | undefined): CardTheme {
   const v = (raw ?? "").toLowerCase();
-  return (CARD_THEMES as readonly string[]).includes(v) ? (v as CardTheme) : "graphite";
+  if ((CARD_THEMES as readonly string[]).includes(v)) return v as CardTheme;
+  return LEGACY_THEME[v] ?? "own";
+}
+
+/** Picture of a ready background (null for "own"). */
+export function cardBackground(theme: CardTheme): string | null {
+  return theme === "own" ? null : `/cards/${theme}.svg`;
+}
+
+/** Vertical position of the cover photo, 0 (top) … 100 (bottom); 50 = centre. */
+export function clampCoverY(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 50;
 }
 
 /** Contact kind=other may only be an https URL. */

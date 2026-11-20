@@ -2,7 +2,7 @@ import { toNickChars } from "@/lib/nick-translit.ts";
 import { Header, TestBanner, LangPicker } from "./ui.tsx";
 import { RecoveryForm } from "./recovery-form.tsx";
 import { checkPassword } from "@/lib/password-policy.ts";
-import type { App } from "./use-id-app.ts";
+import { homeScreen, type App } from "./use-id-app.ts";
 
 /** Welcome, sign-up, login, recovery. */
 export function AuthScreens({ app }: { app: App }) {
@@ -13,9 +13,19 @@ export function AuthScreens({ app }: { app: App }) {
       <>
         <Header tool={<LangPicker lang={lang} setLang={setLang} t={t} />} />
         <div className="page auth">
-          <div className="kicker">{t("kicker")}</div>
-          <h1>{t("welcome_title")}</h1>
-          <p className="sub">{t("welcome_sub")}</p>
+          {app.idMode ? (
+            <>
+              <div className="kicker">AMR ID</div>
+              <h1>{t("app")}</h1>
+              <p className="sub">{t("id_sub")}</p>
+            </>
+          ) : (
+            <>
+              <div className="kicker">{t("kicker")}</div>
+              <h1>{t("welcome_title")}</h1>
+              <p className="sub">{t("welcome_sub")}</p>
+            </>
+          )}
           <div className="gap" />
           <div className="card hero" style={{ textAlign: "center", padding: "28px 20px" }}>
             <div className="tiny">{t("example_nick")}</div>
@@ -23,27 +33,36 @@ export function AuthScreens({ app }: { app: App }) {
               name.amr
             </div>
           </div>
-          <div className="btns" style={{ marginTop: 24 }}>
-            <button
-              className="btn p"
-              type="button"
-              onClick={() => {
-                setNick("");
-                setNickStatus("");
-                setScreen("signup-nick");
-              }}
-            >
-              {t("create_id")}
-            </button>
-            <button className="btn g" type="button" onClick={() => setScreen("login")}>
-              {t("have_id")}
-            </button>
-          </div>
-          <div className="btns" style={{ marginTop: 10 }}>
-            <button className="btn g ghost" type="button" onClick={startGuest}>
-              {t("start_without_account")}
-            </button>
-          </div>
+          {app.idMode ? (
+            <div className="btns" style={{ marginTop: 24 }}>
+              <button
+                className="btn p"
+                type="button"
+                onClick={() => {
+                  setNick("");
+                  setNickStatus("");
+                  setScreen("signup-nick");
+                }}
+              >
+                {t("create_id")}
+              </button>
+              <button className="btn g" type="button" onClick={() => setScreen("login")}>
+                {t("have_id")}
+              </button>
+            </div>
+          ) : (
+            <div className="btns" style={{ marginTop: 24 }}>
+              {/* SELF: account lives in AMR ID (id.amrsys.net); sign-in and sign-up happen there. */}
+              <a className="btn p" href="/api/auth/amrid">{t("self_login_id")}</a>
+            </div>
+          )}
+          {app.idMode ? null : (
+            <div className="btns" style={{ marginTop: 10 }}>
+              <button className="btn g ghost" type="button" onClick={startGuest}>
+                {t("start_without_account")}
+              </button>
+            </div>
+          )}
         </div>
       </>
     )}
@@ -212,7 +231,7 @@ export function AuthScreens({ app }: { app: App }) {
           </div>
           <p className="hint">{t("save_recovery")}</p>
           <div className="btns">
-            <button className="btn p" type="button" onClick={() => setScreen("today")}>
+            <button className="btn p" type="button" onClick={() => setScreen(homeScreen())}>
               {t("i_wrote_it")}
             </button>
           </div>
@@ -243,7 +262,7 @@ export function AuthScreens({ app }: { app: App }) {
               {t("enter")}
             </button>
           </div>
-          {meta?.googleLogin ? (
+          {meta?.googleLogin && !app.idMode ? (
             <div className="btns">
               <button className={`btn g ${busy ? "off" : ""}`} type="button" onClick={() => startGoogle("login")}>
                 {t("google_login")}
@@ -291,7 +310,7 @@ export function AuthScreens({ app }: { app: App }) {
                 setRecoveryCodes(newCodes);
                 setScreen("recovery-done");
               } else {
-                setScreen("today");
+                setScreen(homeScreen());
               }
             }}
             onError={fail}
@@ -318,7 +337,7 @@ export function AuthScreens({ app }: { app: App }) {
           <p className="hint">{t("new_recovery_issued")}</p>
           <p className="hint">{t("save_recovery")}</p>
           <div className="btns">
-            <button className="btn p" type="button" onClick={() => setScreen("today")}>
+            <button className="btn p" type="button" onClick={() => setScreen(homeScreen())}>
               {t("i_wrote_it")}
             </button>
           </div>

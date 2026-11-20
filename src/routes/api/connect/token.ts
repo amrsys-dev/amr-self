@@ -7,14 +7,14 @@ export const Route = createFileRoute("/api/connect/token")({
       POST: async ({ request }) => {
         const { requireUser } = await import("@/lib/auth/session.ts");
         const { json, readJson } = await import("@/lib/http.ts");
-        const { env } = await import("@/lib/env.server.ts");
+        const { connectSecret } = await import("@/lib/env.server.ts");
         const { checkConnect, signConnectToken, connectRedirect, displayNameOf } = await import("@/lib/connect.ts");
         const user = await requireUser(request);
         if (user instanceof Response) return user;
         const body = await readJson<{ app?: unknown; return?: unknown; state?: unknown }>(request);
         const req = checkConnect(body?.app, body?.return, body?.state);
         if (!req) return json({ error: "bad_request" }, 400);
-        const secret = env(req.app.secretEnv);
+        const secret = connectSecret(req.app.id, req.app.secretEnv);
         if (!secret || secret.length < 32) return json({ error: "not_configured" }, 503);
         const token = signConnectToken(
           { sub: user.dataId ?? user.nick, nick: user.nick, name: displayNameOf(user.nick), aud: req.app.id, state: req.state },

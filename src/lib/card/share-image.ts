@@ -4,7 +4,7 @@
  * Browser only (canvas).
  */
 import { encode } from "uqr";
-import type { CardTheme, PublicContact } from "./visibility.ts";
+import { cardBackground, type CardTheme, type PublicContact } from "./visibility.ts";
 import { CARD_PALETTE } from "./palette.ts";
 import { SERVICE } from "../../components/contact-icons.tsx";
 
@@ -42,8 +42,10 @@ export type ShareImageInput = {
   name: (c: PublicContact) => string;
   /** The username, number or address itself, e.g. "@amr_userb" or "+966 57…". */
   value: (c: PublicContact) => string;
-  /** Cover: drawn as the background of the whole picture. */
+  /** Cover: drawn as the background of the whole picture (when the background is "own"). */
   photo?: string | null;
+  /** Cover position, 0 (top) … 100 (bottom). */
+  coverY?: number;
   /** Round face photo next to the name. */
   avatar?: string | null;
 };
@@ -62,7 +64,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
  * contacts with their actual usernames and numbers on the right.
  */
 export async function renderCardImage(input: ShareImageInput, quality = 0.8): Promise<Blob> {
-  const p = CARD_PALETTE[input.theme] ?? CARD_PALETTE.graphite;
+  const p = CARD_PALETTE[input.theme] ?? CARD_PALETTE.own;
   const rows = input.contacts.filter((c) => c.href || input.value(c));
   const QR = 300;
   const listH = rows.length * (ROW + GAP) - GAP;
@@ -75,10 +77,15 @@ export async function renderCardImage(input: ShareImageInput, quality = 0.8): Pr
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, W, H);
   // Cover photo fills the background, darkened so text and contacts stay readable.
-  const cover = input.photo ? await loadImage(input.photo) : null;
+  const preset = cardBackground(input.theme);
+  const src = preset ?? input.photo ?? null;
+  const cover = src ? await loadImage(src) : null;
   if (cover) {
-    const k = Math.max(W / cover.naturalWidth, H / cover.naturalHeight);
-    ctx.drawImage(cover, (W - cover.naturalWidth * k) / 2, (H - cover.naturalHeight * k) / 2, cover.naturalWidth * k, cover.naturalHeight * k);
+    const k = Math.max(W / (cover.naturalWidth || W), H / (cover.naturalHeight || H));
+    const cw = (cover.naturalWidth || W) * k;
+    const ch = (cover.naturalHeight || H) * k;
+    const fy = preset ? 0.5 : Math.min(100, Math.max(0, input.coverY ?? 50)) / 100;
+    ctx.drawImage(cover, (W - cw) / 2, (H - ch) * fy, cw, ch);
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "rgba(0,0,0,.35)");
     g.addColorStop(0.35, "rgba(0,0,0,.6)");

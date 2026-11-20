@@ -1,6 +1,19 @@
+import { createHmac } from "node:crypto";
 export function env(name: string): string | undefined {
   const v = process.env[name];
   return v && v.trim() ? v.trim() : undefined;
+}
+
+/**
+ * Secret for «Войти через AMR ID» tokens. SELF lives on the same server as AMR ID,
+ * so its secret is derived from the session secret instead of a separate variable.
+ */
+export function connectSecret(appId: string, secretEnv: string): string | undefined {
+  if (appId === "self") {
+    const base = sessionSecret();
+    return base ? createHmac("sha256", base).update("amr-connect:self").digest("base64url") : undefined;
+  }
+  return env(secretEnv);
 }
 
 export function vercelEnv(): string {
