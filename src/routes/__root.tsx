@@ -19,11 +19,13 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-title", content: "AMR ID" },
     ],
     links: [
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", type: "image/png", href: "/app-favicon.png" },
+      { rel: "apple-touch-icon", href: "/app-touch-icon.png" },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "manifest", href: "/app.webmanifest" },
     ],
+    // Chrome may offer installation before React starts: keep that offer so the «Установить» button opens one install dialog.
+    scripts: [{ children: "addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__amrInstall=e});addEventListener('appinstalled',function(){window.__amrInstall=null})" }],
   }),
   component: () => (
     <html lang="ru" className="antialiased" suppressHydrationWarning>

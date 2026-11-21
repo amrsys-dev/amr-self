@@ -1,6 +1,6 @@
 /* AMR ID service worker — cache the app shell, network-first for API. */
-const SHELL = "amrself-shell-v12";
-const SHELL_URLS = ["/manifest.webmanifest", "/amr-monogram.svg", "/icon-192.png", "/fonts/Inter.ttf", "/offline.html"];
+const SHELL = "amrself-shell-v13";
+const SHELL_URLS = ["/app.webmanifest", "/amr-monogram.svg", "/icons/self-192.png", "/fonts/Inter.ttf", "/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -49,6 +49,6 @@ self.addEventListener("push", (event) => {
     try { data = event.data ? await event.data.json() : {}; } catch { /* ignore */ }
     const title = data.title || "AMR ID";
     const body = data.body || "";
-    await self.registration.showNotification(title, { body, icon: "/icon-192.png" });
+    await self.registration.showNotification(title, { body, icon: "/icons/self-192.png" });
   })());
 });

@@ -25,7 +25,7 @@ export const Route = createFileRoute("/u/$nick")({
     const services = loaderData.contacts.map((c) => serviceName(c.kind, (k) => translate("en", k))).join(" · ");
     const title = `${loaderData.displayName ? `${loaderData.displayName} · ` : ""}${loaderData.nick} · AMR ID`;
     const description = services || "AMR ID";
-    const image = loaderData.photo ? `${origin}${loaderData.photo}` : origin ? `${origin}/icon-512.png` : "/icon-512.png";
+    const image = loaderData.photo ? `${origin}${loaderData.photo}` : origin ? `${origin}/icons/id-512.png` : "/icons/id-512.png";
     return {
       meta: [
         { title },
