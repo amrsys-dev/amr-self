@@ -20,6 +20,12 @@ export const CONNECT_APPS: Record<string, ConnectApp> = {
     returnUrl: "https://self.amrsys.net/api/auth/amrid",
     secretEnv: "", // derived from the session secret (same server), see connectSecret
   },
+  cut: {
+    id: "cut",
+    title: "AMR Cut",
+    returnUrl: "https://cut.amrsys.net/",
+    secretEnv: "", // the app reads its signed plan from /api/entitlement
+  },
   safar: {
     id: "safar",
     title: "AMR Safar",
