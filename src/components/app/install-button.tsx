@@ -11,7 +11,7 @@ import {
 function usePwaInstall(opts: { consumeFlag: boolean }) {
   const [hidden, setHidden] = useState(true);
   const [wanted, setWanted] = useState(false);
-  const [hint, setHint] = useState<"ios" | "tg" | "none">("none");
+  const [hint, setHint] = useState<"ios" | "android" | "tg" | "none">("none");
   const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
@@ -20,6 +20,8 @@ function usePwaInstall(opts: { consumeFlag: boolean }) {
       return;
     }
     setHidden(false);
+    const early = (window as unknown as { __amrInstall?: BeforeInstallPromptEvent | null }).__amrInstall;
+    if (early) promptRef.current = early;
     const onPrompt = (event: Event) => {
       event.preventDefault();
       promptRef.current = event as BeforeInstallPromptEvent;
@@ -58,13 +60,14 @@ function usePwaInstall(opts: { consumeFlag: boolean }) {
       await pending.prompt();
       const choice = await pending.userChoice;
       promptRef.current = null;
+      (window as unknown as { __amrInstall?: unknown }).__amrInstall = null;
       if (choice.outcome === "accepted") {
         setHidden(true);
         setWanted(false);
       }
       return;
     }
-    setHint("ios");
+    setHint(/android/i.test(navigator.userAgent) ? "android" : "ios");
   };
 
   return { hidden, wanted, hint, setHint, onClick };
@@ -79,9 +82,9 @@ export function InstallButton({ t, className = "set-label" }: { t: (k: MsgKey) =
       <button type="button" className={className} onClick={() => void onClick()}>
         {t("install")}
       </button>
-      {hint === "ios" ? (
+      {hint === "ios" || hint === "android" ? (
         <div className="pwa-hint" role="status">
-          {t("install_ios")}
+          {t(hint === "android" ? "install_android" : "install_ios")}
         </div>
       ) : null}
     </div>
@@ -97,9 +100,9 @@ export function InstallHero({ t }: { t: (k: MsgKey) => string }) {
       <button type="button" className="btn p" onClick={() => void onClick()}>
         {t("install")}
       </button>
-      {hint === "ios" ? (
+      {hint === "ios" || hint === "android" ? (
         <div className="pwa-hint" role="status">
-          {t("install_ios")}
+          {t(hint === "android" ? "install_android" : "install_ios")}
         </div>
       ) : null}
     </div>
