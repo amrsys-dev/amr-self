@@ -35,7 +35,7 @@ test("install labels are short everyday words in all five languages", () => {
   assert.equal(INSTALL_LABEL.en, "Install");
 });
 
-test("browserInstallUrl keeps only origin, pathname and install=1 — no hash, no other query", () => {
+test("browserInstallUrl keeps only origin, pathname and install=1 - no hash, no other query", () => {
   const dirty = {
     origin: "https://self.amrsys.net",
     pathname: "/",
@@ -71,7 +71,7 @@ test("openSiteForInstall uses openLink with a clean URL and does not call addToH
   assert.deepEqual([...parsed.searchParams.keys()], ["install"]);
 });
 
-test("?install=1 only reveals the Install button — no openLink, prompt, or addToHomeScreen without a tap", async () => {
+test("?install=1 only reveals the Install button - no openLink, prompt, or addToHomeScreen without a tap", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("../components/app/install-button.tsx", import.meta.url), "utf8");
   const effects = [...src.matchAll(/useEffect\(([\s\S]*?)\n  \},/g)].map((m) => m[0]).filter((e) => e.includes("takeInstallFlag"));

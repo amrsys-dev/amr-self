@@ -47,7 +47,7 @@ export function getLimits(): Limiters {
   return g.__amridLim;
 }
 
-/** @deprecated use getLimits() — kept as a getter alias during the transition */
+/** @deprecated use getLimits() - kept as a getter alias during the transition */
 export const limits = {
   get login() {
     return getLimits().login;

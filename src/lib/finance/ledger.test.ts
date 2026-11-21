@@ -11,7 +11,7 @@ test("balanceSeries: переносит остаток прошлых месяц
   assert.deepEqual(s, [1000, 1500, 1200, 1200]);
 });
 
-test("balanceSeries: прошлый месяц — все дни", () => {
+test("balanceSeries: прошлый месяц - все дни", () => {
   assert.equal(balanceSeries([], [], "2026-02").length, 28);
 });
 

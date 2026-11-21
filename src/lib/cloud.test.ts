@@ -12,7 +12,7 @@ test("облако: только платный тариф", () => {
   assert.equal(cloudAllowed({ cut: { plan: "business", until: 1000 } }, "cut", 2000), false);
 });
 
-test("облако: запись по номеру, чужая запись между ними — конфликт, старый файл удаляется", async () => {
+test("облако: запись по номеру, чужая запись между ними - конфликт, старый файл удаляется", async () => {
   const { kv, blobs } = createMemoryStores();
   assert.equal(await cloudRead(kv, blobs, "cut", "u1"), null);
   const a = await cloudWrite(kv, blobs, "cut", "u1", 0, bytes("one"));

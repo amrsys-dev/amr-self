@@ -27,7 +27,7 @@ export const Route = createFileRoute("/u/$nick")({
     const abs = (p: string) => (origin && p.startsWith("/") ? `${origin}${p}` : p);
     const services = loaderData.contacts.map((c) => serviceName(c.kind, (k) => translate("en", k))).join(" · ");
     const title = `${loaderData.displayName ? `${loaderData.displayName} · ` : ""}${loaderData.nick} · AMR ID`;
-    const description = `AMR ID — digital business card${services ? ` · ${services}` : ""}`;
+    const description = `AMR ID - digital business card${services ? ` · ${services}` : ""}`;
     const big = Boolean(loaderData.share);
     const image = abs(loaderData.share || loaderData.avatar || "/icons/id-512.png");
     return {

@@ -45,11 +45,11 @@ function DisplayNameField({ value, lang, onSave }: { value: string; lang: string
 }
 
 const EDIT_COPY: Record<string, [string, string, string, string, string]> = {
-  ru: ["Изменить", "Сохранить", "Удалить контакт", "Удалить этот контакт?", "Этот контакт подтверждён для входа — его можно только удалить и добавить заново."],
-  en: ["Edit", "Save", "Delete contact", "Delete this contact?", "This contact is verified for sign-in — you can only delete it and add it again."],
-  ar: ["تعديل", "حفظ", "حذف جهة الاتصال", "حذف جهة الاتصال هذه؟", "هذه الجهة مؤكدة لتسجيل الدخول — يمكن حذفها وإضافتها من جديد فقط."],
-  uz: ["Tahrirlash", "Saqlash", "Kontaktni o‘chirish", "Bu kontakt o‘chirilsinmi?", "Bu kontakt kirish uchun tasdiqlangan — faqat o‘chirib, qayta qo‘shish mumkin."],
-  tj: ["Таҳрир", "Нигоҳ доштан", "Нест кардани контакт", "Ин контакт нест карда шавад?", "Ин контакт барои воридшавӣ тасдиқ шудааст — танҳо нест кардан ва аз нав илова кардан мумкин."],
+  ru: ["Изменить", "Сохранить", "Удалить контакт", "Удалить этот контакт?", "Этот контакт подтверждён для входа - его можно только удалить и добавить заново."],
+  en: ["Edit", "Save", "Delete contact", "Delete this contact?", "This contact is verified for sign-in - you can only delete it and add it again."],
+  ar: ["تعديل", "حفظ", "حذف جهة الاتصال", "حذف جهة الاتصال هذه؟", "هذه الجهة مؤكدة لتسجيل الدخول - يمكن حذفها وإضافتها من جديد فقط."],
+  uz: ["Tahrirlash", "Saqlash", "Kontaktni o‘chirish", "Bu kontakt o‘chirilsinmi?", "Bu kontakt kirish uchun tasdiqlangan - faqat o‘chirib, qayta qo‘shish mumkin."],
+  tj: ["Таҳрир", "Нигоҳ доштан", "Нест кардани контакт", "Ин контакт нест карда шавад?", "Ин контакт барои воридшавӣ тасдиқ шудааст - танҳо нест кардан ва аз нав илова кардан мумкин."],
 };
 
 /** One contact: change the value or delete it, in a bottom sheet (Back closes it). */

@@ -23,13 +23,13 @@ type Copy = {
 export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   ru: {
     short: "Вода, вес, еда и тренировки. Всё шифруется на вашем телефоне и никому не передаётся.",
-    title: "Здоровье — только для вас",
+    title: "Здоровье - только для вас",
     lead: "Чтобы вести этот раздел, нужно ваше согласие. Что сохраним: воду, вес, еду и калории, тренировки (минуты), даты и ваши заметки.",
     points: [
       "Хранится в вашем файле и шифруется на телефоне. Ключ только у вас.",
       "Нужно только чтобы показать вам вашу статистику.",
       "Никому не передаём. Не для рекламы и не для советов.",
-      "Согласие можно отозвать в любой момент — записи удалятся.",
+      "Согласие можно отозвать в любой момент - записи удалятся.",
     ],
     allow: "Начать",
     notNow: "Не сейчас",
@@ -44,13 +44,13 @@ export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   },
   en: {
     short: "Water, weight, food and workouts. Everything is encrypted on your phone and shared with no one.",
-    title: "Health — just for you",
+    title: "Health - just for you",
     lead: "To use this section we need your consent. What we save: water, weight, food and calories, workouts (minutes), dates and your notes.",
     points: [
       "Kept in your file, encrypted on your phone. Only you have the key.",
       "Used only to show you your own stats.",
       "Never shared. Not for ads or advice.",
-      "You can withdraw any time — your entries will be deleted.",
+      "You can withdraw any time - your entries will be deleted.",
     ],
     allow: "Start",
     notNow: "Not now",
@@ -65,7 +65,7 @@ export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   },
   ar: {
     short: "الماء والوزن والطعام والتمارين. كل شيء مشفّر على هاتفك ولا يُشارك مع أحد.",
-    title: "الصحة — لك أنت بس",
+    title: "الصحة - لك أنت بس",
     lead: "عشان تستخدم هذا القسم نحتاج موافقتك. نحفظ: الماء، الوزن، الأكل والسعرات، التمارين بالدقائق، التاريخ وملاحظاتك.",
     points: [
       "تنحفظ في ملفك ومشفّرة على جوالك. المفتاح عندك أنت بس.",
@@ -86,13 +86,13 @@ export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   },
   uz: {
     short: "Suv, vazn, ovqat va mashg‘ulotlar. Hammasi telefoningizda shifrlanadi va hech kimga berilmaydi.",
-    title: "Salomatlik — faqat siz uchun",
+    title: "Salomatlik - faqat siz uchun",
     lead: "Bu bo‘limdan foydalanish uchun roziligingiz kerak. Nima saqlanadi: suv, vazn, ovqat va kaloriya, mashg‘ulotlar (daqiqa), sana va izohlaringiz.",
     points: [
       "Faylingizda, telefoningizda shifrlangan holda saqlanadi. Kalit faqat sizda.",
       "Faqat o‘z statistikangizni ko‘rsatish uchun.",
       "Hech kimga berilmaydi. Reklama va maslahat uchun emas.",
-      "Rozilikni istalgan payt qaytarib olasiz — yozuvlar o‘chadi.",
+      "Rozilikni istalgan payt qaytarib olasiz - yozuvlar o‘chadi.",
     ],
     allow: "Boshlash",
     notNow: "Hozir emas",
@@ -107,13 +107,13 @@ export const HEALTH_CONSENT_COPY: Partial<Record<Lang, Copy>> & { en: Copy } = {
   },
   tj: {
     short: "Об, вазн, хӯрок ва машқҳо. Ҳама дар телефони шумо рамзгузорӣ мешавад ва ба касе дода намешавад.",
-    title: "Саломатӣ — танҳо барои шумо",
+    title: "Саломатӣ - танҳо барои шумо",
     lead: "Барои ин бахш розигии шумо лозим аст. Чӣ нигоҳ дошта мешавад: об, вазн, хӯрок ва калория, машқҳо (дақиқа), сана ва қайдҳои шумо.",
     points: [
       "Дар файли шумо, дар телефон рамзгузорӣ шуда нигоҳ дошта мешавад. Калид танҳо дар шумост.",
       "Танҳо барои нишон додани омори худатон.",
       "Ба касе дода намешавад. На барои реклама ва на барои маслиҳат.",
-      "Розигиро ҳар вақт бозпас гирифтан мумкин — сабтҳо нест мешаванд.",
+      "Розигиро ҳар вақт бозпас гирифтан мумкин - сабтҳо нест мешаванд.",
     ],
     allow: "Оғоз",
     notNow: "Ҳоло не",

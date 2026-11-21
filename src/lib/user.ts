@@ -33,7 +33,7 @@ export type UserRecord = {
   };
   contacts: Contact[];
   theme: CardTheme;
-  /** Cover photo vertical position, 0–100 (50 = centre). */
+  /** Cover photo vertical position, 0-100 (50 = centre). */
   coverY?: number;
   /** false = phone numbers are not drawn on the card pictures (shared image, link preview). */
   imagePhone?: boolean;

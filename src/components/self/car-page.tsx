@@ -170,7 +170,7 @@ export function CarPage({ data, persist, lang, money, toCur, cur, labels, onBack
 
           <div className="self-card self-inline-metrics">
             <div><span>{tx(lang, "carExpenses")}</span><b>{money(carSpend, cur)}</b></div>
-            <div><span>{tx(lang, "nextService")}</span><b>{sorted[0] ? itemName(lang, sorted[0].item) : "—"}</b></div>
+            <div><span>{tx(lang, "nextService")}</span><b>{sorted[0] ? itemName(lang, sorted[0].item) : "-"}</b></div>
           </div>
 
           {history.length > 0 && (

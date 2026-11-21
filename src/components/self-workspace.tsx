@@ -491,17 +491,17 @@ export function SelfWorkspace({
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => onNavigate?.("finance")}>
               <span><CategoryIcon c="housing" size={16} />{tx(lang, "billsDue")}</span>
-              <strong>{bills.count ? money(bills.amount) : "—"}</strong>
+              <strong>{bills.count ? money(bills.amount) : "-"}</strong>
               <small>{bills.count ? tx(lang, "toPay", { n: bills.count }) : tx(lang, "allPaid")}</small>
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => setSubPage("car")}>
               <span><CategoryIcon c="car" size={16} />{tx(lang, "car")}</span>
-              <strong>{carNext ? formatKm(Math.max(0, carNext.state.leftKm)) : "—"}<i> {carNext ? tx(lang, "km") : ""}</i></strong>
+              <strong>{carNext ? formatKm(Math.max(0, carNext.state.leftKm)) : "-"}<i> {carNext ? tx(lang, "km") : ""}</i></strong>
               <small>{carNext ? itemName(lang, carNext.item) : tx(lang, "addCar")}</small>
             </button>
             <button type="button" className="self-metric self-tile" onClick={() => setSubPage("health")}>
               <span><CategoryIcon c="water" size={16} />{t("waterToday")}</span>
-              <div className="self-ring-row"><strong>{healthOk ? waterToday : "—"}<i>{healthOk ? " ml" : ""}</i></strong><Ring pct={healthOk ? Math.min(100, waterToday / 2000 * 100) : 0} tone="sky" /></div>
+              <div className="self-ring-row"><strong>{healthOk ? waterToday : "-"}<i>{healthOk ? " ml" : ""}</i></strong><Ring pct={healthOk ? Math.min(100, waterToday / 2000 * 100) : 0} tone="sky" /></div>
             </button>
           </div>
 
@@ -660,7 +660,7 @@ export function SelfWorkspace({
             </div>
             {streak > 0 && <small className="self-streak">{tx(lang, "streak", { n: streak })}</small>}
           </div>
-          <div className="self-grid self-grid-2"><div className="self-metric"><span>{t("waterToday")}</span><strong>{waterToday}<i> ml</i></strong><div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div></div><div className="self-metric"><span>{t("lastWeight")}</span><strong>{lastWeight ? Number(lastWeight.amount).toFixed(1) : "—"}<i> kg</i></strong></div></div>
+          <div className="self-grid self-grid-2"><div className="self-metric"><span>{t("waterToday")}</span><strong>{waterToday}<i> ml</i></strong><div className="self-progress"><i style={{ width: Math.min(100, waterToday / 2000 * 100) + "%" }} /></div></div><div className="self-metric"><span>{t("lastWeight")}</span><strong>{lastWeight ? Number(lastWeight.amount).toFixed(1) : "-"}<i> kg</i></strong></div></div>
           <div className="self-finance-actions"><button type="button" onClick={() => void addWater()}>{t("addWater")}</button><button type="button" onClick={() => openModal("weight")}>{t("addWeight")}</button><button type="button" onClick={() => openModal("workout")}>{t("addWorkout")}</button><button type="button" onClick={() => openModal("meal")}>{t("addMeal")}</button></div>
           <div className="self-section-head"><h3>{t("recent")}</h3></div>
           <div className="self-card">
@@ -721,14 +721,14 @@ function TaskRow({ task, today, onToggle, onDelete, armed, onArm, ask, t }: {
   );
 }
 
-/** × first, then «Удалить?» for 3 seconds — protects against a slip of the finger. */
+/** × first, then «Удалить?» for 3 seconds - protects against a slip of the finger. */
 function DeleteButton({ armed, onArm, onDelete, label, ask }: { armed: boolean; onArm: () => void; onDelete: () => void; label: string; ask: string }) {
   return armed
     ? <button className="self-delete armed" type="button" onClick={onDelete}>{ask}</button>
     : <button className="self-delete" type="button" onClick={onArm} aria-label={label}>×</button>;
 }
 
-/** Small glowing ring for 0–100%. */
+/** Small glowing ring for 0-100%. */
 function Ring({ pct, tone }: { pct: number; tone: "gold" | "sky" | "acc" }) {
   const c = 2 * Math.PI * 16;
   const v = Math.max(0, Math.min(100, pct));

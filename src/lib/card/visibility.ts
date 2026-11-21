@@ -155,7 +155,7 @@ export function toPublicContacts(contacts: readonly Contact[], listedByOwner = "
 
 /**
  * Card background: "own" = the owner's cover photo; the rest are ready pictures by occupation.
- * The card itself follows the owner's dark/light setting — no colour schemes.
+ * The card itself follows the owner's dark/light setting - no colour schemes.
  */
 export const CARD_THEMES = ["own", "business", "owner", "taxi", "gamer", "blogger", "craft", "sew", "bakery"] as const;
 export type CardTheme = (typeof CARD_THEMES)[number];

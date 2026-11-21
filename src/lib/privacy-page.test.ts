@@ -155,7 +155,7 @@ describe("privacy policy page", () => {
         assert.doesNotMatch(text, /Данные Cloudflare хранятся в Европейском союзе/, name);
         assert.doesNotMatch(text, /Cloudflare data is stored in the European Union/i, name);
         assert.doesNotMatch(text, /بيانات Cloudflare محفوظة في الاتحاد الأوروبي/, name);
-        assert.doesNotMatch(text, /Долговременное хранение у Cloudflare — в Европе/, name);
+        assert.doesNotMatch(text, /Долговременное хранение у Cloudflare - в Европе/, name);
         assert.doesNotMatch(text, /Long-term storage with Cloudflare is in Europe/i, name);
       }
       for (const { name, text } of [...main, { name: "privacy.html", text: html }]) {
@@ -282,8 +282,8 @@ describe("privacy policy page", () => {
     const pick = (n: string) => policies.find((p) => p.name === n)!.text;
 
     it("names the Bazar display name (nick without .amr, no real name)", () => {
-      assert.match(pick("privacy-policy.ru.md"), /имя для показа — это тот же ник без окончания \.amr/);
-      assert.match(pick("privacy-policy.en.md"), /display name — the same nick without the \.amr ending/);
+      assert.match(pick("privacy-policy.ru.md"), /имя для показа - это тот же ник без окончания \.amr/);
+      assert.match(pick("privacy-policy.en.md"), /display name - the same nick without the \.amr ending/);
       assert.match(pick("privacy-policy.ar.md"), /اسم العرض/);
       assert.equal([...html.matchAll(/without the \.amr ending|без окончания \.amr|بدون النهاية \.amr/g)].length, 3);
     });

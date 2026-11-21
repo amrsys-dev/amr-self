@@ -669,7 +669,7 @@ type PendingRebind = {
   otp: OtpRecord;
   dest: string;
   channel: OtpChannel;
-  /** Verifier hash of the recovery code being spent — not a slot index. */
+  /** Verifier hash of the recovery code being spent - not a slot index. */
   recoveryHash: string;
 };
 
@@ -1075,10 +1075,10 @@ export async function handleDeleteMe(request: Request): Promise<Response> {
 
 const NOTICE: Record<"linked" | "unlinked", Record<string, string>> = {
   linked: {
-    ru: "AMR ID: Google привязан к вашему нику. Если это не вы — войдите и отвяжите Google, смените пароль.",
-    ar: "AMR ID: تم ربط Google باسمك. إذا ما كنت أنت — ادخل وافصل Google وغيّر كلمة المرور.",
-    uz: "AMR ID: Google nikingizga ulandi. Bu siz bo‘lmasangiz — kirib Googleni uzing va parolni almashtiring.",
-    tj: "AMR ID: Google ба ники шумо пайваст шуд. Агар шумо набошед — ворид шуда Google-ро ҷудо кунед ва паролро иваз кунед.",
+    ru: "AMR ID: Google привязан к вашему нику. Если это не вы - войдите и отвяжите Google, смените пароль.",
+    ar: "AMR ID: تم ربط Google باسمك. إذا ما كنت أنت - ادخل وافصل Google وغيّر كلمة المرور.",
+    uz: "AMR ID: Google nikingizga ulandi. Bu siz bo‘lmasangiz - kirib Googleni uzing va parolni almashtiring.",
+    tj: "AMR ID: Google ба ники шумо пайваст шуд. Агар шумо набошед - ворид шуда Google-ро ҷудо кунед ва паролро иваз кунед.",
     en: "AMR ID: Google was linked to your nick. Not you? Sign in, unlink Google and change your password.",
   },
   unlinked: {
@@ -1117,7 +1117,7 @@ const googleProofSchema = z.object({
 });
 
 /**
- * POST /api/me/google — fresh proof before linking or unlinking Google:
+ * POST /api/me/google - fresh proof before linking or unlinking Google:
  * the current password, or a Telegram code with purpose=google-link (same 60 s / rate limit rules as delete).
  * link → a 5-minute grant for this session; POST /api/auth/google/start?purpose=link then needs it.
  * unlink → done here.
@@ -1216,7 +1216,7 @@ export async function handleGoogleStart(request: Request): Promise<Response> {
   return redirect(g.url, [stateCookie(g.state, GOOGLE_STATE_TTL_SEC)]);
 }
 
-/** GET /api/auth/google/callback — exactly https://self.amrsys.net/api/auth/google/callback. */
+/** GET /api/auth/google/callback - exactly https://self.amrsys.net/api/auth/google/callback. */
 export async function handleGoogleCallback(request: Request, fetchImpl: typeof fetch = fetch): Promise<Response> {
   const clear = stateCookie("", 0);
   const back = (q: string, extra: string[] = []) => redirect(`/?google=${q}`, [clear, ...extra]);

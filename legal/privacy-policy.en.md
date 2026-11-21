@@ -25,7 +25,7 @@ AMR ID version 1 is a separate web app (PWA) on Vercel. It is your nickname and 
 
 Sign-in uses a nickname and a password. If you linked Telegram, you also enter a one-time code from the official Telegram bot after the password. See section 3.1.
 
-Version 1 has **no password vault**. We do not store your documents, messenger passwords, or secrets from other services. There is a separate finances and tasks file: it is encrypted on your device, and the key stays only with you (see section 3.5). Email is not used for sign-in in this version — that comes later.
+Version 1 has **no password vault**. We do not store your documents, messenger passwords, or secrets from other services. There is a separate finances and tasks file: it is encrypted on your device, and the key stays only with you (see section 3.5). Email is not used for sign-in in this version - that comes later.
 
 ## 3. What data we collect
 
@@ -33,10 +33,10 @@ We only collect what is needed for sign-in, the card, and syncing your encrypted
 
 ### 3.1. Account and sign-in
 
-- Your nick, which you choose yourself: 3 to 24 characters — Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending `.amr`, for example `name.amr`. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.
-- Your password — stored only as a hash. We do not store or see the password itself.
+- Your nick, which you choose yourself: 3 to 24 characters - Latin letters and digits, with a single dot, hyphen, or underscore allowed between them. The nick is stored in lowercase with the ending `.amr`, for example `name.amr`. Service words (admin, support, api, and similar) cannot be taken. Old nicks like @AMR-123-456 keep working.
+- Your password - stored only as a hash. We do not store or see the password itself.
 - Ways to sign in: nickname and password; Google sign-in works only when it is turned on in the service and you linked Google to your account beforehand. You create an account with a nickname and a password; Telegram is not needed for that.
-- Your Telegram ID — only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.
+- Your Telegram ID - only if you linked Telegram. Then, when you sign in (with the password or with Google), a one-time code comes to Telegram after the first step.
 - You can link or change Telegram on the sign-in screen with «I lost Telegram»: you need the password and one recovery code. You enter your Telegram ID, the official bot [@amr_id_bot](https://t.me/amr_id_bot) sends a code, and you enter it in the app.
 - Besides the Telegram ID, we store only your public Telegram username (@username), if you have one. We do not take your name, phone number, or profile photo from Telegram.
 - The one-time sign-in code is created by our server, and a Cloudflare Worker delivers it to Telegram through the bot. We keep the code only as a hash: it is single-use and works for 5 minutes.
@@ -47,7 +47,7 @@ Email is not used for sign-in or for codes in version 1. That comes later.
 ### 3.2. The card
 
 - Contacts you add yourself: Telegram, a WhatsApp number, and any others you enter. You may also put an email address on the card as an ordinary contact, without a “confirmed” mark: email is not confirmed by a code in this version.
-- We do not verify contacts on the card: the card has no “confirmed” mark. The WhatsApp number is not printed on the card — it shows “listed by the owner” instead, and the number itself is only inside the chat link. Telegram does not become public on the card just because we store a Telegram ID to deliver codes: it appears on the card only if you add it yourself as a public contact.
+- We do not verify contacts on the card: the card has no “confirmed” mark. The WhatsApp number is not printed on the card - it shows “listed by the owner” instead, and the number itself is only inside the chat link. Telegram does not become public on the card just because we store a Telegram ID to deliver codes: it appears on the card only if you add it yourself as a public contact.
 - Visibility for each contact: “open to everyone” or “hidden”. There are no other modes. A new contact is public right away, except the WhatsApp number, which is hidden by default.
 - A photo and card design, if you upload or choose them. An uploaded photo is visible to everyone on the public card: the photo has no visibility setting, you can only delete it. After you delete the photo, cached copies disappear within a few minutes.
 - We do not store a separate copy of the card: the server builds the guest page from your record each time it is opened, and the Cloudflare network keeps a cached copy for a few minutes.
@@ -58,7 +58,7 @@ LinkedIn is not connected in version 1. If it is added later, it will only be th
 
 - Technical records of sign-in and of service protection (rate limits, blocked suspicious requests). We do not write the password, the Telegram code, or recovery codes into logs.
 - We do not keep a separate visit log. To stop guessing attacks, the server keeps the IP address, the nick (if you typed one), and the time of attempts for about 15 minutes, then the record deletes itself. We do not save device type or page addresses. We keep any of our technical records for no more than 30 days.
-- On your device the app keeps: the sign-in cookie `amrid_session` (up to 14 days, page scripts cannot read it); for Google sign-in, two more short cookies for 5–10 minutes; in localStorage, your language, theme, currency and exchange rates, and the order of finance blocks; in IndexedDB, an encrypted copy of your file and a device key, so you do not type the password at every start. Signing out wipes the IndexedDB data. The app cache keeps only site files and pages for offline use; server replies with your data are not stored there.
+- On your device the app keeps: the sign-in cookie `amrid_session` (up to 14 days, page scripts cannot read it); for Google sign-in, two more short cookies for 5-10 minutes; in localStorage, your language, theme, currency and exchange rates, and the order of finance blocks; in IndexedDB, an encrypted copy of your file and a device key, so you do not type the password at every start. Signing out wipes the IndexedDB data. The app cache keeps only site files and pages for offline use; server replies with your data are not stored there.
 - On the device and in the browser we use only what the service needs in order to work (sign-in, language, security). We do not set advertising cookies and we do not send data to advertising networks.
 
 ### 3.4. What we do not collect in this version
@@ -77,8 +77,8 @@ In version 1 you may keep your finances and tasks in a separate file.
 
 - The file holds your finances, tasks, plans, diary, visa notes, sport, health (water, weight, food, workouts), and car upkeep. The file is compressed and encrypted on your device, and only then sent to the server.
 - Entries in the Health section (water, weight, food and calories, workouts, dates and your notes) are sensitive data. Before your first entry the app shows a one-time consent screen: what is saved, why, and that it is not shared with anyone. Until you tap “Allow”, no health entries are saved. Your consent and its date are kept in the same encrypted file.
-- You can withdraw consent at any time: “Withdraw consent” at the bottom of the Health section. Once you confirm, all health entries are deleted from the file — at once on the device, and on the server at the next sync. The file keeps only technical markers with no content (entry number and deletion time), so another of your devices cannot bring the entries back. Older encrypted versions of the file on the server (the last 5) are replaced by new ones as you keep saving. You can log health again only after a new “Allow”.
-- If the file already has health entries made earlier, the app shows the consent screen by itself when it opens, with three buttons: “Allow”, “Not now” and “Delete old entries”. Until you consent, health entries are not sent to the server: before syncing, the app takes them out of the file, and they stay only on this device; without consent, health entries are not downloaded from the server either — a new device will not get them. If the server copy still has such entries from earlier app versions, the app replaces it at the next sync; older copies (up to 5 versions) are replaced by later saves. “Delete old entries” deletes these entries without consent. When you restore from a backup without consent, health entries from it are not brought back.
+- You can withdraw consent at any time: “Withdraw consent” at the bottom of the Health section. Once you confirm, all health entries are deleted from the file - at once on the device, and on the server at the next sync. The file keeps only technical markers with no content (entry number and deletion time), so another of your devices cannot bring the entries back. Older encrypted versions of the file on the server (the last 5) are replaced by new ones as you keep saving. You can log health again only after a new “Allow”.
+- If the file already has health entries made earlier, the app shows the consent screen by itself when it opens, with three buttons: “Allow”, “Not now” and “Delete old entries”. Until you consent, health entries are not sent to the server: before syncing, the app takes them out of the file, and they stay only on this device; without consent, health entries are not downloaded from the server either - a new device will not get them. If the server copy still has such entries from earlier app versions, the app replaces it at the next sync; older copies (up to 5 versions) are replaced by later saves. “Delete old entries” deletes these entries without consent. When you restore from a backup without consent, health entries from it are not brought back.
 - The file is encrypted on the device with a key that is not sent to the server. The server stores only the encrypted file.
 - The server can see only the file size, the sync time, and which account the file belongs to. The server keeps the last 5 versions of the encrypted file.
 - The Telegram second factor does not affect the file key: losing Telegram affects sign-in, not the data in the file.
@@ -100,13 +100,13 @@ If you sign in with Google:
 
 Processing follows Saudi Arabia’s Personal Data Protection Law (PDPL). The authority is SDAIA.
 
-- Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it — performance of our agreement with you: you chose to use the service.
-- Showing guests your public contacts and uploaded photo — your consent. You can hide a contact, delete the photo, or withdraw consent at any time.
-- Storing your Telegram ID and sending a sign-in code to Telegram — performance of the agreement and protection of sign-in.
-- Storing your Google ID, if you chose to sign in with Google — performance of the agreement.
-- Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced — performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising. Health entries in this file are kept only with your consent (next point).
-- Storing Health section entries — your explicit consent. You give it on a separate screen with “Allow” before the first entry; the date of consent is saved. Without consent new health entries are not saved, and old ones are not sent to the server and stay only on the device until you choose “Allow” or “Delete old entries”. If you withdraw consent (“Withdraw consent”), the section is cleared: all health entries are deleted (see section 3.5).
-- Reviewing messages about impersonation or abuse that people send to our email or Telegram, and stopping abuse — legitimate interest: protecting people from impersonation and abuse. There is no in-app complaint button.
+- Creating an account, keeping your nickname, letting you sign in, and showing the card as you set it - performance of our agreement with you: you chose to use the service.
+- Showing guests your public contacts and uploaded photo - your consent. You can hide a contact, delete the photo, or withdraw consent at any time.
+- Storing your Telegram ID and sending a sign-in code to Telegram - performance of the agreement and protection of sign-in.
+- Storing your Google ID, if you chose to sign in with Google - performance of the agreement.
+- Storing your encrypted finances and tasks file and the technical facts about it (size, sync time, account), so the file can be synced - performance of the agreement. The key is not sent to the server. We do not use this file for advice, scoring, or advertising. Health entries in this file are kept only with your consent (next point).
+- Storing Health section entries - your explicit consent. You give it on a separate screen with “Allow” before the first entry; the date of consent is saved. Without consent new health entries are not saved, and old ones are not sent to the server and stay only on the device until you choose “Allow” or “Delete old entries”. If you withdraw consent (“Withdraw consent”), the section is cleared: all health entries are deleted (see section 3.5).
+- Reviewing messages about impersonation or abuse that people send to our email or Telegram, and stopping abuse - legitimate interest: protecting people from impersonation and abuse. There is no in-app complaint button.
 
 We do not sell contact lists, and we do not build a hidden profile of a person beyond what the card and sign-in need.
 
@@ -132,13 +132,13 @@ The card page does not show a sign-in form to guests and does not ask them for c
 
 Processors and recipients in version 1:
 
-- **Vercel** — the site and application server (PWA).
-- **Cloudflare** — KV, Durable Objects, and R2 storage (account records, card photos, and the encrypted file) and the Worker that delivers one-time codes to Telegram and caches the public card. Only our server can reach the storage, not the browser and not a direct public link; card photos are served only through our site. The encrypted file is stored with Cloudflare in the European Union (Europe).
-- **Telegram** — the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.
-- **Google** — sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google's servers are outside Saudi Arabia.
-- **AMR Bazar** (bazar.amrsys.net) — only if you yourself signed in to Bazar with AMR ID and tapped “Allow”. Bazar receives your internal account number, your nick, and a display name — the same nick without the .amr ending (your real name is not shared). Phone, email, and hidden contacts are not shared.
+- **Vercel** - the site and application server (PWA).
+- **Cloudflare** - KV, Durable Objects, and R2 storage (account records, card photos, and the encrypted file) and the Worker that delivers one-time codes to Telegram and caches the public card. Only our server can reach the storage, not the browser and not a direct public link; card photos are served only through our site. The encrypted file is stored with Cloudflare in the European Union (Europe).
+- **Telegram** - the delivery channel for the second-factor (login) code. Telegram receives your Telegram ID and a message with the login code. Recovery codes are never sent through Telegram.
+- **Google** - sign-in with a Google account. Google learns that you signed in to AMR ID and gives us only your Google ID. Google's servers are outside Saudi Arabia.
+- **AMR Bazar** (bazar.amrsys.net) - only if you yourself signed in to Bazar with AMR ID and tapped “Allow”. Bazar receives your internal account number, your nick, and a display name - the same nick without the .amr ending (your real name is not shared). Phone, email, and hidden contacts are not shared.
 
-Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects — on Cloudflare’s global network, not tied to one country; the main storage is outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
+Account records (nick, password hash, Telegram ID and @username, Google ID, sessions) are stored in Cloudflare KV and Durable Objects - on Cloudflare’s global network, not tied to one country; the main storage is outside Saudi Arabia. The encrypted finances and tasks file and card photos are stored in Cloudflare R2 in the European Union. All of this is a transfer of data outside Saudi Arabia. The app server on Vercel runs in the USA (region iad1, Washington, D.C.): requests pass through it, while account data is kept at Cloudflare, not at Vercel. Telegram delivers the code on its servers, generally outside Saudi Arabia. We do not claim that the data is kept in Saudi Arabia.
 
 Basis for the transfer: it is necessary to provide the service you asked for; providers protect data under their published rules (links below). The transfer follows the SDAIA rules on transferring personal data outside the Kingdom. We give providers only what the service cannot work without.
 
@@ -148,7 +148,7 @@ They process data so we can provide the service (the site, storage, and code del
 
 ## 7. How long we keep data
 
-- Account and card data — for as long as the account exists, or until you delete it sooner.
+- Account and card data - for as long as the account exists, or until you delete it sooner.
 - When you delete your account (“Delete my data” in your profile, the “Delete account” screen), we erase at once the record, photos, the linked Telegram ID and Google ID, and the encrypted file with all its versions. Cached copies of the card and photo disappear within a few minutes. Provider backups may remain for up to 30 days.
 - You may change the nick once. The old nick is reserved and is never given to anyone else, including after the account is deleted.
 - Our technical sign-in and protection records are kept for 30 days, then deleted or made anonymous.
@@ -168,7 +168,7 @@ They process data so we can provide the service (the site, storage, and code del
 The second-factor code arrives in Telegram. Anyone who can read your Telegram messages can see that code. Keep your Telegram account safe.
 
 We take reasonable security measures, but no service can promise complete protection. If a breach may cause harm, we will notify the competent authority within the time the law requires (currently 72 hours) and will tell affected people without undue delay.  
-If you notice a leak or a break-in, write to us right away — contacts are in section 13.
+If you notice a leak or a break-in, write to us right away - contacts are in section 13.
 
 ## 9. Your rights
 
@@ -177,7 +177,7 @@ Under the PDPL you may:
 - find out what data we hold about you and get a copy;
 - correct inaccurate data (you can change contacts and settings yourself in your profile);
 - have data deleted when it is no longer needed for the purpose, or when you withdraw consent, unless the law requires us to keep some records;
-- withdraw consent to publish public contacts and a photo — after that we stop showing them to guests;
+- withdraw consent to publish public contacts and a photo - after that we stop showing them to guests;
 - ask us to restrict processing if you believe it is unlawful;
 - complain to SDAIA, the KSA authority for personal data protection.
 

@@ -7,7 +7,7 @@ import { api } from "@/lib/client.ts";
 
 type Item = { nick: string; displayName?: string; avatar?: string | null; kinds?: ContactKind[]; phone?: string; missing?: boolean };
 
-/** «My contacts»: cards saved in AMR ID. Always fresh — read from their owners every time. */
+/** «My contacts»: cards saved in AMR ID. Always fresh - read from their owners every time. */
 export function ContactsScreen({ app }: { app: App }) {
   const { t, screen, setScreen, session } = app;
   const [items, setItems] = useState<Item[] | null>(null);

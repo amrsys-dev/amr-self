@@ -1,4 +1,4 @@
-/* AMR ID service worker — cache the app shell, network-first for API. */
+/* AMR ID service worker - cache the app shell, network-first for API. */
 const SHELL = "amrself-shell-v13";
 const SHELL_URLS = ["/app.webmanifest", "/amr-monogram.svg", "/icons/self-192.png", "/fonts/Inter.ttf", "/offline.html"];
 

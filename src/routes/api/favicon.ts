@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-/** GET /api/favicon?d=example.com — the site's icon as a small raster image (cached for a week). */
+/** GET /api/favicon?d=example.com - the site's icon as a small raster image (cached for a week). */
 export const Route = createFileRoute("/api/favicon")({
   server: {
     handlers: {
