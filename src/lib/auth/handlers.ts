@@ -6,7 +6,7 @@ import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
 import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
-import { avatarUrl, photoUrl } from "./photo.ts";
+import { avatarUrl, photoUrl, shareUrl } from "./photo.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 
 /** Contact values are single-line text: no control characters (blocks header/vCard/link injection). */
@@ -364,6 +364,7 @@ function sessionPayload(user: UserRecord) {
     dataId: user.dataId ?? user.nick,
     theme: parseCardTheme(user.theme),
     coverY: clampCoverY(user.coverY),
+    imagePhone: user.imagePhone !== false,
     appearance: user.appearance,
     contacts: user.contacts,
     wrapPassword: user.wrapPassword,
@@ -767,6 +768,7 @@ export async function handleMe(request: Request): Promise<Response> {
 const patchSchema = z.object({
   theme: z.enum(CARD_THEMES).optional(),
   coverY: z.number().min(0).max(100).optional(),
+  imagePhone: z.boolean().optional(),
   appearance: z.enum(["dark", "light"]).optional(),
   displayName: z.string().max(80).regex(NO_CONTROL).optional(),
   contacts: z
@@ -791,6 +793,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (body.data.theme) user.theme = body.data.theme as CardTheme;
   if (body.data.appearance) user.appearance = body.data.appearance;
   if (body.data.coverY !== undefined) user.coverY = clampCoverY(body.data.coverY);
+  if (body.data.imagePhone !== undefined) user.imagePhone = body.data.imagePhone;
   if (body.data.displayName !== undefined) {
     const name = cleanDisplayName(body.data.displayName);
     if (name) user.displayName = name;
@@ -952,6 +955,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   await deleteAllDataBlobs(stores.blobs, nick);
   if (user.photo) await stores.blobs.delete(user.photo.key);
   if (user.avatar) await stores.blobs.delete(user.avatar.key);
+  if (user.share) await stores.blobs.delete(user.share.key);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
@@ -1491,6 +1495,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
       contacts,
       photo: photoUrl(user),
       avatar: avatarUrl(user),
+      share: shareUrl(user),
       url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
     },
     200,

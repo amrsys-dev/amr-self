@@ -2,7 +2,7 @@
   "id": "/",
   "name": "AMR ID",
   "short_name": "AMR ID",
-  "description": "Один вход для всех приложений AMR: профиль и визитка с QR.",
+  "description": "Цифровая визитка и единый контакт: все ваши контакты в одной постоянной ссылке и одном QR. Один вход во все приложения AMR.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",

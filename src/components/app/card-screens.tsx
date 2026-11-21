@@ -32,6 +32,24 @@ export function CardScreens({ app }: { app: App }) {
             onMoveCover={(y) => void saveProfile({ coverY: y })}
             onPickBackground={() => setScreen("card-themes")}
           />
+          <div className="group">
+            <div className="card pad0 set-list">
+              <div className="set-row">
+                <span className="set-label">{t("img_phone")}</span>
+                <button
+                  className={`toggle ${session.imagePhone !== false ? "on" : ""}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={session.imagePhone !== false}
+                  aria-label={t("img_phone")}
+                  onClick={() => void saveProfile({ imagePhone: session.imagePhone === false })}
+                >
+                  <i />
+                </button>
+              </div>
+            </div>
+            <p className="hint">{t("img_phone_hint")}</p>
+          </div>
         </div>
       </>
     )}

@@ -13,7 +13,8 @@ export const Route = createFileRoute("/u/$nick")({
     const theme = new URL(loc.href, "https://amr.local").searchParams.get("t");
     return getPublicCard({ data: { nick: params.nick, theme } });
   },
-  // Link preview in Telegram, WhatsApp and others: the nick, the services, the SELF icon.
+  // Link preview in Telegram, WhatsApp and others: the card picture made by the owner's app
+  // (name, photo, nick, services), else the face photo, else the AMR ID icon. Never the cover alone.
   head: ({ loaderData }) => {
     if (!loaderData) return {};
     let origin = "";
@@ -22,10 +23,12 @@ export const Route = createFileRoute("/u/$nick")({
     } catch {
       origin = "";
     }
+    const abs = (p: string) => (origin && p.startsWith("/") ? `${origin}${p}` : p);
     const services = loaderData.contacts.map((c) => serviceName(c.kind, (k) => translate("en", k))).join(" · ");
     const title = `${loaderData.displayName ? `${loaderData.displayName} · ` : ""}${loaderData.nick} · AMR ID`;
-    const description = services || "AMR ID";
-    const image = loaderData.photo ? `${origin}${loaderData.photo}` : origin ? `${origin}/icons/id-512.png` : "/icons/id-512.png";
+    const description = `AMR ID — digital business card${services ? ` · ${services}` : ""}`;
+    const big = Boolean(loaderData.share);
+    const image = abs(loaderData.share || loaderData.avatar || "/icons/id-512.png");
     return {
       meta: [
         { title },
@@ -36,7 +39,13 @@ export const Route = createFileRoute("/u/$nick")({
         { property: "og:description", content: description },
         { property: "og:url", content: loaderData.url },
         { property: "og:image", content: image },
-        { name: "twitter:card", content: loaderData.photo ? "summary_large_image" : "summary" },
+        ...(big
+          ? [
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+            ]
+          : []),
+        { name: "twitter:card", content: big ? "summary_large_image" : "summary" },
       ],
     };
   },
@@ -44,7 +53,7 @@ export const Route = createFileRoute("/u/$nick")({
   notFoundComponent: () => (
     <div className="app dark">
       <div className="page auth">
-        <h1>SELF</h1>
+        <h1>AMR ID</h1>
       </div>
     </div>
   ),

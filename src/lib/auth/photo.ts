@@ -21,10 +21,16 @@ export function avatarUrl(user: Pick<UserRecord, "nick" | "avatar">): string | n
   return `/api/card-photo/${encodeURIComponent(user.nick.replace(/^@/, ""))}?slot=avatar&v=${user.avatar.v}`;
 }
 
-/** Two pictures per card: the cover (background) and the round face photo. */
-export type PhotoSlot = "cover" | "avatar";
-export const photoSlot = (raw: string | null | undefined): PhotoSlot => (raw === "avatar" ? "avatar" : "cover");
-const field = (slot: PhotoSlot) => (slot === "avatar" ? "avatar" : "photo") as "avatar" | "photo";
+/** Link preview picture (drawn on the owner's phone from the card), for chats. */
+export function shareUrl(user: Pick<UserRecord, "nick" | "share">): string | null {
+  if (!user.share) return null;
+  return `/api/card-photo/${encodeURIComponent(user.nick.replace(/^@/, ""))}?slot=share&v=${user.share.v}`;
+}
+
+/** Pictures of a card: the cover (background), the round face photo and the link preview. */
+export type PhotoSlot = "cover" | "avatar" | "share";
+export const photoSlot = (raw: string | null | undefined): PhotoSlot => (raw === "avatar" ? "avatar" : raw === "share" ? "share" : "cover");
+const field = (slot: PhotoSlot) => (slot === "avatar" ? "avatar" : slot === "share" ? "share" : "photo") as "avatar" | "photo" | "share";
 
 /** JPEG starts with FF D8 FF; WebP is RIFF....WEBP. */
 export function photoType(bytes: Uint8Array): "image/jpeg" | "image/webp" | null {
@@ -51,7 +57,7 @@ export async function handlePhotoPut(request: Request): Promise<Response> {
   await stores.blobs.put(key, bytes, type);
   user[f] = { key, v: Date.now(), type };
   await stores.kv.put(nickKey(user.nick), JSON.stringify(user));
-  return json({ ok: true, photo: photoUrl(user), avatar: avatarUrl(user) });
+  return json({ ok: true, photo: photoUrl(user), avatar: avatarUrl(user), share: shareUrl(user) });
 }
 
 export async function handlePhotoDelete(request: Request): Promise<Response> {

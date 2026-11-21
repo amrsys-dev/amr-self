@@ -11,6 +11,8 @@ export type CardPayload = {
   contacts: PublicContact[];
   photo?: string | null;
   avatar?: string | null;
+  /** Link preview picture for chats (1200×630), when the owner's app has made one. */
+  share?: string | null;
   url: string;
 };
 

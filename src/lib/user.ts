@@ -14,6 +14,8 @@ export type UserRecord = {
   photo?: { key: string; v: number; type?: string };
   /** Small round face photo on the card (like WhatsApp Business); the cover is `photo`. */
   avatar?: { key: string; v: number; type?: string };
+  /** Link preview (1200×630) shown when the card link is sent in Telegram, WhatsApp… */
+  share?: { key: string; v: number; type?: string };
   /** Name shown on the card, any language (e.g. full Arabic or Cyrillic name). Public. */
   displayName?: string;
   createdAt: string;
@@ -33,6 +35,8 @@ export type UserRecord = {
   theme: CardTheme;
   /** Cover photo vertical position, 0–100 (50 = centre). */
   coverY?: number;
+  /** false = phone numbers are not drawn on the card pictures (shared image, link preview). */
+  imagePhone?: boolean;
   /** Plans in AMR apps, set by an AMR admin until payments exist: { cut: { plan: "pro", until } }. */
   plans?: Record<string, { plan: string; until?: number }>;
   wrapPassword: WrappedKey;

@@ -15,7 +15,7 @@ export function AuthScreens({ app }: { app: App }) {
         <div className="page auth">
           {app.idMode ? (
             <>
-              <div className="kicker">AMR ID</div>
+              <div className="kicker">{t("kicker")}</div>
               <h1>{t("app")}</h1>
               <p className="sub">{t("id_sub")}</p>
             </>
