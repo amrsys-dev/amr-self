@@ -18,6 +18,8 @@ import { Route as UNickRouteImport } from './routes/u.$nick'
 import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
+import { Route as ApiEntitlementRouteImport } from './routes/api/entitlement'
+import { Route as ApiAdminPlanRouteImport } from './routes/api/admin/plan'
 import { Route as ApiAuthAmridRouteImport } from './routes/api/auth/amrid'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
 import { Route as ApiAuthRecoveryRouteImport } from './routes/api/auth/recovery'
@@ -84,6 +86,16 @@ const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
 const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
   id: '/api/auth/logout',
   path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEntitlementRoute = ApiEntitlementRouteImport.update({
+  id: '/api/entitlement',
+  path: '/api/entitlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminPlanRoute = ApiAdminPlanRouteImport.update({
+  id: '/api/admin/plan',
+  path: '/api/admin/plan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthAmridRoute = ApiAuthAmridRouteImport.update({
@@ -207,6 +219,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
@@ -240,6 +254,8 @@ export interface FileRoutesByTo {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
@@ -274,6 +290,8 @@ export interface FileRoutesById {
   '/api/auth/kdf': typeof ApiAuthKdfRoute
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
+  '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
   '/api/auth/recovery': typeof ApiAuthRecoveryRoute
@@ -309,6 +327,8 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/entitlement'
+    | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
@@ -342,6 +362,8 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/entitlement'
+    | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
@@ -375,6 +397,8 @@ export interface FileRouteTypes {
     | '/api/auth/kdf'
     | '/api/auth/login'
     | '/api/auth/logout'
+    | '/api/entitlement'
+    | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
     | '/api/auth/recovery'
@@ -409,6 +433,8 @@ export interface RootRouteChildren {
   ApiAuthKdfRoute: typeof ApiAuthKdfRoute
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
+  ApiEntitlementRoute: typeof ApiEntitlementRoute
+  ApiAdminPlanRoute: typeof ApiAdminPlanRoute
   ApiAuthAmridRoute: typeof ApiAuthAmridRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
   ApiAuthRecoveryRoute: typeof ApiAuthRecoveryRoute
@@ -496,6 +522,20 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/logout'
       fullPath: '/api/auth/logout'
       preLoaderRoute: typeof ApiAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/entitlement': {
+      id: '/api/entitlement'
+      path: '/api/entitlement'
+      fullPath: '/api/entitlement'
+      preLoaderRoute: typeof ApiEntitlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/plan': {
+      id: '/api/admin/plan'
+      path: '/api/admin/plan'
+      fullPath: '/api/admin/plan'
+      preLoaderRoute: typeof ApiAdminPlanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/amrid': {
@@ -665,6 +705,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthKdfRoute: ApiAuthKdfRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
+  ApiEntitlementRoute: ApiEntitlementRoute,
+  ApiAdminPlanRoute: ApiAdminPlanRoute,
   ApiAuthAmridRoute: ApiAuthAmridRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,
   ApiAuthRecoveryRoute: ApiAuthRecoveryRoute,

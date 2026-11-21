@@ -9,6 +9,7 @@ export const Route = createFileRoute("/connect")({ component: ConnectPage });
 const APPS: Record<string, { title: string; home: string; returnUrl: string }> = {
   bazar: { title: "AMR Bazar", home: "https://bazar.amrsys.net/", returnUrl: "https://bazar.amrsys.net/api/auth/amrid" },
   self: { title: "SELF", home: "https://self.amrsys.net/", returnUrl: "https://self.amrsys.net/api/auth/amrid" },
+  cut: { title: "AMR Cut", home: "https://cut.amrsys.net/", returnUrl: "https://cut.amrsys.net/" },
   safar: { title: "AMR Safar", home: "https://safar.amrsys.net/", returnUrl: "https://safar.amrsys.net/api/auth/amrid" },
 };
 

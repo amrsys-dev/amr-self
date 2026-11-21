@@ -9,9 +9,10 @@ export function env(name: string): string | undefined {
  * so its secret is derived from the session secret instead of a separate variable.
  */
 export function connectSecret(appId: string, secretEnv: string): string | undefined {
-  if (appId === "self") {
+  // Apps whose server does not check the token (SELF on this server; AMR Cut reads its plan instead) need no variable.
+  if (!secretEnv) {
     const base = sessionSecret();
-    return base ? createHmac("sha256", base).update("amr-connect:self").digest("base64url") : undefined;
+    return base ? createHmac("sha256", base).update(`amr-connect:${appId}`).digest("base64url") : undefined;
   }
   return env(secretEnv);
 }

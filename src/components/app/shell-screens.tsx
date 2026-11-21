@@ -4,6 +4,7 @@ import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { InstallButton } from "./install-button.tsx";
+import { AdminPlans } from "./admin-plans.tsx";
 
 const NOTIF: Record<string, [string, string, string, string]> = {
   ru: ["Уведомления", "Включены", "Запрещены в браузере", "Включить"],
@@ -388,6 +389,7 @@ export function ShellScreens({ app }: { app: App }) {
               <p className="hint">{t("id_apps_hint")}</p>
             </div>
           )}
+          {screen === "profile" && session && idMode && <AdminPlans />}
           {screen === "profile" && !session && (
             <>
               <div className="card hero" style={{ textAlign: "center" }}>

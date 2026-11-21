@@ -33,6 +33,8 @@ export type UserRecord = {
   theme: CardTheme;
   /** Cover photo vertical position, 0–100 (50 = centre). */
   coverY?: number;
+  /** Plans in AMR apps, set by an AMR admin until payments exist: { cut: { plan: "pro", until } }. */
+  plans?: Record<string, { plan: string; until?: number }>;
   wrapPassword: WrappedKey;
   wrapRecovery: WrappedKey;
   /** One wrap per unused recovery code, same order as recoveryHashes. */
