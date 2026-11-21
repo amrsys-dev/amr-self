@@ -11,7 +11,7 @@ export type OtpSendInput = {
 export type OtpSendResult = {
   delivered: boolean;
   provider: "test" | "telegram" | "email" | "relay" | "none";
-  /** Present only in test mode — never set when the Telegram worker is live or VERCEL_ENV=production. */
+  /** Present only in test mode - never set when the Telegram worker is live or VERCEL_ENV=production. */
   testCode?: string;
   retryAfterMs?: number;
 };
@@ -54,7 +54,7 @@ export async function sendOtp(input: OtpSendInput): Promise<OtpSendResult> {
   }
 
   if (input.channel === "telegram") {
-    // Direct Telegram from the app is disabled — the bot token stays on the worker.
+    // Direct Telegram from the app is disabled - the bot token stays on the worker.
     return { delivered: false, provider: "none" };
   }
 

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * GET /api/entitlement?app=cut — the signed plan of the signed-in user for an AMR app.
+ * GET /api/entitlement?app=cut - the signed plan of the signed-in user for an AMR app.
  * Read from the app's page with the AMR ID cookie (same site), so only listed origins get it.
  */
 export const Route = createFileRoute("/api/entitlement")({

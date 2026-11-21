@@ -232,7 +232,7 @@ function drawServiceIcon(ctx: CanvasRenderingContext2D, kind: string, ix: number
 }
 
 /**
- * Link preview for chats (Telegram, WhatsApp…): 1200×630, like the top of the card —
+ * Link preview for chats (Telegram, WhatsApp…): 1200×630, like the top of the card -
  * cover behind, round face photo, name, nick, «AMR ID · digital business card», service icons.
  */
 export async function renderLinkPreview(

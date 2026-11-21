@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 /**
- * /api/cloud?app=cut — the cloud copy of an AMR app's data (paid plans).
+ * /api/cloud?app=cut - the cloud copy of an AMR app's data (paid plans).
  * GET  → the file (X-Cloud-Rev, X-Cloud-At) or 204 when there is none yet.
  * PUT  ?base=<rev> with the file → {rev, at}; 409 {rev} when another device saved first.
  * Only the app's own sites may call it, with the AMR ID sign-in of this browser.

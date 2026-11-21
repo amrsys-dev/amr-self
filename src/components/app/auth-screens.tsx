@@ -245,7 +245,7 @@ export function AuthScreens({ app }: { app: App }) {
             <div className="tiny">Твой личный QR</div>
             <div style={{ fontSize: 15, fontWeight: 700, margin: "6px 0 4px" }}>{session.nick}</div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Только твой. Другой человек получит свой QR со своим ником.</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>Отправь его. Сменишь номер — те, у кого есть визитка, не потеряют тебя.</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>Отправь его. Сменишь номер - те, у кого есть визитка, не потеряют тебя.</div>
           </div>
           <div className="gap" />
           <div className="field">
@@ -378,11 +378,11 @@ export function AuthScreens({ app }: { app: App }) {
 
 /** Nick field: the user types only the name, ".amr" is always shown and added. */
 const NICK_MSG: Record<string, Record<string, string>> = {
-  ru: { checking: "Проверяю…", free: "свободен", taken: "занят — попробуйте добавить фамилию, город или цифры", format: "3–32 символа: латинские буквы, цифры, точка, дефис", reserved: "это служебное слово AMR — выберите другой ник", offline: "Нет связи, проверю позже" },
-  en: { checking: "Checking…", free: "available", taken: "taken — try adding a surname, city or numbers", format: "3–32 characters: Latin letters, digits, dot, hyphen", reserved: "this is a reserved AMR word — choose another nick", offline: "No connection, will check later" },
-  ar: { checking: "جارٍ التحقق…", free: "متاح", taken: "محجوز — أضف اسم العائلة أو المدينة أو أرقامًا", format: "من 3 إلى 32 حرفًا: أحرف لاتينية وأرقام ونقطة وشرطة", reserved: "هذه كلمة محجوزة لـ AMR — اختر اسمًا آخر", offline: "لا يوجد اتصال" },
-  uz: { checking: "Tekshirilmoqda…", free: "bo‘sh", taken: "band — familiya, shahar yoki raqam qo‘shing", format: "3–32 belgi: lotin harflari, raqamlar, nuqta, chiziqcha", reserved: "bu AMR xizmat so‘zi — boshqa nik tanlang", offline: "Aloqa yo‘q" },
-  tj: { checking: "Санҷиш…", free: "озод", taken: "банд — насаб, шаҳр ё рақам илова кунед", format: "3–32 аломат: ҳарфҳои лотинӣ, рақам, нуқта, тире", reserved: "ин калимаи хидматии AMR — ники дигар интихоб кунед", offline: "Пайваст нест" },
+  ru: { checking: "Проверяю…", free: "свободен", taken: "занят - попробуйте добавить фамилию, город или цифры", format: "3-32 символа: латинские буквы, цифры, точка, дефис", reserved: "это служебное слово AMR - выберите другой ник", offline: "Нет связи, проверю позже" },
+  en: { checking: "Checking…", free: "available", taken: "taken - try adding a surname, city or numbers", format: "3-32 characters: Latin letters, digits, dot, hyphen", reserved: "this is a reserved AMR word - choose another nick", offline: "No connection, will check later" },
+  ar: { checking: "جارٍ التحقق…", free: "متاح", taken: "محجوز - أضف اسم العائلة أو المدينة أو أرقامًا", format: "من 3 إلى 32 حرفًا: أحرف لاتينية وأرقام ونقطة وشرطة", reserved: "هذه كلمة محجوزة لـ AMR - اختر اسمًا آخر", offline: "لا يوجد اتصال" },
+  uz: { checking: "Tekshirilmoqda…", free: "bo‘sh", taken: "band - familiya, shahar yoki raqam qo‘shing", format: "3-32 belgi: lotin harflari, raqamlar, nuqta, chiziqcha", reserved: "bu AMR xizmat so‘zi - boshqa nik tanlang", offline: "Aloqa yo‘q" },
+  tj: { checking: "Санҷиш…", free: "озод", taken: "банд - насаб, шаҳр ё рақам илова кунед", format: "3-32 аломат: ҳарфҳои лотинӣ, рақам, нуқта, тире", reserved: "ин калимаи хидматии AMR - ники дигар интихоб кунед", offline: "Пайваст нест" },
 };
 
 /** One status line under every nick field: checking / free / taken / format / reserved. */

@@ -12,7 +12,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content",
       },
       { title: "AMR ID" },
-      { name: "description", content: "AMR ID — цифровая визитка и единый контакт: телефон, мессенджеры, соцсети и сайт в одной постоянной ссылке и одном QR. Один вход во все приложения AMR." },
+      { name: "description", content: "AMR ID - цифровая визитка и единый контакт: телефон, мессенджеры, соцсети и сайт в одной постоянной ссылке и одном QR. Один вход во все приложения AMR." },
       { name: "theme-color", content: "#0B0E11" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },

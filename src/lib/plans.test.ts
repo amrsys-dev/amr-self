@@ -5,7 +5,7 @@ import { adminNicks, isPlanApp, planOf, publicKeyOf, signEntitlement, verifyEnti
 
 const seed = (generateKeyPairSync("ed25519").privateKey.export({ format: "jwk" }) as { d: string }).d;
 
-test("подпись тарифа проверяется открытым ключом, подделка — нет", () => {
+test("подпись тарифа проверяется открытым ключом, подделка - нет", () => {
   const tok = signEntitlement({ app: "cut", sub: "s1", nick: "murad.amr", plan: "pro", iat: 1, exp: 2 }, seed);
   const pub = publicKeyOf(seed);
   assert.equal(verifyEntitlement(tok, pub)?.plan, "pro");

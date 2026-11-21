@@ -2,7 +2,7 @@
   "id": "/",
   "name": "SELF",
   "short_name": "SELF",
-  "description": "Финансы, работа, здоровье и планы — личное приложение AMR.",
+  "description": "Финансы, работа, здоровье и планы - личное приложение AMR.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",

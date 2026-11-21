@@ -36,7 +36,7 @@ export function AdminPlans() {
     setBusy(false);
     if (!r.ok) return setMsg(r.status === 404 ? "Такого ника нет" : "Не сохранилось");
     const p = r.data.plan;
-    setMsg(`Готово: @${n} — ${APP_NAME[app]}: ${PLAN_NAME[p?.plan ?? "free"]}${p?.until ? ` до ${new Date(p.until).toLocaleDateString("ru-RU")}` : ""}. Приложение увидит при следующем открытии с интернетом.`);
+    setMsg(`Готово: @${n} - ${APP_NAME[app]}: ${PLAN_NAME[p?.plan ?? "free"]}${p?.until ? ` до ${new Date(p.until).toLocaleDateString("ru-RU")}` : ""}. Приложение увидит при следующем открытии с интернетом.`);
   }
 
   return (

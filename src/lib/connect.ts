@@ -1,7 +1,7 @@
 /**
  * «Войти через AMR ID» для приложений AMR (сейчас: AMR Bazar).
  * Токен: base64url(JSON) + "." + base64url(HMAC-SHA256(<base64url-JSON-строка>, секрет приложения)).
- * Возврат — только на адрес из белого списка (защита от открытого редиректа).
+ * Возврат - только на адрес из белого списка (защита от открытого редиректа).
  */
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 

@@ -1,5 +1,5 @@
 /**
- * Training consistency the way workout trackers show it: a Mon–Sun strip with
+ * Training consistency the way workout trackers show it: a Mon-Sun strip with
  * the days you trained, the week's count and minutes, and a streak of
  * consecutive weeks with at least one workout.
  */
