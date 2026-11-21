@@ -3,7 +3,7 @@ import { useBackLayer } from "@/lib/back-stack.ts";
 
 export type NickState = "" | "checking" | "free" | "taken" | "format" | "reserved" | "offline";
 import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
-import { renderCardImage } from "@/lib/card/share-image.ts";
+import { renderCardImage, renderLinkPreview } from "@/lib/card/share-image.ts";
 import { serviceName } from "../contact-icons.tsx";
 import { contactDetail } from "../qr-card.tsx";
 import type { Contact, ContactKind, PublicContact } from "@/lib/card/visibility.ts";
@@ -217,12 +217,49 @@ export function useIdApp() {
     accountIdRef.current = session ? accountIdOf(session) : null;
   }, [session]);
 
-  const origin = "https://self.amrsys.net"; // public card always on the production domain, never a Vercel preview
+  const origin = "https://id.amrsys.net"; // public card always on the AMR ID production domain, never a Vercel preview
   const cardUrl = session ? `${origin}${session.cardPath}` : origin;
   const publicContacts: PublicContact[] = useMemo(
     () => (session ? toPublicContacts(session.contacts, t("listed_by_owner")) : []),
     [session, lang],
   );
+
+  // Link preview for chats: when the card changes, the phone draws a fresh 1200×630 picture
+  // (photo, name, nick, services) and stores it, so a shared link shows the card, not the cover alone.
+  const previewSig = session
+    ? JSON.stringify([session.nick, session.displayName, session.theme, session.coverY, session.photo, session.avatar, publicContacts.map((c) => c.kind), lang])
+    : "";
+  useEffect(() => {
+    if (!session || !previewSig) return;
+    const key = `amr-id:preview:${session.nick}`;
+    try {
+      if (localStorage.getItem(key) === previewSig) return;
+    } catch {
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const input = {
+          nick: session.nick,
+          displayName: session.displayName,
+          theme: session.theme,
+          coverY: session.coverY,
+          photo: session.photo,
+          avatar: session.avatar,
+          contacts: publicContacts,
+          url: cardUrl,
+          tag: t("og_tag"),
+        };
+        let blob = await renderLinkPreview(input, 0.82);
+        if (blob.size > 380 * 1024) blob = await renderLinkPreview(input, 0.6);
+        const res = await fetch("/api/me/photo?slot=share", { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "image/jpeg" }, body: blob });
+        if (res.ok) localStorage.setItem(key, previewSig);
+      } catch {
+        /* next change tries again */
+      }
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [previewSig]);
 
   function fail(status: number, data: { error?: string }) {
     if (status === 429) setErr(t("rate_limited"));

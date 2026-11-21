@@ -6,7 +6,7 @@ import { ARGON2_PARAMS } from "../crypto.ts";
 import { b64url } from "../crypto.ts";
 import { deleteAllDataBlobs, putVersionedBlob, readDataVersion } from "../data/versions.ts";
 import { emailOtpEnabled, isTestMode, publicCardOrigin, recoveryCodesCount, sessionSecret, telegramOtpLive, vercelEnv } from "../env.server.ts";
-import { avatarUrl, photoUrl } from "./photo.ts";
+import { avatarUrl, photoUrl, shareUrl } from "./photo.ts";
 import { clientIp, json, jsonWithCookie, limits, readJson } from "../http.ts";
 
 /** Contact values are single-line text: no control characters (blocks header/vCard/link injection). */
@@ -952,6 +952,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   await deleteAllDataBlobs(stores.blobs, nick);
   if (user.photo) await stores.blobs.delete(user.photo.key);
   if (user.avatar) await stores.blobs.delete(user.avatar.key);
+  if (user.share) await stores.blobs.delete(user.share.key);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
@@ -1491,6 +1492,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
       contacts,
       photo: photoUrl(user),
       avatar: avatarUrl(user),
+      share: shareUrl(user),
       url: origin ? `${origin}${publicCardPath(user.nick)}` : publicCardPath(user.nick),
     },
     200,
