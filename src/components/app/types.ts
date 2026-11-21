@@ -25,6 +25,7 @@ export type Screen =
   | "plans"
   | "card"
   | "card-themes"
+  | "contacts"
   | "sec-2fa-change"
   | "account-delete"
   | "nick-change"

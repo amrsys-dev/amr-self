@@ -340,7 +340,16 @@ export function ShellScreens({ app }: { app: App }) {
                 </div>
               </div>
               <div className="card pad0 set-list">
+                <LinkRow label={t("contacts_title")} onClick={() => setScreen("contacts")} />
+              </div>
+              <div className="card pad0 set-list">
                 <LinkRow label={t("card_bg")} onClick={() => setScreen("card-themes")} />
+                <div className="set-row">
+                  <span className="set-label">{t("img_phone")}</span>
+                  <button className={`toggle ${session.imagePhone !== false ? "on" : ""}`} type="button" role="switch" aria-checked={session.imagePhone !== false} aria-label={t("img_phone")} onClick={() => void saveProfile({ imagePhone: session.imagePhone === false })}>
+                    <i />
+                  </button>
+                </div>
                 <DarkRow mode={uiMode} systemDark={app.systemDark} chooseMode={chooseMode} t={t} />
                 <LangRow lang={lang} setLang={setLang} t={t} />
                 {idMode ? null : <CurrencyRow t={t} />}

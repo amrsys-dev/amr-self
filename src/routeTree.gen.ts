@@ -36,6 +36,7 @@ import { Route as ApiMeGoogleRouteImport } from './routes/api/me/google'
 import { Route as ApiMeNickRouteImport } from './routes/api/me/nick'
 import { Route as ApiMeOtpChannelRouteImport } from './routes/api/me/otp-channel'
 import { Route as ApiMePhotoRouteImport } from './routes/api/me/photo'
+import { Route as ApiMeSavedRouteImport } from './routes/api/me/saved'
 import { Route as ApiMeRecoveryCodesRouteImport } from './routes/api/me/recovery-codes'
 import { Route as ApiNickCheckRouteImport } from './routes/api/nick/check'
 import { Route as ApiNickSuggestRouteImport } from './routes/api/nick/suggest'
@@ -174,6 +175,11 @@ const ApiMeOtpChannelRoute = ApiMeOtpChannelRouteImport.update({
   path: '/api/me/otp-channel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeSavedRoute = ApiMeSavedRouteImport.update({
+  id: '/api/me/saved',
+  path: '/api/me/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMePhotoRoute = ApiMePhotoRouteImport.update({
   id: '/api/me/photo',
   path: '/api/me/photo',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
+  '/api/me/saved': typeof ApiMeSavedRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
+  '/api/me/saved': typeof ApiMeSavedRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
@@ -315,6 +323,7 @@ export interface FileRoutesById {
   '/api/me/nick': typeof ApiMeNickRoute
   '/api/me/otp-channel': typeof ApiMeOtpChannelRoute
   '/api/me/photo': typeof ApiMePhotoRoute
+  '/api/me/saved': typeof ApiMeSavedRoute
   '/api/me/recovery-codes': typeof ApiMeRecoveryCodesRoute
   '/api/nick/check': typeof ApiNickCheckRoute
   '/api/nick/suggest': typeof ApiNickSuggestRoute
@@ -353,6 +362,7 @@ export interface FileRouteTypes {
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
+    | '/api/me/saved'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
@@ -389,6 +399,7 @@ export interface FileRouteTypes {
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
+    | '/api/me/saved'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/api/me/nick'
     | '/api/me/otp-channel'
     | '/api/me/photo'
+    | '/api/me/saved'
     | '/api/me/recovery-codes'
     | '/api/nick/check'
     | '/api/nick/suggest'
@@ -462,6 +474,7 @@ export interface RootRouteChildren {
   ApiMeNickRoute: typeof ApiMeNickRoute
   ApiMeOtpChannelRoute: typeof ApiMeOtpChannelRoute
   ApiMePhotoRoute: typeof ApiMePhotoRoute
+  ApiMeSavedRoute: typeof ApiMeSavedRoute
   ApiMeRecoveryCodesRoute: typeof ApiMeRecoveryCodesRoute
   ApiNickCheckRoute: typeof ApiNickCheckRoute
   ApiNickSuggestRoute: typeof ApiNickSuggestRoute
@@ -663,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMePhotoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/saved': {
+      id: '/api/me/saved'
+      path: '/api/me/saved'
+      fullPath: '/api/me/saved'
+      preLoaderRoute: typeof ApiMeSavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/recovery-codes': {
       id: '/api/me/recovery-codes'
       path: '/api/me/recovery-codes'
@@ -742,6 +762,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMeNickRoute: ApiMeNickRoute,
   ApiMeOtpChannelRoute: ApiMeOtpChannelRoute,
   ApiMePhotoRoute: ApiMePhotoRoute,
+  ApiMeSavedRoute: ApiMeSavedRoute,
   ApiMeRecoveryCodesRoute: ApiMeRecoveryCodesRoute,
   ApiNickCheckRoute: ApiNickCheckRoute,
   ApiNickSuggestRoute: ApiNickSuggestRoute,

@@ -4,6 +4,7 @@ import { useBackLayer } from "@/lib/back-stack.ts";
 export type NickState = "" | "checking" | "free" | "taken" | "format" | "reserved" | "offline";
 import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
 import { renderCardImage, renderLinkPreview } from "@/lib/card/share-image.ts";
+import { clearLocalSaved, localSaved } from "@/lib/card/saved-local.ts";
 import { serviceName } from "../contact-icons.tsx";
 import { contactDetail } from "../qr-card.tsx";
 import type { Contact, ContactKind, PublicContact } from "@/lib/card/visibility.ts";
@@ -223,6 +224,16 @@ export function useIdApp() {
     () => (session ? toPublicContacts(session.contacts, t("listed_by_owner")) : []),
     [session, lang],
   );
+
+  // Cards saved on this phone before sign-in go into the account's «Contacts».
+  useEffect(() => {
+    if (!session) return;
+    const nicks = localSaved();
+    if (!nicks.length) return;
+    void api("/api/me/saved", { method: "POST", body: JSON.stringify({ nicks }) }).then((r) => {
+      if (r.ok || r.status === 404) clearLocalSaved();
+    });
+  }, [session?.nick]);
 
   // Link preview for chats: when the card changes, the phone draws a fresh 1200×630 picture
   // (photo, name, nick, services) and stores it, so a shared link shows the card, not the cover alone.

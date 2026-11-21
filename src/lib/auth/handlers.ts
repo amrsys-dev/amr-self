@@ -956,6 +956,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   if (user.photo) await stores.blobs.delete(user.photo.key);
   if (user.avatar) await stores.blobs.delete(user.avatar.key);
   if (user.share) await stores.blobs.delete(user.share.key);
+  await stores.kv.delete(`saved:${user.dataId ?? user.nick}`);
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
