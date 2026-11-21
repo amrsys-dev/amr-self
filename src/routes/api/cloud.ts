@@ -42,7 +42,7 @@ async function handle(request: Request, method: "GET" | "PUT"): Promise<Response
     headers.set("Content-Type", "application/octet-stream");
     headers.set("X-Cloud-Rev", String(got.meta.rev));
     headers.set("X-Cloud-At", String(got.meta.at));
-    return new Response(got.data, { status: 200, headers });
+    return new Response(got.data as unknown as BodyInit, { status: 200, headers });
   }
   const base = Number(url.searchParams.get("base") ?? "-1");
   if (!Number.isInteger(base) || base < 0) return json({ error: "bad_base" }, 400);
