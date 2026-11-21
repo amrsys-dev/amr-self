@@ -19,6 +19,7 @@ import { Route as ApiAuthKdfRouteImport } from './routes/api/auth/kdf'
 import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiEntitlementRouteImport } from './routes/api/entitlement'
+import { Route as ApiCloudRouteImport } from './routes/api/cloud'
 import { Route as ApiAdminPlanRouteImport } from './routes/api/admin/plan'
 import { Route as ApiAuthAmridRouteImport } from './routes/api/auth/amrid'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
@@ -86,6 +87,11 @@ const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
 const ApiAuthLogoutRoute = ApiAuthLogoutRouteImport.update({
   id: '/api/auth/logout',
   path: '/api/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCloudRoute = ApiCloudRouteImport.update({
+  id: '/api/cloud',
+  path: '/api/cloud',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEntitlementRoute = ApiEntitlementRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/cloud': typeof ApiCloudRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/cloud': typeof ApiCloudRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   '/api/auth/login': typeof ApiAuthLoginRoute
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
+  '/api/cloud': typeof ApiCloudRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -328,6 +337,7 @@ export interface FileRouteTypes {
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/entitlement'
+    | '/api/cloud'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/entitlement'
+    | '/api/cloud'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/api/auth/login'
     | '/api/auth/logout'
     | '/api/entitlement'
+    | '/api/cloud'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -434,6 +446,7 @@ export interface RootRouteChildren {
   ApiAuthLoginRoute: typeof ApiAuthLoginRoute
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiEntitlementRoute: typeof ApiEntitlementRoute
+  ApiCloudRoute: typeof ApiCloudRoute
   ApiAdminPlanRoute: typeof ApiAdminPlanRoute
   ApiAuthAmridRoute: typeof ApiAuthAmridRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
@@ -529,6 +542,13 @@ declare module '@tanstack/react-router' {
       path: '/api/entitlement'
       fullPath: '/api/entitlement'
       preLoaderRoute: typeof ApiEntitlementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cloud': {
+      id: '/api/cloud'
+      path: '/api/cloud'
+      fullPath: '/api/cloud'
+      preLoaderRoute: typeof ApiCloudRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/plan': {
@@ -706,6 +726,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiEntitlementRoute: ApiEntitlementRoute,
+  ApiCloudRoute: ApiCloudRoute,
   ApiAdminPlanRoute: ApiAdminPlanRoute,
   ApiAuthAmridRoute: ApiAuthAmridRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,
