@@ -1,7 +1,7 @@
 import { toNickChars } from "@/lib/nick-translit.ts";
 import { Header, TestBanner, LangPicker } from "./ui.tsx";
 import { RecoveryForm } from "./recovery-form.tsx";
-import { checkPassword } from "@/lib/password-policy.ts";
+import { checkPassword, passwordChecks } from "@/lib/password-policy.ts";
 import { homeScreen, type App } from "./use-id-app.ts";
 
 /** Welcome, sign-up, login, recovery. */
@@ -95,40 +95,67 @@ export function AuthScreens({ app }: { app: App }) {
         <div className="page auth">
           <h1>{t("password")}</h1>
           <p className="sub">{t("password_hint")}</p>
-          <div className="field">
-            <label>{t("password")}</label>
-            <div className="box">
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-              <button type="button" className="password-toggle" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t("hide_password") : t("show_password")}>{showPassword ? t("hide_password") : t("show_password")}</button>
-            </div>
-          </div>
-          <div className="field">
-            <label>{t("password_again")}</label>
-            <div className="box">
-              <input type={showPassword2 ? "text" : "password"} value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" />
-              <button type="button" className="password-toggle" onClick={() => setShowPassword2((v) => !v)} aria-label={showPassword2 ? t("hide_password") : t("show_password")}>{showPassword2 ? t("hide_password") : t("show_password")}</button>
-            </div>
-          </div>
-          {password && password2 && password !== password2 ? <div className="err">{t("mismatch")}</div> : null}
-          {err ? <div className="err">{err}</div> : null}
-          <div className="btns">
-            <button
-              className={`btn p ${busy || checkPassword(password, nick).ok === false || password !== password2 ? "off" : ""}`}
-              disabled={busy}
-              type="button"
-              onClick={() => {
-                const policy = checkPassword(password, nick);
-                if (!policy.ok) {
-                  setErr(t(policy.reason === "short" ? "password_short" : "password_weak"));
-                  return;
-                }
-                setErr("");
-                void submitSignup();
-              }}
-            >
-              {t("next")}
-            </button>
-          </div>
+          {(() => {
+            const c = passwordChecks(password, nick);
+            const ok1 = c.len && c.mix && c.simple && c.nick;
+            const match = password2.length > 0 && password === password2;
+            const bad1 = password.length > 0 && !ok1;
+            const bad2 = password2.length > 0 && !match && (password2.length >= password.length || !password.startsWith(password2));
+            const row = (good: boolean, label: string) => (
+              <li className={good ? "ok" : password ? "no" : ""}>
+                <span aria-hidden="true">{good ? "✓" : password ? "✕" : "•"}</span>
+                {label}
+              </li>
+            );
+            return (
+              <>
+                <div className={`field ${bad1 ? "bad" : ok1 ? "good" : ""}`}>
+                  <label>{t("password")} <em className="req">*</em></label>
+                  <div className="box">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => { setErr(""); setPassword(e.target.value); }} autoComplete="new-password" aria-invalid={bad1} />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? t("hide_password") : t("show_password")}>{showPassword ? t("hide_password") : t("show_password")}</button>
+                  </div>
+                </div>
+                <ul className="pwcheck" aria-live="polite">
+                  {row(c.len, t("pw_len"))}
+                  {row(c.mix, t("pw_mix"))}
+                  {password && !c.simple ? row(false, t("pw_simple")) : null}
+                  {password && !c.nick ? row(false, t("pw_nick")) : null}
+                </ul>
+                <div className={`field ${bad2 ? "bad" : match && ok1 ? "good" : ""}`}>
+                  <label>{t("password_again")} <em className="req">*</em></label>
+                  <div className="box">
+                    <input type={showPassword2 ? "text" : "password"} value={password2} onChange={(e) => { setErr(""); setPassword2(e.target.value); }} autoComplete="new-password" aria-invalid={bad2} />
+                    <button type="button" className="password-toggle" onClick={() => setShowPassword2((v) => !v)} aria-label={showPassword2 ? t("hide_password") : t("show_password")}>{showPassword2 ? t("hide_password") : t("show_password")}</button>
+                  </div>
+                </div>
+                {bad2 ? <div className="err">{t("mismatch")}</div> : match && ok1 ? <div className="okline">✓ {t("pw_match")}</div> : null}
+                {err ? <div className="err">{err}</div> : null}
+                <div className="btns">
+                  <button
+                    className={`btn p ${busy || !ok1 || !match ? "off" : ""}`}
+                    disabled={busy}
+                    type="button"
+                    onClick={() => {
+                      const policy = checkPassword(password, nick);
+                      if (!policy.ok) {
+                        setErr(t(policy.reason === "short" ? "password_short" : policy.reason === "same_as_nick" ? "pw_nick" : "password_weak"));
+                        return;
+                      }
+                      if (password !== password2) {
+                        setErr(t("mismatch"));
+                        return;
+                      }
+                      setErr("");
+                      void submitSignup();
+                    }}
+                  >
+                    {t("next")}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
           {busy ? <p className="hint" role="status">{t("creating_keys")}</p> : null}
         </div>
       </>

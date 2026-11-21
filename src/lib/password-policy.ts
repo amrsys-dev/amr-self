@@ -1,4 +1,8 @@
-/** Password rules from SECURITY review: at least 8 characters, reject weak/common ones. */
+/**
+ * Password rules: at least 8 characters with letters (any alphabet) and digits, not a common
+ * password, not the nick. Simple to follow for everyone; the key is stretched by the KDF anyway.
+ * The sign-up screen shows each rule live (green / red) so people see what to fix.
+ */
 
 const COMMON = new Set(
   [
@@ -16,19 +20,25 @@ const COMMON = new Set(
 
 export type PasswordPolicyResult = { ok: true } | { ok: false; reason: "short" | "weak" | "same_as_nick" };
 
-export function checkPassword(password: string, nick?: string): PasswordPolicyResult {
-  if (password.length < 8) return { ok: false, reason: "short" };
+export type PasswordChecks = { len: boolean; mix: boolean; simple: boolean; nick: boolean };
+
+/** Each rule separately, for the live checklist. */
+export function passwordChecks(password: string, nick?: string): PasswordChecks {
   const lower = password.toLowerCase();
-  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) return { ok: false, reason: "weak" };
-  if (COMMON.has(lower)) return { ok: false, reason: "weak" };
-  if (/^(.)\1+$/.test(password)) return { ok: false, reason: "weak" };
-  if (/^\d+$/.test(password) && /^(0123|1234|2345|3456|4567|5678|6789|9876|0000|1111|2222)/.test(password)) {
-    return { ok: false, reason: "weak" };
-  }
-  if (nick) {
-    const compact = nick.replace(/^@/, "").toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (compact.length >= 4 && lower.includes(compact)) return { ok: false, reason: "same_as_nick" };
-  }
+  const compact = (nick ?? "").replace(/^@/, "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  return {
+    len: password.length >= 8,
+    mix: /\p{L}/u.test(password) && /\p{N}/u.test(password),
+    simple: !(COMMON.has(lower) || /^(.)\1+$/.test(password) || /^(?:0123|1234|2345|3456|4567|5678|6789|9876|qwerty|asdf)/i.test(password)),
+    nick: !(compact.length >= 4 && lower.replace(/[^\p{L}\p{N}]/gu, "").includes(compact)),
+  };
+}
+
+export function checkPassword(password: string, nick?: string): PasswordPolicyResult {
+  const c = passwordChecks(password, nick);
+  if (!c.len) return { ok: false, reason: "short" };
+  if (!c.nick) return { ok: false, reason: "same_as_nick" };
+  if (!c.mix || !c.simple) return { ok: false, reason: "weak" };
   return { ok: true };
 }
 
