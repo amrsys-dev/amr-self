@@ -236,7 +236,11 @@ function drawServiceIcon(ctx: CanvasRenderingContext2D, kind: string, ix: number
  * cover behind, round face photo, name, nick, «AMR ID · digital business card», service icons.
  */
 export async function renderLinkPreview(
-  input: Pick<ShareImageInput, "nick" | "displayName" | "theme" | "contacts" | "photo" | "coverY" | "avatar" | "url"> & { tag: string },
+  input: Pick<ShareImageInput, "nick" | "displayName" | "theme" | "contacts" | "photo" | "coverY" | "avatar" | "url"> & {
+    tag: string;
+    /** Line under the name: the phone number, else a username, else the nick. */
+    sub?: string;
+  },
   quality = 0.82,
 ): Promise<Blob> {
   const PW = 1200;
@@ -313,7 +317,7 @@ export async function renderLinkPreview(
   ctx.textAlign = "left";
   ctx.fillStyle = "rgba(255,255,255,.82)";
   ctx.font = `600 36px ${FONT}`;
-  ctx.fillText(fit(ctx, input.nick, maxW), tx, 290);
+  ctx.fillText(fit(ctx, input.sub || input.nick, maxW), tx, 290);
 
   // «AMR ID · digital business card» badge
   ctx.font = `700 28px ${FONT}`;

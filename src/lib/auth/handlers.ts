@@ -364,6 +364,7 @@ function sessionPayload(user: UserRecord) {
     dataId: user.dataId ?? user.nick,
     theme: parseCardTheme(user.theme),
     coverY: clampCoverY(user.coverY),
+    imagePhone: user.imagePhone !== false,
     appearance: user.appearance,
     contacts: user.contacts,
     wrapPassword: user.wrapPassword,
@@ -767,6 +768,7 @@ export async function handleMe(request: Request): Promise<Response> {
 const patchSchema = z.object({
   theme: z.enum(CARD_THEMES).optional(),
   coverY: z.number().min(0).max(100).optional(),
+  imagePhone: z.boolean().optional(),
   appearance: z.enum(["dark", "light"]).optional(),
   displayName: z.string().max(80).regex(NO_CONTROL).optional(),
   contacts: z
@@ -791,6 +793,7 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (body.data.theme) user.theme = body.data.theme as CardTheme;
   if (body.data.appearance) user.appearance = body.data.appearance;
   if (body.data.coverY !== undefined) user.coverY = clampCoverY(body.data.coverY);
+  if (body.data.imagePhone !== undefined) user.imagePhone = body.data.imagePhone;
   if (body.data.displayName !== undefined) {
     const name = cleanDisplayName(body.data.displayName);
     if (name) user.displayName = name;

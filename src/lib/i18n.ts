@@ -8,6 +8,8 @@ export function isRtl(lang: Lang): boolean {
 const t = {
   ru: {
     app: "AMR ID",
+    img_phone: "Номер на картинке визитки",
+    img_phone_hint: "Номер телефона виден на картинке визитки и в превью ссылки — так привычнее. Выключите — вместо номера будет ваш юзернейм.",
     og_tag: "Цифровая визитка",
     kicker: "Цифровая визитка и единый контакт",
     welcome_title: "Один QR на все контакты",
@@ -226,6 +228,8 @@ const t = {
   },
   ar: {
     app: "AMR ID",
+    img_phone: "الرقم على صورة البطاقة",
+    img_phone_hint: "يظهر رقم الهاتف على صورة البطاقة وفي معاينة الرابط — هذا مألوف أكثر. أوقفه — وسيظهر اسم المستخدم بدل الرقم.",
     og_tag: "بطاقة أعمال رقمية",
     kicker: "بطاقة أعمال رقمية وجهة اتصال موحّدة",
     welcome_title: "رمز QR واحد لجميع جهات الاتصال",
@@ -426,6 +430,8 @@ const t = {
   },
   uz: {
     app: "AMR ID",
+    img_phone: "Vizitka rasmida raqam",
+    img_phone_hint: "Telefon raqami vizitka rasmida va havola ko'rinishida ko'rinadi — bu odatiy. O'chirsangiz — raqam o'rniga yuzerneymingiz bo'ladi.",
     og_tag: "Raqamli vizitka",
     kicker: "Raqamli vizitka va yagona kontakt",
     welcome_title: "Barcha kontaktlar uchun bitta QR",
@@ -626,6 +632,8 @@ const t = {
   },
   tj: {
     app: "AMR ID",
+    img_phone: "Рақам дар расми визитка",
+    img_phone_hint: "Рақами телефон дар расми визитка ва пешнамоиши пайванд намоён аст — ин одатӣ аст. Хомӯш кунед — ба ҷои рақам юзернейми шумо мешавад.",
     og_tag: "Визиткаи рақамӣ",
     kicker: "Визиткаи рақамӣ ва тамоси ягона",
     welcome_title: "Як QR барои ҳамаи тамосҳо",
@@ -826,6 +834,8 @@ const t = {
   },
   en: {
     app: "AMR ID",
+    img_phone: "Number on the card picture",
+    img_phone_hint: "Your phone number shows on the card picture and in the link preview — people are used to numbers. Turn it off to show your username instead.",
     og_tag: "Digital business card",
     kicker: "Digital business card and one contact",
     welcome_title: "One QR for all contacts",
@@ -1044,6 +1054,8 @@ const t = {
   },
   hi: {
     app: "AMR ID",
+    img_phone: "कार्ड की तस्वीर पर नंबर",
+    img_phone_hint: "फ़ोन नंबर कार्ड की तस्वीर और लिंक प्रीव्यू में दिखता है — लोग नंबर के आदी हैं। बंद करें — नंबर की जगह आपका यूज़रनेम दिखेगा।",
     og_tag: "डिजिटल विज़िटिंग कार्ड",
     kicker: "डिजिटल विज़िटिंग कार्ड और एक संपर्क",
     welcome_title: "सभी संपर्कों के लिए एक QR",
@@ -1262,6 +1274,8 @@ const t = {
   },
   bn: {
     app: "AMR ID",
+    img_phone: "কার্ডের ছবিতে নম্বর",
+    img_phone_hint: "ফোন নম্বর কার্ডের ছবিতে ও লিংকের প্রিভিউতে দেখা যায় — মানুষ নম্বরেই অভ্যস্ত। বন্ধ করলে — নম্বরের বদলে আপনার ইউজারনেম দেখাবে।",
     og_tag: "ডিজিটাল ভিজিটিং কার্ড",
     kicker: "ডিজিটাল ভিজিটিং কার্ড ও এক যোগাযোগ",
     welcome_title: "সব পরিচিতির জন্য এক QR",
@@ -1480,6 +1494,8 @@ const t = {
   },
   ur: {
     app: "AMR ID",
+    img_phone: "کارڈ کی تصویر پر نمبر",
+    img_phone_hint: "فون نمبر کارڈ کی تصویر اور لنک کے پیش منظر میں دکھتا ہے — لوگ نمبر کے عادی ہیں۔ بند کریں — نمبر کی جگہ آپ کا یوزرنیم دکھے گا۔",
     og_tag: "ڈیجیٹل وزیٹنگ کارڈ",
     kicker: "ڈیجیٹل وزیٹنگ کارڈ اور ایک رابطہ",
     welcome_title: "تمام رابطوں کے لیے ایک QR",

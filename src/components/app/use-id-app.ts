@@ -226,8 +226,22 @@ export function useIdApp() {
 
   // Link preview for chats: when the card changes, the phone draws a fresh 1200×630 picture
   // (photo, name, nick, services) and stores it, so a shared link shows the card, not the cover alone.
+  // Under the name: the phone number (people are used to numbers), else a username, else the nick.
+  // The owner can switch numbers off for the pictures (session.imagePhone === false).
+  const previewSub = (() => {
+    if (!session) return "";
+    const vis = session.contacts.filter((c) => c.visible && c.value.trim());
+    const phone = session.imagePhone !== false ? vis.find((c) => c.kind === "phone") : undefined;
+    if (phone) return phone.value.trim();
+    const user = vis.find((c) => c.kind === "telegram" || c.kind === "instagram" || c.kind === "tiktok" || c.kind === "x");
+    if (user) {
+      const v = user.value.trim().replace(/^https?:\/\/[^/]+\//i, "").replace(/\/.*$/, "").replace(/^@/, "");
+      if (v) return `@${v}`;
+    }
+    return session.nick;
+  })();
   const previewSig = session
-    ? JSON.stringify([session.nick, session.displayName, session.theme, session.coverY, session.photo, session.avatar, publicContacts.map((c) => c.kind), lang])
+    ? JSON.stringify([session.nick, session.displayName, session.theme, session.coverY, session.photo, session.avatar, publicContacts.map((c) => c.kind), previewSub, lang])
     : "";
   useEffect(() => {
     if (!session || !previewSig) return;
@@ -249,6 +263,7 @@ export function useIdApp() {
           contacts: publicContacts,
           url: cardUrl,
           tag: t("og_tag"),
+          sub: previewSub,
         };
         let blob = await renderLinkPreview(input, 0.82);
         if (blob.size > 380 * 1024) blob = await renderLinkPreview(input, 0.6);
@@ -896,12 +911,12 @@ export function useIdApp() {
       displayName: session.displayName,
       url: cardUrl,
       theme: session.theme,
-      contacts: publicContacts,
+      contacts: session.imagePhone === false ? publicContacts.filter((c) => c.kind !== "phone") : publicContacts,
       name: (c) => serviceName(c.kind, t),
       // The image cannot be tapped, so it shows the real username or number.
       value: (c) => {
         const own = session.contacts.find((x) => x.id === c.id);
-        if (c.kind === "whatsapp") return own?.value ?? "";
+        if (c.kind === "whatsapp") return session.imagePhone === false ? c.display : own?.value ?? "";
         return c.display || own?.value || contactDetail(c, t);
       },
       photo: session.photo,

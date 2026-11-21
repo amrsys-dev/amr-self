@@ -54,6 +54,8 @@ export type SessionState = {
   displayName?: string;
   theme: CardTheme;
   coverY?: number;
+  /** Phone number on the card pictures (default on). */
+  imagePhone?: boolean;
   appearance: "dark" | "light";
   contacts: Contact[];
   googleLinked?: boolean;
