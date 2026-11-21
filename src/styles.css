@@ -909,3 +909,14 @@ a.btn{text-decoration:none}
 .saveid .idbtn{width:100%;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center}
 .saveid-done{margin:0;padding:10px 12px;border-radius:12px;background:rgba(0,212,255,.12);font-weight:600;text-align:center}
 .saveid-hint{margin:0;font-size:13px;opacity:.75;text-align:center}
+
+/* Sign-up: live password rules, red / green fields, required mark */
+.req{color:#E5484D;font-style:normal;font-weight:800}
+.field.bad .box{border-color:#E5484D;box-shadow:0 0 0 3px rgba(229,72,77,.15)}
+.field.good .box{border-color:#16A34A}
+.pwcheck{list-style:none;margin:-4px 0 14px;padding:0;display:grid;gap:4px;font-size:13.5px;color:var(--muted)}
+.pwcheck li{display:flex;align-items:center;gap:8px}
+.pwcheck li span{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:800;background:var(--line);color:var(--muted);flex:none}
+.pwcheck li.ok{color:#16A34A}.pwcheck li.ok span{background:#16A34A;color:#fff}
+.pwcheck li.no{color:#E5484D}.pwcheck li.no span{background:#E5484D;color:#fff}
+.okline{color:#16A34A;font-size:13px;font-weight:650;margin-top:8px}

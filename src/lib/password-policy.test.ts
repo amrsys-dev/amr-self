@@ -19,9 +19,11 @@ describe("password policy", () => {
   it("accepts a reasonably long unique password", () => {
     assert.deepEqual(checkPassword("Correct-battery-7!"), { ok: true });
     assert.deepEqual(checkPassword("Aa1!bcde"), { ok: true });
-    const noUpper = checkPassword("aa1!bcde"); assert.equal(noUpper.ok, false);
-    const noLower = checkPassword("AA1!BCDE"); assert.equal(noLower.ok, false);
+    // letters + digits are enough (no forced capitals or symbols); any alphabet counts
+    assert.deepEqual(checkPassword("murad2024x"), { ok: true });
+    assert.deepEqual(checkPassword("мурад2024"), { ok: true });
+    assert.deepEqual(checkPassword("مراد20245"), { ok: true });
     const noDigit = checkPassword("AAbb!cde"); assert.equal(noDigit.ok, false);
-    const noSymbol = checkPassword("AAbb1234"); assert.equal(noSymbol.ok, false);
+    const noLetter = checkPassword("90817263"); assert.equal(noLetter.ok, false);
   });
 });
