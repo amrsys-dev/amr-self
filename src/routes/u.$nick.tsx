@@ -6,7 +6,8 @@ import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
 import { CardHero } from "@/components/qr-card.tsx";
 import { serviceName } from "@/components/contact-icons.tsx";
 import { downloadBlob } from "@/components/app/use-id-app.ts";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { addLocalSaved } from "@/lib/card/saved-local.ts";
 
 export const Route = createFileRoute("/u/$nick")({
   loader: ({ params, location: loc }) => {
@@ -71,7 +72,56 @@ function PublicCardPage() {
     <div className={`app ${data.appearance === "light" ? "light" : "dark"} ds ds-emerald pubcard`}>
       <div className="page">
         <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
+        <SaveToId nick={data.nick} lang={lang} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * «Save to AMR ID»: the card goes to «My contacts» (live, never goes stale).
+ * Signed in → saved to the account, and you can send your own card back.
+ * Not signed in → kept on this phone, with an offer to make your own AMR ID in a minute.
+ */
+function SaveToId({ nick, lang }: { nick: string; lang: ReturnType<typeof detectLang> }) {
+  const t = (k: Parameters<typeof translate>[1]) => translate(lang, k);
+  const [me, setMe] = useState<string | null | undefined>(undefined);
+  const [state, setState] = useState<"idle" | "saved" | "local">("idle");
+  useEffect(() => {
+    void fetch("/api/me", { credentials: "same-origin", cache: "no-store" })
+      .then(async (r) => (r.ok ? ((await r.json()) as { nick?: string }).nick ?? null : null))
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, []);
+  if (me === undefined || me === nick) return null;
+  const save = async () => {
+    if (me) {
+      const r = await fetch("/api/me/saved", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nicks: [nick] }) });
+      if (r.ok) setState("saved");
+      return;
+    }
+    addLocalSaved(nick);
+    setState("local");
+  };
+  const sendMine = () => {
+    if (!me) return;
+    const url = `${window.location.origin}/u/${encodeURIComponent(me)}`;
+    if (navigator.share) void navigator.share({ title: `${me} · AMR ID`, url }).catch(() => undefined);
+    else void navigator.clipboard.writeText(url);
+  };
+  return (
+    <div className="saveid">
+      {state === "idle" ? (
+        <button className="idbtn" type="button" onClick={() => void save()}>{t("save_to_id")}</button>
+      ) : (
+        <p className="saveid-done">{state === "saved" ? t("saved_to_id") : t("saved_local")}</p>
+      )}
+      {me ? (
+        <button className="idbtn" type="button" onClick={sendMine}>{t("send_mine_back")}</button>
+      ) : (
+        <a className="idbtn primary" href={`/?from=${encodeURIComponent(nick)}`}>{t("create_own_id")}</a>
+      )}
+      {!me ? <p className="saveid-hint">{t("create_own_hint")}</p> : null}
     </div>
   );
 }

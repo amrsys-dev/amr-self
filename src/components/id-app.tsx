@@ -1,6 +1,7 @@
 import { isRtl } from "@/lib/i18n.ts";
 import { AuthScreens } from "./app/auth-screens.tsx";
 import { CardScreens } from "./app/card-screens.tsx";
+import { ContactsScreen } from "./app/contacts-screen.tsx";
 import { ContactSheet } from "./app/contact-sheet.tsx";
 import { SecurityScreens } from "./app/security-screens.tsx";
 import { ShellScreens } from "./app/shell-screens.tsx";
@@ -16,6 +17,7 @@ export function IdApp() {
       <ShellScreens app={app} />
       <SecurityScreens app={app} />
       <CardScreens app={app} />
+      <ContactsScreen app={app} />
       <ContactSheet app={app} />
     </div>
   );

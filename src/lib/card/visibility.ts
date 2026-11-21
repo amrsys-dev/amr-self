@@ -81,7 +81,10 @@ export function contactHref(c: Contact): string | null {
     case "whatsapp":
       if (/^https:\/\/(?:wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(v)) return v;
       // The number is used only in the link; it is not printed on the card.
-      return `https://wa.me/${v.replace(/[^\d]/g, "")}`;
+      {
+        const digits = v.replace(/[^\d]/g, "");
+        return digits.length >= 6 && digits.length <= 15 ? `https://wa.me/${digits}` : null;
+      }
     case "youtube":
       if (/^https:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\//i.test(v)) return v;
       return `https://www.youtube.com/@${encodeURIComponent(v.replace(/^@/, ""))}`;
