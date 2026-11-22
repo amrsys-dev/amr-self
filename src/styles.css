@@ -920,3 +920,17 @@ a.btn{text-decoration:none}
 .pwcheck li.ok{color:#16A34A}.pwcheck li.ok span{background:#16A34A;color:#fff}
 .pwcheck li.no{color:#E5484D}.pwcheck li.no span{background:#E5484D;color:#fff}
 .okline{color:#16A34A;font-size:13px;font-weight:650;margin-top:8px}
+
+/* AMR standard: theme + language pills (light → dark → auto; flag + name) */
+.set-row.tlrow{display:block;padding:10px 12px}
+.tlbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tlwrap{position:relative;min-width:0}
+.tlpill{width:100%;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;border:1px solid var(--line);background:var(--bg,transparent);color:inherit;font:inherit;font-size:14px;font-weight:650;cursor:pointer;min-width:0}
+.tlpill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tlflag{font-size:18px;line-height:1}
+.tlmenu{position:absolute;inset-inline-end:0;top:calc(100% + 6px);z-index:40;width:min(280px,80vw);display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px;border-radius:14px;border:1px solid var(--line);background:var(--card,#111);box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.tlmenu button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;border:0;background:transparent;color:inherit;font:inherit;font-size:14px;font-weight:600;text-align:start;cursor:pointer}
+.tlmenu button.on{background:#00d4ff;color:#0b0e11}
+/* language list: a sheet over the screen, never cut off by the card it sits in */
+.tlmenu{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%);width:min(380px,calc(100vw - 24px))!important;z-index:1200!important;padding:10px!important;border-radius:20px!important;box-shadow:0 0 0 100vmax rgba(0,0,0,.5),0 -8px 40px rgba(0,0,0,.45)!important}
+.tlmenu button{min-height:48px}

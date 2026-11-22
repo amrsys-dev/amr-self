@@ -4,6 +4,7 @@ import type { MsgKey } from "@/lib/i18n.ts";
 import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { InstallButton } from "./install-button.tsx";
+import { ThemeLangBar } from "./theme-lang.tsx";
 import { AdminPlans } from "./admin-plans.tsx";
 
 const NOTIF: Record<string, [string, string, string, string]> = {
@@ -190,27 +191,7 @@ function AppearanceRows({ theme, chooseTheme, mode, chooseMode, t }: { theme: Ui
   );
 }
 
-/** Dark theme on/off (until the owner picks, the phone's setting is followed). */
-function DarkRow({ mode, systemDark, chooseMode, t }: { mode: UiMode; systemDark: boolean; chooseMode: (v: UiMode) => void; t: (k: MsgKey) => string }) {
-  const dark = mode === "system" ? systemDark : mode === "dark";
-  return (
-    <div className="set-row">
-      <span className="set-label">{t("dark_theme")}</span>
-      <button className={`toggle ${dark ? "on" : ""}`} type="button" role="switch" aria-checked={dark} aria-label={t("dark_theme")} onClick={() => chooseMode(dark ? "light" : "dark")}>
-        <i />
-      </button>
-    </div>
-  );
-}
 
-function LangRow({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
-  const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
-  return (
-    <PickRow label={t("lang")} value={<><span className="set-flag">{cur.flag}</span>{cur.code.toUpperCase()}</>} current={lang} onPick={(v) => setLang(v as Lang)}>
-      {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
-    </PickRow>
-  );
-}
 
 const CURRENCY_NAMES = { SAR: "Saudi riyal", USD: "US dollar", RUB: "Российский рубль", UZS: "Oʻzbek soʻmi", TJS: "Сомонӣ" } as const;
 
@@ -350,8 +331,7 @@ export function ShellScreens({ app }: { app: App }) {
                     <i />
                   </button>
                 </div>
-                <DarkRow mode={uiMode} systemDark={app.systemDark} chooseMode={chooseMode} t={t} />
-                <LangRow lang={lang} setLang={setLang} t={t} />
+                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} t={t} /></div>
                 {idMode ? null : <CurrencyRow t={t} />}
 {session.nickChanged ? null : (
                 <LinkRow
@@ -415,7 +395,7 @@ export function ShellScreens({ app }: { app: App }) {
                 ) : null}
               </div>
               <div className="card pad0 set-list">
-                <LangRow lang={lang} setLang={setLang} t={t} />
+                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} t={t} /></div>
                 <CurrencyRow t={t} />
                 <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
               </div>
