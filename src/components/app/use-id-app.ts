@@ -28,7 +28,7 @@ import { backupFileName, buildBackup, parseBackup } from "@/lib/data/backup.ts";
 import { stripHealthWithoutConsent } from "@/lib/health/consent.ts";
 import type { UserData } from "@/lib/data/schema.ts";
 import { checkPassword } from "@/lib/password-policy.ts";
-import { detectLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
+import { detectLang, langIsAuto, LANG_KEY, systemLang, translate, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import { accountIdOf, type Meta, type Screen, type SessionState } from "./types.ts";
 
 const GUEST_FLAG = "amrself.guest";
@@ -81,7 +81,20 @@ function lastTab(): Screen {
 
 /** All app state and actions. Screens read what they need from the returned object. */
 export function useIdApp() {
-  const [lang, setLang] = useState<Lang>(() => detectLang());
+  const [lang, setLangState] = useState<Lang>(() => detectLang());
+  const [langAuto, setLangAuto] = useState<boolean>(() => langIsAuto());
+  /** A language picked by hand is remembered; «auto» goes back to the phone language. */
+  const setLang = (l: Lang | "auto") => {
+    if (l === "auto") {
+      localStorage.removeItem(LANG_KEY);
+      setLangAuto(true);
+      setLangState(systemLang());
+      return;
+    }
+    localStorage.setItem(LANG_KEY, l);
+    setLangAuto(false);
+    setLangState(l);
+  };
   const t = (k: MsgKey) => translate(lang, k);
   const [screen, setScreen] = useState<Screen>("welcome");
   /** true on id.amrsys.net: AMR ID on its own, without the SELF tabs. */
@@ -145,10 +158,6 @@ export function useIdApp() {
   useBackLayer(sheet !== null, () => setSheet(null));
   const [newKind, setNewKind] = useState<ContactKind>("telegram");
   const [newValue, setNewValue] = useState("");
-
-  useEffect(() => {
-    localStorage.setItem("amrid.lang", lang);
-  }, [lang]);
 
   useEffect(() => {
     void requestPersistentStorage();
@@ -1085,6 +1094,7 @@ export function useIdApp() {
     idMode,
     lang,
     setLang,
+    langAuto,
     t,
     screen,
     setScreen,

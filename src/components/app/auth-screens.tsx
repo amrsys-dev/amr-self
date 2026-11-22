@@ -6,12 +6,12 @@ import { homeScreen, type App } from "./use-id-app.ts";
 
 /** Welcome, sign-up, login, recovery. */
 export function AuthScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin, startGuest, startGoogle } = app;
+  const { lang, setLang, langAuto, t, screen, setScreen, setAppearance, meta, session, setSession, err, setErr, busy, testOtp, deepLink, setKeyVersion, nick, setNick, nickStatus, setNickStatus, password, setPassword, password2, setPassword2, channel, setChannel, dest, setDest, setOtpId, code, setCode, recovery, setRecovery, recoveryCodes, setRecoveryCodes, showPassword, setShowPassword, showPassword2, setShowPassword2, dataKeyRef, fail, checkNick, submitSignup, submitOtp, submitLogin, startGuest, startGoogle } = app;
   return (
     <>
     {screen === "welcome" && (
       <>
-        <Header tool={<LangPicker lang={lang} setLang={setLang} t={t} />} />
+        <Header tool={<LangPicker lang={lang} setLang={setLang} langAuto={langAuto} t={t} />} />
         <div className="page auth">
           {app.idMode ? (
             <>

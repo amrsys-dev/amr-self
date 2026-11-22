@@ -1865,21 +1865,31 @@ export function translate(lang: Lang, key: MsgKey): string {
   return pack[key] ?? t.en[key] ?? key;
 }
 
-export function detectLang(): Lang {
-  if (typeof localStorage !== "undefined") {
-    const saved = localStorage.getItem("amrid.lang");
-    if (saved && (LANGS as readonly string[]).includes(saved)) return saved as Lang;
-  }
-  if (typeof navigator !== "undefined") {
-    const nav = navigator.language.toLowerCase();
-    if (nav.startsWith("ar")) return "ar";
-    if (nav.startsWith("hi")) return "hi";
-    if (nav.startsWith("bn")) return "bn";
-    if (nav.startsWith("ur")) return "ur";
-    if (nav.startsWith("uz")) return "uz";
-    if (nav.startsWith("tg") || nav.startsWith("tj")) return "tj";
-    if (nav.startsWith("ru")) return "ru";
-    if (nav.startsWith("en")) return "en";
-  }
+/** AMR language standard (all apps): the language follows the phone (like the theme) until the person picks one. */
+export const LANG_KEY = "amrid.lang";
+const CIS = ["ru", "uk", "be", "kk", "ky", "az", "hy", "ka", "tk", "mo", "ro"];
+export function systemLang(): Lang {
+  const list: string[] = [];
+  if (typeof navigator !== "undefined") list.push(...(navigator.languages?.length ? navigator.languages : [navigator.language]));
+  const codes = list.filter(Boolean).map((c) => {
+    const x = c.toLowerCase().split(/[-_]/)[0]!;
+    return x === "tg" ? "tj" : x;
+  });
+  for (const c of codes) if ((LANGS as readonly string[]).includes(c)) return c as Lang;
+  if (codes[0] && CIS.includes(codes[0])) return "ru";
   return "en";
 }
+/** True while the language follows the phone (nothing picked by hand). */
+export function langIsAuto(): boolean {
+  if (typeof localStorage === "undefined") return true;
+  const saved = localStorage.getItem(LANG_KEY);
+  return !saved || !(LANGS as readonly string[]).includes(saved);
+}
+export function detectLang(): Lang {
+  if (typeof localStorage !== "undefined") {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved && (LANGS as readonly string[]).includes(saved)) return saved as Lang;
+  }
+  return systemLang();
+}
+export const AUTO_LABEL: Record<Lang, string> = { ru: "Авто", en: "Auto", ar: "تلقائي", hi: "स्वचालित", bn: "স্বয়ংক্রিয়", ur: "خودکار", tj: "Худкор", uz: "Avto" };

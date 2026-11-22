@@ -1,6 +1,6 @@
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { Monogram } from "../monogram.tsx";
-import { type Lang, type MsgKey } from "@/lib/i18n.ts";
+import { AUTO_LABEL, type Lang, type MsgKey } from "@/lib/i18n.ts";
 
 export function Brand() {
   return (
@@ -74,14 +74,15 @@ export const LANG_OPTIONS: { code: Lang; flag: string; name: string }[] = [
 ];
 
 /** Compact language dropdown with flags. */
-export function LangPicker({ lang, setLang, t }: { lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
+export function LangPicker({ lang, setLang, langAuto, t }: { lang: Lang; setLang: (l: Lang | "auto") => void; langAuto?: boolean; t: (k: MsgKey) => string }) {
   const cur = LANG_OPTIONS.find((o) => o.code === lang) ?? LANG_OPTIONS[0]!;
   return (
     <label className="lang-pill">
       <span aria-hidden="true">{cur.flag}</span>
       <b>{cur.code.toUpperCase()}</b>
       <span className="set-chev" aria-hidden="true">⌄</span>
-      <select className="set-pick" aria-label={t("lang")} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+      <select className="set-pick" aria-label={t("lang")} value={langAuto ? "auto" : lang} onChange={(e) => setLang(e.target.value as Lang | "auto")}>
+        <option value="auto">🌐 {AUTO_LABEL[lang]}</option>
         {LANG_OPTIONS.map((o) => <option key={o.code} value={o.code}>{o.flag} {o.name}</option>)}
       </select>
     </label>
