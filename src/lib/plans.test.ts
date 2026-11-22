@@ -24,3 +24,16 @@ test("тариф: истёкший и неизвестный → бесплат�
   assert.equal(isPlanApp("toString"), false);
   assert.deepEqual(adminNicks(" Muradulla.AMR, ,x "), ["muradulla.amr", "x"]);
 });
+
+test("пробный Pro: один раз на аккаунт, не поверх платного, 14 дней", async () => {
+  const { grantTrial, planOf, TRIAL_DAYS } = await import("./plans.ts");
+  const now = 1_000_000;
+  const g = grantTrial(undefined, undefined, "cut", now)!;
+  assert.equal(g.plans.cut!.plan, "pro");
+  assert.equal(g.plans.cut!.until, now + TRIAL_DAYS * 86400_000);
+  assert.deepEqual(planOf(g.plans, "cut", now + 1), { plan: "pro", until: now + TRIAL_DAYS * 86400_000, trial: true });
+  assert.equal(planOf(g.plans, "cut", now + TRIAL_DAYS * 86400_000 + 1).plan, "free");
+  assert.equal(grantTrial(g.plans, g.trials, "cut", now + 99), null); // second time - no
+  assert.equal(grantTrial({ cut: { plan: "business" } }, undefined, "cut", now), null); // already paid
+  assert.ok(grantTrial(g.plans, g.trials, "safar", now)); // other app - own trial
+});
