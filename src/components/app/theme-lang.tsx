@@ -3,11 +3,11 @@
  * Theme: one tap cycles light → dark → auto («A»). Language: flag + name, tap opens the list.
  */
 import { useEffect, useRef, useState } from "react";
-import type { Lang, MsgKey } from "@/lib/i18n.ts";
+import { AUTO_LABEL, type Lang, type MsgKey } from "@/lib/i18n.ts";
 import type { UiMode } from "./use-id-app.ts";
 import { LANG_OPTIONS } from "./ui.tsx";
 
-export function ThemeLangBar({ mode, chooseMode, lang, setLang, t }: { mode: UiMode; chooseMode: (m: UiMode) => void; lang: Lang; setLang: (l: Lang) => void; t: (k: MsgKey) => string }) {
+export function ThemeLangBar({ mode, chooseMode, lang, setLang, langAuto, t }: { mode: UiMode; chooseMode: (m: UiMode) => void; lang: Lang; setLang: (l: Lang | "auto") => void; langAuto?: boolean; t: (k: MsgKey) => string }) {
   const next: UiMode = mode === "light" ? "dark" : mode === "dark" ? "system" : "light";
   const label = mode === "light" ? t("mode_light") : mode === "dark" ? t("mode_dark") : t("mode_auto");
   const [open, setOpen] = useState(false);
@@ -44,13 +44,17 @@ export function ThemeLangBar({ mode, chooseMode, lang, setLang, t }: { mode: UiM
       <div className="tlwrap" ref={box}>
         <button type="button" className="tlpill" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={t("lang")}>
           <span className="tlflag" aria-hidden="true">{cur.flag}</span>
-          <span>{cur.name}</span>
+          <span>{langAuto ? `${AUTO_LABEL[lang]} · ${cur.name}` : cur.name}</span>
           <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
         </button>
         {open ? (
           <div className="tlmenu" role="listbox" aria-label={t("lang")}>
+            <button type="button" role="option" aria-selected={langAuto === true} className={langAuto ? "on" : ""} onClick={() => { setLang("auto"); setOpen(false); }}>
+              <span className="tlflag" aria-hidden="true">🌐</span>
+              <span>{AUTO_LABEL[lang]}</span>
+            </button>
             {LANG_OPTIONS.map((o) => (
-              <button key={o.code} type="button" role="option" aria-selected={o.code === lang} className={o.code === lang ? "on" : ""} onClick={() => { setLang(o.code); setOpen(false); }}>
+              <button key={o.code} type="button" role="option" aria-selected={!langAuto && o.code === lang} className={!langAuto && o.code === lang ? "on" : ""} onClick={() => { setLang(o.code); setOpen(false); }}>
                 <span className="tlflag" aria-hidden="true">{o.flag}</span>
                 <span>{o.name}</span>
               </button>

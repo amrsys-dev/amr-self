@@ -215,7 +215,7 @@ function LinkRow({ label, onClick, tone, disabled }: { label: string; onClick: (
 
 /** Main tabs (Today, Finance, Work, More, Profile) and module placeholders. */
 export function ShellScreens({ app }: { app: App }) {
-  const { lang, setLang, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto, saveProfile } = app;
+  const { lang, setLang, langAuto, t, screen, setScreen, meta, session, setErr, setTestOtp, keyVersion, setKeyVersion, setOtpId, setCode, setReauthPassword, setNewNick, setNewNickStatus, setPendingContactId, dataKeyRef, setSheet, logout, toggleContact, removeContact, inShell, theme, chooseTheme, uiMode, chooseMode, guest, guestStore, backupMsg, exportBackup, importBackup, setNick, setNickStatus, openGoogleLink, googleSignIn, startGoogle, cardUrl, publicContacts, origin, shareCard, shareCardImage, saveVcard, uploadPhoto, removePhoto, saveProfile } = app;
   // Back from any tab other than Home returns to Home (the usual app pattern).
   const idMode = app.idMode;
   const onTab = !idMode && inShell && (screen === "finance" || screen === "work" || screen === "more" || screen === "profile");
@@ -331,7 +331,7 @@ export function ShellScreens({ app }: { app: App }) {
                     <i />
                   </button>
                 </div>
-                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} t={t} /></div>
+                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} langAuto={langAuto} t={t} /></div>
                 {idMode ? null : <CurrencyRow t={t} />}
 {session.nickChanged ? null : (
                 <LinkRow
@@ -395,7 +395,7 @@ export function ShellScreens({ app }: { app: App }) {
                 ) : null}
               </div>
               <div className="card pad0 set-list">
-                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} t={t} /></div>
+                <div className="set-row tlrow"><ThemeLangBar mode={uiMode} chooseMode={chooseMode} lang={lang} setLang={setLang} langAuto={langAuto} t={t} /></div>
                 <CurrencyRow t={t} />
                 <div className="set-row pwa-set"><InstallButton t={t} className="set-label" /></div>
               </div>
