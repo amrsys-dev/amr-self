@@ -38,7 +38,9 @@ export type UserRecord = {
   /** false = phone numbers are not drawn on the card pictures (shared image, link preview). */
   imagePhone?: boolean;
   /** Plans in AMR apps, set by an AMR admin until payments exist: { cut: { plan: "pro", until } }. */
-  plans?: Record<string, { plan: string; until?: number }>;
+  plans?: Record<string, { plan: string; until?: number; trial?: boolean }>;
+  /** When each app's one-time trial was given (ms). */
+  trials?: Record<string, number>;
   wrapPassword: WrappedKey;
   wrapRecovery: WrappedKey;
   /** One wrap per unused recovery code, same order as recoveryHashes. */

@@ -26,13 +26,30 @@ export const Route = createFileRoute("/api/entitlement")({
         if (!s) return out({ error: "unauthorized" }, 401);
         const raw = await getStores().kv.get(nickKey(s.nick));
         if (!raw) return out({ error: "unauthorized" }, 401);
-        const user = JSON.parse(raw) as import("@/lib/user.ts").UserRecord;
+        let user = JSON.parse(raw) as import("@/lib/user.ts").UserRecord;
         const seed = env("AMR_PLAN_KEY");
         if (!seed) return out({ error: "not_configured" }, 503);
+        // ?trial=1&dev=<device id>: first sign-in from the app -> one-time trial (one per account and per device)
+        const q = new URL(request.url).searchParams;
+        if (q.get("trial") === "1" && PLAN_ORIGINS[app].includes(origin)) {
+          const { grantTrial } = await import("@/lib/plans.ts");
+          const { createHash } = await import("node:crypto");
+          const next = grantTrial(user.plans, user.trials, app);
+          const dev = (q.get("dev") ?? "").slice(0, 80);
+          const devKey = dev.length >= 16 ? `trial-dev:${app}:${createHash("sha256").update(dev).digest("hex").slice(0, 32)}` : "";
+          const kv = getStores().kv;
+          if (next && devKey && !(await kv.get(devKey))) {
+            const fresh = { ...user, plans: next.plans, trials: next.trials };
+            if (await kv.compareAndSet(nickKey(s.nick), raw, JSON.stringify(fresh))) {
+              await kv.put(devKey, String(Date.now()));
+              user = fresh;
+            }
+          }
+        }
         const now = Math.floor(Date.now() / 1000);
         const p = planOf(user.plans, app);
         const exp = p.until ? Math.min(now + ENTITLEMENT_TTL_SEC, Math.floor(p.until / 1000)) : now + ENTITLEMENT_TTL_SEC;
-        const token = signEntitlement({ app, sub: user.dataId ?? user.nick, nick: user.nick, plan: p.plan, ...(p.until ? { until: p.until } : {}), iat: now, exp }, seed);
+        const token = signEntitlement({ app, sub: user.dataId ?? user.nick, nick: user.nick, plan: p.plan, ...(p.until ? { until: p.until } : {}), ...(p.trial ? { trial: true } : {}), iat: now, exp }, seed);
         return out({ token });
       },
     },

@@ -10,7 +10,33 @@ export const PLAN_APPS = {
   safar: ["free", "pro"],
 } as const satisfies Record<string, readonly string[]>;
 export type PlanApp = keyof typeof PLAN_APPS;
-export type PlanRecord = { plan: string; until?: number };
+export type PlanRecord = { plan: string; until?: number; trial?: boolean };
+
+/**
+ * AMR plan scheme for every app: free forever (limited by features, not by count) +
+ * a one-time trial of the paid plan when the person first signs in with AMR ID.
+ * One trial per account and per device; after it ends, everything stays, the free plan is back.
+ */
+export const TRIAL_DAYS = 14;
+export const TRIAL_PLAN: Partial<Record<keyof typeof PLAN_APPS, string>> = { cut: "pro", safar: "pro" };
+
+/** Gives the trial if this account never had one (and has no paid plan). Returns the new plans or null. */
+export function grantTrial(
+  plans: Record<string, PlanRecord> | undefined,
+  trials: Record<string, number> | undefined,
+  app: keyof typeof PLAN_APPS,
+  nowMs = Date.now(),
+): { plans: Record<string, PlanRecord>; trials: Record<string, number> } | null {
+  const tp = TRIAL_PLAN[app];
+  if (!tp) return null;
+  if (trials?.[app]) return null;
+  const cur = plans?.[app];
+  if (cur && cur.plan !== "free") return null; // had or has a real plan
+  return {
+    plans: { ...(plans ?? {}), [app]: { plan: tp, until: nowMs + TRIAL_DAYS * 86400_000, trial: true } },
+    trials: { ...(trials ?? {}), [app]: nowMs },
+  };
+}
 
 /** How long an app may trust a signed plan without asking again (offline work). */
 export const ENTITLEMENT_TTL_SEC = 30 * 86400;
@@ -24,11 +50,11 @@ export function isPlanOf(app: PlanApp, plan: unknown): plan is string {
 }
 
 /** Current plan of a user in an app; an expired paid plan falls back to "free". */
-export function planOf(plans: Record<string, PlanRecord> | undefined, app: PlanApp, nowMs = Date.now()): { plan: string; until?: number } {
+export function planOf(plans: Record<string, PlanRecord> | undefined, app: PlanApp, nowMs = Date.now()): { plan: string; until?: number; trial?: boolean } {
   const p = plans?.[app];
   if (!p || !isPlanOf(app, p.plan)) return { plan: "free" };
   if (p.until && p.until <= nowMs) return { plan: "free" };
-  return p.until ? { plan: p.plan, until: p.until } : { plan: p.plan };
+  return { plan: p.plan, ...(p.until ? { until: p.until } : {}), ...(p.trial ? { trial: true } : {}) };
 }
 
 const PKCS8_ED25519 = Buffer.from("302e020100300506032b657004220420", "hex");
@@ -40,7 +66,7 @@ function keyFromSeed(seedB64url: string) {
 }
 
 /** "<payload b64url>.<signature b64url>" */
-export function signEntitlement(payload: { app: string; sub: string; nick: string; plan: string; until?: number; iat: number; exp: number }, seedB64url: string): string {
+export function signEntitlement(payload: { app: string; sub: string; nick: string; plan: string; until?: number; trial?: boolean; iat: number; exp: number }, seedB64url: string): string {
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const sig = edSign(null, Buffer.from(body, "utf8"), keyFromSeed(seedB64url)).toString("base64url");
   return `${body}.${sig}`;
