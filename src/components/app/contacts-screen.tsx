@@ -24,6 +24,24 @@ export function ContactsScreen({ app }: { app: App }) {
     const r = await api(`/api/me/saved?nick=${encodeURIComponent(nick)}`, { method: "DELETE" });
     if (r.ok) setItems((l) => (l ?? []).filter((x) => x.nick !== nick));
   };
+  // 23.11.2026 (Мурад): переслать сохранённую визитку другому человеку.
+  const share = async (i: Item) => {
+    const url = `${location.origin}/u/${encodeURIComponent(i.nick)}`;
+    const title = i.displayName || i.nick;
+    try {
+      if (navigator.share) return await navigator.share({ title, url });
+    } catch {
+      return; // отмена в меню «Поделиться»
+    }
+    const tg = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (u: string) => void } } }).Telegram?.WebApp;
+    if (tg?.openTelegramLink) return tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`);
+    try {
+      await navigator.clipboard.writeText(url);
+      window.alert(t("contacts_copied"));
+    } catch {
+      window.prompt(title, url);
+    }
+  };
   return (
     <>
       <Header title={t("contacts_title")} onBack={() => setScreen("profile")} />
@@ -57,8 +75,11 @@ export function ContactsScreen({ app }: { app: App }) {
                     ) : null}
                   </span>
                 </a>
-                <button type="button" className="set-pen" aria-label={t("contacts_remove")} onClick={() => void remove(i.nick)}>
-                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>
+                <button type="button" className="set-pen" aria-label={t("contacts_share")} title={t("contacts_share")} onClick={() => void share(i)}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M14 5l6 6-6 6M20 11h-9a6 6 0 0 0-6 6v1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                <button type="button" className="set-pen" aria-label={t("contacts_remove")} title={t("contacts_remove")} onClick={() => void remove(i.nick)}>
+                  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="#e5484d" strokeWidth="1.8" strokeLinejoin="round" /></svg>
                 </button>
               </div>
             ))}
