@@ -1,11 +1,12 @@
 /**
- * «Войти через AMR ID» для приложений AMR (сейчас: AMR Bazar).
+ * «Войти через AMR ID» для приложений AMR (AMR Bazar, SELF, AMR Cut, AMR Safar, AMR Hostel).
  * Токен: base64url(JSON) + "." + base64url(HMAC-SHA256(<base64url-JSON-строка>, секрет приложения)).
  * Возврат - только на адрес из белого списка (защита от открытого редиректа).
  */
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-export type ConnectApp = { id: string; title: string; returnUrl: string; secretEnv: string };
+/** returnUrl - основной адрес; extraReturnUrls - ещё точные адреса (например, превью на своём домене). */
+export type ConnectApp = { id: string; title: string; returnUrl: string; extraReturnUrls?: readonly string[]; secretEnv: string };
 
 export const CONNECT_APPS: Record<string, ConnectApp> = {
   bazar: {
@@ -32,21 +33,28 @@ export const CONNECT_APPS: Record<string, ConnectApp> = {
     returnUrl: "https://safar.amrsys.net/api/auth/amrid",
     secretEnv: "AMR_ID_SAFAR_SECRET",
   },
+  hostel: {
+    id: "hostel",
+    title: "AMR Hostel",
+    returnUrl: "https://hostel.amrsys.net/api/auth/amrid",
+    extraReturnUrls: ["https://hostel-preview.amrsys.net/api/auth/amrid"], // без *.vercel.app
+    secretEnv: "AMR_ID_HOSTEL_SECRET",
+  },
 };
 
 export const TOKEN_TTL_SEC = 300;
 const STATE_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
-export type ConnectRequest = { app: ConnectApp; state: string };
+export type ConnectRequest = { app: ConnectApp; state: string; ret: string };
 
 /** null = запрос неверный (неизвестное приложение, чужой адрес возврата, плохой state). */
 export function checkConnect(app: unknown, ret: unknown, state: unknown): ConnectRequest | null {
   if (typeof app !== "string" || typeof ret !== "string" || typeof state !== "string") return null;
   const a = Object.prototype.hasOwnProperty.call(CONNECT_APPS, app) ? CONNECT_APPS[app] : undefined;
   if (!a) return null;
-  if (ret !== a.returnUrl) return null; // точное совпадение, без вариантов
+  if (ret !== a.returnUrl && !(a.extraReturnUrls ?? []).includes(ret)) return null; // точное совпадение, без вариантов
   if (!STATE_RE.test(state)) return null;
-  return { app: a, state };
+  return { app: a, state, ret };
 }
 
 const b64u = (b: Buffer | string) => Buffer.from(b).toString("base64url");
@@ -87,7 +95,7 @@ export function verifyConnectToken(
 }
 
 export function connectRedirect(req: ConnectRequest, token: string): string {
-  const u = new URL(req.app.returnUrl);
+  const u = new URL(req.ret);
   u.searchParams.set("token", token);
   u.searchParams.set("state", req.state);
   return u.toString();

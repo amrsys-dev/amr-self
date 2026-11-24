@@ -48,3 +48,30 @@ test("проверка токена для SELF: подпись, приложе�
   assert.equal(verifyConnectToken(tok + "a", secret, "self", STATE, 1100), null);
   assert.equal(verifyConnectToken(tok + ".x", secret, "self", STATE, 1100), null);
 });
+
+test("AMR Hostel: только два точных адреса возврата, без *.vercel.app", async () => {
+  const { CONNECT_APPS } = await import("./connect.ts");
+  const PROD = "https://hostel.amrsys.net/api/auth/amrid";
+  const PREV = "https://hostel-preview.amrsys.net/api/auth/amrid";
+  assert.equal(CONNECT_APPS.hostel.secretEnv, "AMR_ID_HOSTEL_SECRET");
+  for (const ok of [PROD, PREV]) {
+    const r = checkConnect("hostel", ok, STATE)!;
+    assert.ok(r, ok);
+    const u = new URL(connectRedirect(r, "a.b"));
+    assert.equal(u.origin + u.pathname, ok); // возврат туда, откуда пришли
+  }
+  for (const bad of [
+    "https://amr-hostel.vercel.app/api/auth/amrid",
+    "https://amr-hostel-git-main-amrsys.vercel.app/api/auth/amrid",
+    "https://hostel.amrsys.net/api/auth/amrid/",
+    "https://hostel.amrsys.net/api/auth/amrid?x=1",
+    "http://hostel.amrsys.net/api/auth/amrid",
+    "https://HOSTEL.amrsys.net/api/auth/amrid",
+    "https://hostel-preview.amrsys.net.evil.com/api/auth/amrid",
+    "https://x.hostel.amrsys.net/api/auth/amrid",
+    "https://hostel.amrsys.net/",
+  ]) assert.equal(checkConnect("hostel", bad, STATE), null, bad);
+  // адрес одного приложения не подходит другому
+  assert.equal(checkConnect("bazar", PREV, STATE), null);
+  assert.equal(checkConnect("hostel", RET, STATE), null);
+});

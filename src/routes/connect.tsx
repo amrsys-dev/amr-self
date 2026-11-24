@@ -6,11 +6,12 @@ import { Monogram } from "@/components/monogram.tsx";
 /** Экран «Войти через AMR ID» для приложений AMR. Сервер ещё раз проверяет приложение и адрес возврата. */
 export const Route = createFileRoute("/connect")({ component: ConnectPage });
 
-const APPS: Record<string, { title: string; home: string; returnUrl: string }> = {
+const APPS: Record<string, { title: string; home: string; returnUrl: string; extraReturnUrls?: readonly string[] }> = {
   bazar: { title: "AMR Bazar", home: "https://bazar.amrsys.net/", returnUrl: "https://bazar.amrsys.net/api/auth/amrid" },
   self: { title: "SELF", home: "https://self.amrsys.net/", returnUrl: "https://self.amrsys.net/api/auth/amrid" },
   cut: { title: "AMR Cut", home: "https://cut.amrsys.net/", returnUrl: "https://cut.amrsys.net/" },
   safar: { title: "AMR Safar", home: "https://safar.amrsys.net/", returnUrl: "https://safar.amrsys.net/api/auth/amrid" },
+  hostel: { title: "AMR Hostel", home: "https://hostel.amrsys.net/", returnUrl: "https://hostel.amrsys.net/api/auth/amrid", extraReturnUrls: ["https://hostel-preview.amrsys.net/api/auth/amrid"] },
 };
 
 const T: Record<string, Record<string, string>> = {
@@ -37,7 +38,7 @@ function ConnectPage() {
     const ret = p.get("return") ?? "";
     const st = p.get("state") ?? "";
     const a = APPS[app];
-    if (!a || ret !== a.returnUrl || !/^[A-Za-z0-9_-]{16,128}$/.test(st)) {
+    if (!a || (ret !== a.returnUrl && !(a.extraReturnUrls ?? []).includes(ret)) || !/^[A-Za-z0-9_-]{16,128}$/.test(st)) {
       setState("bad");
       return;
     }
@@ -77,7 +78,7 @@ function ConnectPage() {
         body: JSON.stringify({ app: q.app, return: q.ret, state: q.st }),
       });
       const d = (await r.json()) as { redirect?: string };
-      if (r.ok && d.redirect && app && d.redirect.startsWith(app.returnUrl + "?")) location.replace(d.redirect);
+      if (r.ok && d.redirect && app && d.redirect.startsWith(q.ret + "?")) location.replace(d.redirect);
       else setState("fail");
     } catch {
       setState("fail");
