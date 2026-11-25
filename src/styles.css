@@ -934,3 +934,13 @@ a.btn{text-decoration:none}
 /* language list: a sheet over the screen, never cut off by the card it sits in */
 .tlmenu{position:fixed!important;left:50%!important;right:auto!important;top:auto!important;bottom:calc(16px + env(safe-area-inset-bottom,0px))!important;transform:translateX(-50%);width:min(380px,calc(100vw - 24px))!important;z-index:1200!important;padding:10px!important;border-radius:20px!important;box-shadow:0 0 0 100vmax rgba(0,0,0,.5),0 -8px 40px rgba(0,0,0,.45)!important}
 .tlmenu button{min-height:48px}
+
+/* 25.11.2026 «Мои подписки» */
+.subs-hint{margin:0 0 12px}
+.subs-row{align-items:center;gap:10px;flex-wrap:wrap}
+.subs-ic{width:40px;height:40px;border-radius:10px;flex:none}
+.subs-row .set-label{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.subs-row small{font-size:13px;opacity:.75}
+.subs-row small.subs-on{opacity:1;color:var(--acc,#1f8a5b);font-weight:600}
+.subs-acts{display:flex;gap:6px;flex:none}
+.subs-acts .btn{min-height:36px;padding:0 12px;font-size:14px;text-decoration:none}

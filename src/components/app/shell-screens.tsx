@@ -322,6 +322,7 @@ export function ShellScreens({ app }: { app: App }) {
               </div>
               <div className="card pad0 set-list">
                 <LinkRow label={t("contacts_title")} onClick={() => setScreen("contacts")} />
+                <LinkRow label={t("subs_title")} onClick={() => setScreen("subs")} />
               </div>
               <div className="card pad0 set-list">
                 <LinkRow label={t("card_bg")} onClick={() => setScreen("card-themes")} />
