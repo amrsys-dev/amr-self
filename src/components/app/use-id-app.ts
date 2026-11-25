@@ -963,8 +963,10 @@ export function useIdApp() {
       let blob: Blob | null = null;
       for (const q of [0.82, 0.65, 0.5]) {
         // WebP is smaller; browsers that cannot encode it (older Safari) fall back to JPEG.
-        blob = await shrinkImage(file, max, q, "image/webp");
-        if (blob.type !== "image/webp") blob = await shrinkImage(file, max, q, "image/jpeg");
+        // 25.11.2026: фото лица обрезается в ровный квадрат по центру - везде будет ровный круг.
+        const sq = slot === "avatar";
+        blob = await shrinkImage(file, max, q, "image/webp", sq);
+        if (blob.type !== "image/webp") blob = await shrinkImage(file, max, q, "image/jpeg", sq);
         if (blob.size <= 390 * 1024) break;
       }
       if (!blob) return t("photo_failed");
@@ -1226,7 +1228,7 @@ export function downloadBlob(blob: Blob, name: string) {
 }
 
 /** Downscale a picked photo so the longest side is at most `max` px and encode as JPEG. */
-export async function shrinkImage(file: Blob, max: number, quality: number, type = "image/jpeg"): Promise<Blob> {
+export async function shrinkImage(file: Blob, max: number, quality: number, type = "image/jpeg", square = false): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -1235,11 +1237,20 @@ export async function shrinkImage(file: Blob, max: number, quality: number, type
       el.onerror = reject;
       el.src = url;
     });
-    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(img.naturalWidth * k);
-    canvas.height = Math.round(img.naturalHeight * k);
-    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    if (square) {
+      const side = Math.min(img.naturalWidth, img.naturalHeight);
+      const out = Math.min(max, side);
+      canvas.width = canvas.height = out;
+      const sx = (img.naturalWidth - side) / 2;
+      const sy = Math.max(0, (img.naturalHeight - side) / 2 - side * 0.08); // чуть выше центра - лицо обычно сверху
+      canvas.getContext("2d")!.drawImage(img, sx, sy, side, side, 0, 0, out, out);
+    } else {
+      const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      canvas.width = Math.round(img.naturalWidth * k);
+      canvas.height = Math.round(img.naturalHeight * k);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
     return await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("image"))), type, quality));
   } finally {
     URL.revokeObjectURL(url);
