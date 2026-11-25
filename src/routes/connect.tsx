@@ -4,6 +4,25 @@ import { detectLang, type Lang } from "@/lib/i18n.ts";
 import { Monogram } from "@/components/monogram.tsx";
 
 /** Экран «Войти через AMR ID» для приложений AMR. Сервер ещё раз проверяет приложение и адрес возврата. */
+const OK_KEY = "amr.connect.ok";
+function rememberedOk(app: string, nick: string): boolean {
+  try {
+    const m = JSON.parse(localStorage.getItem(OK_KEY) || "{}") as Record<string, string>;
+    return m[app] === nick;
+  } catch {
+    return false;
+  }
+}
+function remember(app: string, nick: string) {
+  try {
+    const m = JSON.parse(localStorage.getItem(OK_KEY) || "{}") as Record<string, string>;
+    m[app] = nick;
+    localStorage.setItem(OK_KEY, JSON.stringify(m));
+  } catch {
+    /* storage blocked - просто спросим в следующий раз */
+  }
+}
+
 export const Route = createFileRoute("/connect")({ component: ConnectPage });
 
 const APPS: Record<string, { title: string; home: string; returnUrl: string; extraReturnUrls?: readonly string[] }> = {
@@ -48,6 +67,13 @@ function ConnectPage() {
         if (!r.ok) return setState("login");
         const me = (await r.json()) as { nick?: string };
         setNick(me.nick ?? "");
+        // 25.11.2026: единый вход - если на этом телефоне уже разрешили это приложение для этого AMR ID,
+        // не спрашиваем снова: сразу возвращаем в приложение (как «Войти через Google»).
+        if (me.nick && rememberedOk(app, me.nick)) {
+          setState("busy");
+          void allowFor({ app, ret, st }, me.nick);
+          return;
+        }
         setState("ask");
       })
       .catch(() => setState("fail"));
@@ -69,6 +95,10 @@ function ConnectPage() {
 
   async function allow() {
     if (!q) return;
+    return allowFor(q, nick);
+  }
+
+  async function allowFor(q: { app: string; ret: string; st: string }, who: string) {
     setState("busy");
     try {
       const r = await fetch("/api/connect/token", {
@@ -78,7 +108,10 @@ function ConnectPage() {
         body: JSON.stringify({ app: q.app, return: q.ret, state: q.st }),
       });
       const d = (await r.json()) as { redirect?: string };
-      if (r.ok && d.redirect && app && d.redirect.startsWith(q.ret + "?")) location.replace(d.redirect);
+      if (r.ok && d.redirect && APPS[q.app] && d.redirect.startsWith(q.ret + "?")) {
+        remember(q.app, who);
+        location.replace(d.redirect);
+      }
       else setState("fail");
     } catch {
       setState("fail");

@@ -526,6 +526,11 @@ export function useIdApp() {
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
+    try {
+      localStorage.removeItem("amr.connect.ok"); // выход из AMR ID - приложения снова спросят разрешение
+    } catch {
+      /* storage blocked */
+    }
     // Stop future sync ticks before deleting the local encrypted store.
     dataKeyRef.current = null;
     accountIdRef.current = null;
