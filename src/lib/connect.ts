@@ -27,6 +27,12 @@ export const CONNECT_APPS: Record<string, ConnectApp> = {
     returnUrl: "https://cut.amrsys.net/",
     secretEnv: "", // the app reads its signed plan from /api/entitlement
   },
+  "3d": {
+    id: "3d",
+    title: "AMR 3Design",
+    returnUrl: "https://3d.amrsys.net/",
+    secretEnv: "", // the app reads its signed plan from /api/entitlement
+  },
   safar: {
     id: "safar",
     title: "AMR Safar",

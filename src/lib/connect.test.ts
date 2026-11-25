@@ -75,3 +75,9 @@ test("AMR Hostel: только два точных адреса возврата
   assert.equal(checkConnect("bazar", PREV, STATE), null);
   assert.equal(checkConnect("hostel", RET, STATE), null);
 });
+
+test("AMR 3Design: возврат только на https://3d.amrsys.net/", () => {
+  assert.ok(checkConnect("3d", "https://3d.amrsys.net/", STATE));
+  assert.equal(checkConnect("3d", "https://3d.amrsys.net/evil", STATE), null);
+  assert.equal(checkConnect("3d", "https://cut.amrsys.net/", STATE), null);
+});

@@ -37,3 +37,16 @@ test("пробный Pro: один раз на аккаунт, не поверх
   assert.equal(grantTrial({ cut: { plan: "business" } }, undefined, "cut", now), null); // already paid
   assert.ok(grantTrial(g.plans, g.trials, "safar", now)); // other app - own trial
 });
+
+test("AMR 3Design: тариф free/pro, пробный Pro один раз, вход только с 3d.amrsys.net", async () => {
+  const { grantTrial, planOf, isPlanApp, isPlanOf, PLAN_ORIGINS, TRIAL_DAYS } = await import("./plans.ts");
+  const now = 1_000_000;
+  assert.equal(isPlanApp("3d"), true);
+  assert.equal(isPlanOf("3d", "pro"), true);
+  assert.equal(isPlanOf("3d", "business"), false);
+  assert.deepEqual(planOf(undefined, "3d"), { plan: "free" });
+  const g = grantTrial(undefined, undefined, "3d", now)!;
+  assert.deepEqual(planOf(g.plans, "3d", now + 1), { plan: "pro", until: now + TRIAL_DAYS * 86400_000, trial: true });
+  assert.equal(grantTrial(g.plans, g.trials, "3d", now + 99), null);
+  assert.deepEqual([...PLAN_ORIGINS["3d"]], ["https://3d.amrsys.net"]);
+});
