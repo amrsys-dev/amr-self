@@ -8,6 +8,7 @@ import { createPrivateKey, sign as edSign, verify as edVerify, createPublicKey }
 export const PLAN_APPS = {
   cut: ["free", "pro", "business"],
   safar: ["free", "pro"],
+  "3d": ["free", "pro"],
 } as const satisfies Record<string, readonly string[]>;
 export type PlanApp = keyof typeof PLAN_APPS;
 export type PlanRecord = { plan: string; until?: number; trial?: boolean };
@@ -18,7 +19,7 @@ export type PlanRecord = { plan: string; until?: number; trial?: boolean };
  * One trial per account and per device; after it ends, everything stays, the free plan is back.
  */
 export const TRIAL_DAYS = 14;
-export const TRIAL_PLAN: Partial<Record<keyof typeof PLAN_APPS, string>> = { cut: "pro", safar: "pro" };
+export const TRIAL_PLAN: Partial<Record<keyof typeof PLAN_APPS, string>> = { cut: "pro", safar: "pro", "3d": "pro" };
 
 /** Gives the trial if this account never had one (and has no paid plan). Returns the new plans or null. */
 export function grantTrial(
@@ -94,6 +95,7 @@ export function verifyEntitlement(token: string, publicKeyB64url: string): Recor
 export const PLAN_ORIGINS: Record<PlanApp, readonly string[]> = {
   cut: ["https://cut.amrsys.net", "https://cutting.amrsys.net"],
   safar: ["https://safar.amrsys.net"],
+  "3d": ["https://3d.amrsys.net"],
 };
 
 export function adminNicks(raw: string | undefined): string[] {
