@@ -368,7 +368,7 @@ export function ShellScreens({ app }: { app: App }) {
             <div className="group">
               <div className="lab">{t("id_apps")}</div>
               <div className="card pad0 set-list">
-                {([["SELF", "https://self.amrsys.net/", "self"], ["AMR Bazar", "https://bazar.amrsys.net/", "bazar"], ["AMR Safar", "https://safar.amrsys.net/", "safar"], ["AMR Cut", "https://cut.amrsys.net/", "cut"], ["Hostel", "https://hostel.amrsys.net/", "hostel"]] as const).map(([name, href, ic]) => (
+                {([["SELF", "https://self.amrsys.net/", "self"], ["AMR Bazar", "https://bazar.amrsys.net/", "bazar"], ["AMR Safar", "https://safar.amrsys.net/", "safar"], ["Hostel", "https://hostel.amrsys.net/", "hostel"]] as const).map(([name, href, ic]) => (
                   <a key={ic} className="set-row" href={href}>
                     <img className="set-appic" src={`/apps/${ic}.webp`} alt="" width={32} height={32} />
                     <span className="set-label">{name}</span>
