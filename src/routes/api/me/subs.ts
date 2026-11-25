@@ -17,7 +17,9 @@ export const Route = createFileRoute("/api/me/subs")({
           const p = planOf(user.plans, app);
           return { app, plan: p.plan, until: p.until ?? null, trial: !!p.trial, trialUsed: !!user.trials?.[app], trialAvailable: !!TRIAL_PLAN[app] && !user.trials?.[app] };
         });
-        return json({ nick: user.nick, apps });
+        const { hostelSubs } = await import("@/lib/hostel-subs.ts");
+        const hostels = await hostelSubs(user.dataId ?? user.nick, user.nick);
+        return json({ nick: user.nick, apps, hostels });
       },
     },
   },

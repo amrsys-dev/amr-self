@@ -3,13 +3,14 @@ import { Header } from "./ui.tsx";
 import type { App } from "./use-id-app.ts";
 import { api } from "@/lib/client.ts";
 
+type HostelSub = { id: number; name: string; until: number | null; status: string };
 type Sub = { app: string; plan: string; until: number | null; trial: boolean; trialUsed: boolean; trialAvailable: boolean };
 
 /** 25.11.2026 «Мои подписки»: одна запись человека - что активно в каждом приложении AMR и до какого числа. */
 const APPS: { id: string; name: string; icon: string; url: string; noteKey?: string }[] = [
   { id: "safar", name: "Safar", icon: "/apps/safar.webp", url: "https://safar.amrsys.net/" },
   { id: "cut", name: "AMR Cut", icon: "/apps/cut.webp", url: "https://cut.amrsys.net/" },
-  { id: "hostel", name: "Hostel", icon: "/apps/hostel.webp", url: "https://hostel.amrsys.net/profile", noteKey: "subs_hostel_note" },
+  { id: "hostel", name: "Hostel", icon: "/apps/hostel.webp", url: "https://hostel.amrsys.net/owner" },
   { id: "self", name: "SELF", icon: "/apps/self.webp", url: "https://self.amrsys.net/", noteKey: "subs_free_all" },
 ];
 const PLAN_NAME: Record<string, string> = { pro: "Pro", business: "Business" };
@@ -21,11 +22,16 @@ function fmt(ms: number): string {
 export function SubsScreen({ app }: { app: App }) {
   const { t, screen, setScreen, session } = app;
   const [subs, setSubs] = useState<Sub[] | null>(null);
+  const [hostels, setHostels] = useState<HostelSub[] | null | undefined>(undefined);
   const [bad, setBad] = useState(false);
   useEffect(() => {
     if (screen !== "subs" || !session) return;
     setBad(false);
-    void api<{ apps: Sub[] }>("/api/me/subs").then((r) => (r.ok && r.data ? setSubs(r.data.apps) : setBad(true)));
+    void api<{ apps: Sub[]; hostels?: HostelSub[] | null }>("/api/me/subs").then((r) => {
+      if (!r.ok || !r.data) return setBad(true);
+      setSubs(r.data.apps);
+      setHostels(r.data.hostels ?? null);
+    });
   }, [screen, session]);
   if (screen !== "subs") return null;
   const renew = (name: string) => `https://t.me/amr_ecosystems?text=${encodeURIComponent(`${t("subs_renew_msg")} ${name} (${session?.nick ?? ""})`)}`;
@@ -37,6 +43,7 @@ export function SubsScreen({ app }: { app: App }) {
       {bad && <p className="err">{t("subs_err")}</p>}
       <div className="card pad0 set-list subs-list">
         {APPS.map((a) => {
+          if (a.id === "hostel") return <HostelRow key={a.id} a={a} hostels={hostels} t={t} />;
           const s = subs?.find((x) => x.app === a.id);
           const paid = s && s.plan !== "free";
           const status = a.noteKey ? t(a.noteKey as never) : !s ? "…" : paid ? `${PLAN_NAME[s.plan] ?? s.plan}${s.trial ? ` · ${t("subs_trial")}` : ""}${s.until ? ` · ${t("subs_until")} ${fmt(s.until)}` : ""}` : `${t("subs_free")}${s.trialAvailable ? ` · ${t("subs_trial_avail")}` : ""}`;
@@ -59,5 +66,35 @@ export function SubsScreen({ app }: { app: App }) {
       </div>
       </div>
     </>
+  );
+}
+
+/** Hostel: подписка у каждого хостела своя - строка на каждый хостел владельца со сроком. Гостям бесплатно. */
+function HostelRow({ a, hostels, t }: { a: (typeof APPS)[number]; hostels: HostelSub[] | null | undefined; t: App["t"] }) {
+  const own = hostels && hostels.length > 0;
+  const lines: { text: string; on: boolean }[] =
+    hostels === undefined
+      ? [{ text: "…", on: false }]
+      : hostels === null
+        ? [{ text: t("subs_hostel_note"), on: false }]
+        : !own
+          ? [{ text: t("subs_hostel_none"), on: false }]
+          : hostels.map((h) => {
+              const on = h.status === "active" || h.status === "expiring";
+              return { text: `${h.name} · ${on && h.until ? `${t("subs_until")} ${fmt(h.until)}` : t("subs_expired")}`, on };
+            });
+  return (
+    <div className="set-row subs-row">
+      <img src={a.icon} alt="" width={40} height={40} className="subs-ic" loading="lazy" />
+      <span className="set-label">
+        <b>{a.name}</b>
+        {lines.map((l, i) => (
+          <small key={i} className={l.on ? "subs-on" : ""}>{l.text}</small>
+        ))}
+      </span>
+      <span className="subs-acts">
+        <a className={own ? "btn sm p" : "btn sm"} href={a.url} target="_blank" rel="noopener noreferrer">{t(own ? "subs_renew" : "subs_open")}</a>
+      </span>
+    </div>
   );
 }
