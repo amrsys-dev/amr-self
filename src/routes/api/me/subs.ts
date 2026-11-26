@@ -18,8 +18,15 @@ export const Route = createFileRoute("/api/me/subs")({
           return { app, plan: p.plan, until: p.until ?? null, trial: !!p.trial, trialUsed: !!user.trials?.[app], trialAvailable: !!TRIAL_PLAN[app] && !user.trials?.[app] };
         });
         const { hostelSubs } = await import("@/lib/hostel-subs.ts");
-        const hostels = await hostelSubs(user.dataId ?? user.nick, user.nick);
-        return json({ nick: user.nick, apps, hostels });
+        const { appCommand } = await import("@/lib/admin-stats.ts");
+        const { env } = await import("@/lib/env.server.ts");
+        // 27.11.2026: Safar - подписка водителя (машина, места, срок), а не старый тариф Pro
+        const [hostels, sf] = await Promise.all([
+          hostelSubs(user.dataId ?? user.nick, user.nick),
+          appCommand("safar", env("AMR_ID_SAFAR_SECRET"), { action: "driver", nick: user.nick }),
+        ]);
+        const safar = sf.status === 200 && sf.data && typeof sf.data === "object" ? sf.data : null;
+        return json({ nick: user.nick, apps, hostels, safar });
       },
     },
   },
