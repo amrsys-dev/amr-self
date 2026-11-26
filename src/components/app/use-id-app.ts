@@ -199,7 +199,8 @@ export function useIdApp() {
         setAppearance(r.data.appearance);
         const back = new URLSearchParams(window.location.search);
         const g = back.get("google");
-        setScreen(back.get("delete") === "google" ? "account-delete" : (g === "ok" ? "card" : lastTab()));
+        // 26.11.2026: ссылка «Мои подписки» из других приложений AMR - id.amrsys.net/?s=subs
+        setScreen(back.get("delete") === "google" ? "account-delete" : g === "ok" ? "card" : back.get("s") === "subs" ? "subs" : lastTab());
       }
       const g = new URLSearchParams(window.location.search).get("google");
       if (g === "ok") markGoogleSignIn();
