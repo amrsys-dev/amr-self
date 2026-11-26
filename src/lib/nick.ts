@@ -38,7 +38,7 @@ export function normalizeNick(raw: string, _fmt: NickFormat = parseNickFormat())
   let handle = trimmed.replace(/^@/, "");
   handle = handle.replace(/(?:\.amr|@amr)$/i, "");
   if (!HANDLE_PATTERN.test(handle)) return null;
-  if (RESERVED_NICKS.has(handle.toLowerCase())) return null;
+  if (isReservedHandle(handle)) return null;
   return `${handle.toLowerCase()}.amr`;
 }
 
@@ -60,14 +60,28 @@ export function publicCardPath(nick: string): string {
 }
 
 export const RESERVED_NICKS = new Set(
-  ["admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u"].map((s) => s.toLowerCase()),
+  [
+    "admin", "root", "system", "amr", "support", "help", "test", "null", "undefined", "api", "login", "signup", "u",
+    // 26.11.2026 (Мурад): служебные имена и названия приложений AMR никто не может занять
+    "owner", "staff", "team", "official", "security", "billing", "pay", "payment", "service", "info", "contact", "bot",
+    "amrsys", "amr-id", "amrid", "self", "safar", "hostel", "bazar", "cut", "amr-cut", "3design", "vision", "panel",
+  ].map((s) => s.toLowerCase()),
 );
+
+/** Начала ников, которые выдают себя за администрацию: admin1, admin-amr, system.bot, support24, moderator… */
+const RESERVED_PREFIX = /^(admin|administrator|system|sysadmin|support|moderator|official|root|superuser)/;
+
+/** Служебное слово или похожее на него имя - занять нельзя. */
+export function isReservedHandle(handle: string): boolean {
+  const h = handle.toLowerCase();
+  return RESERVED_NICKS.has(h) || RESERVED_PREFIX.test(h);
+}
 
 /** Why a typed nick cannot be used: wrong format or a reserved service word. null = fine. */
 export function nickProblem(raw: string): "format" | "reserved" | null {
   const handle = raw.trim().replace(/^@/, "").replace(/(?:\.amr|@amr)$/i, "");
   if (LEGACY_PATTERN.test(raw.trim())) return null;
   if (!HANDLE_PATTERN.test(handle)) return "format";
-  if (RESERVED_NICKS.has(handle.toLowerCase())) return "reserved";
+  if (isReservedHandle(handle)) return "reserved";
   return null;
 }

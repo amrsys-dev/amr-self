@@ -38,6 +38,10 @@ describe("AMR human-readable nicknames", () => {
 it("nickProblem: служебные слова отдельно от формата, длина до 32", () => {
   assert.equal(nickProblem("system"), "reserved");
   assert.equal(nickProblem("AMR.amr"), "reserved");
+  // 26.11.2026: похожие на администрацию имена и названия приложений тоже заняты
+  for (const n of ["admin1", "admin-amr", "system.bot", "support24", "moderator", "safar", "hostel.amr", "amrsys"]) assert.equal(nickProblem(n), "reserved", n);
+  assert.equal(nickProblem("muradulla"), null);
+  assert.equal(nickProblem("amrullo"), null);
   assert.equal(nickProblem("ab"), "format");
   assert.equal(nickProblem("abdulrahman.bin.mohammed.alqahtani"), "format");
   assert.equal(nickProblem("abdulrahman.bin.mohammed"), null);
