@@ -116,6 +116,16 @@ export function AdminScreen({ app }: { app: App }) {
             </div>
           </>
         )}
+        <div className="group">
+          <div className="lab">Управление в приложениях</div>
+          <div className="card pad0 set-list">
+            <a className="set-row" href="https://hostel.amrsys.net/admin" target="_blank" rel="noopener noreferrer">
+              <img className="set-appic" src="/apps/hostel.webp" alt="" width={32} height={32} />
+              <span className="set-label"><b>Hostel</b><small>Хостелы владельцев, подписки, проверка</small></span>
+              <span className="set-chev" aria-hidden="true">›</span>
+            </a>
+          </div>
+        </div>
         <DriverSub />
         <AdminPlans />
       </div>
