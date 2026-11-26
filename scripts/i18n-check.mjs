@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 
 const src = readFileSync("src/lib/i18n.ts", "utf8");
-const langs = ["en", "ar", "ru", "uz", "tj", "hi", "bn", "ur"];
+const langs = ["en", "ar", "ru", "uz", "tj"];
 
 function extractBlock(lang) {
   const re = new RegExp(`${lang}:\\s*\\{([\\s\\S]*?)\\n  \\},?\\n`, "m");
