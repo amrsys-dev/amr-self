@@ -65,9 +65,6 @@ export function Header({ title, onBack, tool }: { title?: string; onBack?: () =>
 export const LANG_OPTIONS: { code: Lang; flag: string; name: string }[] = [
   { code: "en", flag: "🇬🇧", name: "English" },
   { code: "ar", flag: "🇸🇦", name: "العربية" },
-  { code: "hi", flag: "🇮🇳", name: "हिन्दी" },
-  { code: "bn", flag: "🇧🇩", name: "বাংলা" },
-  { code: "ur", flag: "🇵🇰", name: "اردو" },
   { code: "ru", flag: "🇷🇺", name: "Русский" },
   { code: "uz", flag: "🇺🇿", name: "O‘zbekcha" },
   { code: "tj", flag: "🇹🇯", name: "Тоҷикӣ" },
