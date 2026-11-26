@@ -4,6 +4,7 @@ import type { App } from "./use-id-app.ts";
 import { api } from "@/lib/client.ts";
 
 type HostelSub = { id: number; name: string; until: number | null; status: string };
+type SafarDriver = { driver: boolean; car?: string | null; seats?: number; until?: number | null; trialTrip?: boolean };
 type Sub = { app: string; plan: string; until: number | null; trial: boolean; trialUsed: boolean; trialAvailable: boolean };
 
 /** 25.11.2026 «Мои подписки»: одна запись человека - что активно в каждом приложении AMR и до какого числа. */
@@ -24,11 +25,13 @@ export function SubsScreen({ app }: { app: App }) {
   const [subs, setSubs] = useState<Sub[] | null>(null);
   const [hostels, setHostels] = useState<HostelSub[] | null | undefined>(undefined);
   const [bad, setBad] = useState(false);
+  const [safar, setSafar] = useState<SafarDriver | null | undefined>(undefined);
   useEffect(() => {
     if (screen !== "subs" || !session) return;
     setBad(false);
-    void api<{ apps: Sub[]; hostels?: HostelSub[] | null }>("/api/me/subs").then((r) => {
+    void api<{ apps: Sub[]; hostels?: HostelSub[] | null; safar?: SafarDriver | null }>("/api/me/subs").then((r) => {
       if (!r.ok || !r.data) return setBad(true);
+      setSafar(r.data.safar ?? null);
       setSubs(r.data.apps);
       setHostels(r.data.hostels ?? null);
     });
@@ -44,6 +47,7 @@ export function SubsScreen({ app }: { app: App }) {
       <div className="card pad0 set-list subs-list">
         {APPS.map((a) => {
           if (a.id === "hostel") return <HostelRow key={a.id} a={a} hostels={hostels} t={t} />;
+          if (a.id === "safar") return <SafarRow key={a.id} a={a} d={safar} t={t} renew={renew(a.name)} />;
           const s = subs?.find((x) => x.app === a.id);
           const paid = s && s.plan !== "free";
           const status = a.noteKey ? t(a.noteKey as never) : !s ? "…" : paid ? `${PLAN_NAME[s.plan] ?? s.plan}${s.trial ? ` · ${t("subs_trial")}` : ""}${s.until ? ` · ${t("subs_until")} ${fmt(s.until)}` : ""}` : `${t("subs_free")}${s.trialAvailable ? ` · ${t("subs_trial_avail")}` : ""}`;
@@ -94,6 +98,29 @@ function HostelRow({ a, hostels, t }: { a: (typeof APPS)[number]; hostels: Hoste
       </span>
       <span className="subs-acts">
         <a className={own ? "btn sm p" : "btn sm"} href={a.url} target="_blank" rel="noopener noreferrer">{t(own ? "subs_renew" : "subs_open")}</a>
+      </span>
+    </div>
+  );
+}
+
+/** Safar: пассажирам бесплатно; водителю - подписка по местам машины (10 ﷼ за место в месяц). */
+function SafarRow({ a, d, t, renew }: { a: (typeof APPS)[number]; d: SafarDriver | null | undefined; t: App["t"]; renew: string }) {
+  const on = !!d?.driver && !!d.until;
+  const text =
+    d === undefined ? "…"
+      : !d || !d.driver ? t("subs_safar_none")
+      : on ? `${t("subs_safar_on")} · ${t("subs_until")} ${fmt(d.until!)}${d.seats ? ` · ${d.seats} ${t("subs_seats")}` : ""}`
+      : t("subs_safar_off");
+  return (
+    <div className="set-row subs-row">
+      <img src={a.icon} alt="" width={40} height={40} className="subs-ic" loading="lazy" />
+      <span className="set-label">
+        <b>{a.name}</b>
+        <small className={on ? "subs-on" : ""}>{text}</small>
+      </span>
+      <span className="subs-acts">
+        <a className="btn sm" href={a.url} target="_blank" rel="noopener noreferrer">{t("subs_open")}</a>
+        {d?.driver ? <a className="btn sm p" href={renew} target="_blank" rel="noopener noreferrer">{t(on ? "subs_renew" : "subs_buy")}</a> : null}
       </span>
     </div>
   );
