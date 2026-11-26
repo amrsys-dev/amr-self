@@ -953,3 +953,17 @@ a.btn{text-decoration:none}
 .idcover>img{max-width:none}
 .idqr-ava,.idcard-ava{flex:none;aspect-ratio:1/1;overflow:hidden}
 .idcard-ava img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+
+/* 26.11.2026 общая админка AMR: числа сеткой 3 в ряд, посещаемость столбиками */
+.adm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}
+.adm .card .adm-grid{padding:0 0 10px}
+.adm .card{padding:12px}
+.adm-num{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:10px;background:var(--soft,rgba(127,127,127,.08));min-width:0}
+.adm-num b{font-size:20px;line-height:1.1}
+.adm-num small{font-size:12px;opacity:.8;line-height:1.2}
+.adm-bars{display:flex;align-items:flex-end;gap:6px;height:96px;padding:6px 2px 0}
+.adm-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.adm-bar i{display:block;width:100%;min-height:2px;border-radius:4px 4px 0 0;background:var(--acc,#d4af37)}
+.adm-bar b{font-size:11px;margin-top:2px}
+.adm-bar small{font-size:10px;opacity:.7}
+.adm .adm-row{grid-template-columns:1fr}

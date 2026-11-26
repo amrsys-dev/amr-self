@@ -20,6 +20,8 @@ import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
 import { Route as ApiAuthLogoutRouteImport } from './routes/api/auth/logout'
 import { Route as ApiEntitlementRouteImport } from './routes/api/entitlement'
 import { Route as ApiCloudRouteImport } from './routes/api/cloud'
+import { Route as ApiAdminStatsRouteImport } from './routes/api/admin/stats'
+import { Route as ApiAdminDriverSubRouteImport } from './routes/api/admin/driver-sub'
 import { Route as ApiAdminPlanRouteImport } from './routes/api/admin/plan'
 import { Route as ApiAuthAmridRouteImport } from './routes/api/auth/amrid'
 import { Route as ApiAuthOtpRouteImport } from './routes/api/auth/otp'
@@ -99,6 +101,16 @@ const ApiCloudRoute = ApiCloudRouteImport.update({
 const ApiEntitlementRoute = ApiEntitlementRouteImport.update({
   id: '/api/entitlement',
   path: '/api/entitlement',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminStatsRoute = ApiAdminStatsRouteImport.update({
+  id: '/api/admin/stats',
+  path: '/api/admin/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminDriverSubRoute = ApiAdminDriverSubRouteImport.update({
+  id: '/api/admin/driver-sub',
+  path: '/api/admin/driver-sub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminPlanRoute = ApiAdminPlanRouteImport.update({
@@ -239,6 +251,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
   '/api/cloud': typeof ApiCloudRoute
+  '/api/admin/stats': typeof ApiAdminStatsRoute
+  '/api/admin/driver-sub': typeof ApiAdminDriverSubRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -277,6 +291,8 @@ export interface FileRoutesByTo {
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
   '/api/cloud': typeof ApiCloudRoute
+  '/api/admin/stats': typeof ApiAdminStatsRoute
+  '/api/admin/driver-sub': typeof ApiAdminDriverSubRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -316,6 +332,8 @@ export interface FileRoutesById {
   '/api/auth/logout': typeof ApiAuthLogoutRoute
   '/api/entitlement': typeof ApiEntitlementRoute
   '/api/cloud': typeof ApiCloudRoute
+  '/api/admin/stats': typeof ApiAdminStatsRoute
+  '/api/admin/driver-sub': typeof ApiAdminDriverSubRoute
   '/api/admin/plan': typeof ApiAdminPlanRoute
   '/api/auth/amrid': typeof ApiAuthAmridRoute
   '/api/auth/otp': typeof ApiAuthOtpRoute
@@ -356,6 +374,8 @@ export interface FileRouteTypes {
     | '/api/auth/logout'
     | '/api/entitlement'
     | '/api/cloud'
+    | '/api/admin/stats'
+    | '/api/admin/driver-sub'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -394,6 +414,8 @@ export interface FileRouteTypes {
     | '/api/auth/logout'
     | '/api/entitlement'
     | '/api/cloud'
+    | '/api/admin/stats'
+    | '/api/admin/driver-sub'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -432,6 +454,8 @@ export interface FileRouteTypes {
     | '/api/auth/logout'
     | '/api/entitlement'
     | '/api/cloud'
+    | '/api/admin/stats'
+    | '/api/admin/driver-sub'
     | '/api/admin/plan'
     | '/api/auth/amrid'
     | '/api/auth/otp'
@@ -471,6 +495,8 @@ export interface RootRouteChildren {
   ApiAuthLogoutRoute: typeof ApiAuthLogoutRoute
   ApiEntitlementRoute: typeof ApiEntitlementRoute
   ApiCloudRoute: typeof ApiCloudRoute
+  ApiAdminStatsRoute: typeof ApiAdminStatsRoute
+  ApiAdminDriverSubRoute: typeof ApiAdminDriverSubRoute
   ApiAdminPlanRoute: typeof ApiAdminPlanRoute
   ApiAuthAmridRoute: typeof ApiAuthAmridRoute
   ApiAuthOtpRoute: typeof ApiAuthOtpRoute
@@ -575,6 +601,20 @@ declare module '@tanstack/react-router' {
       path: '/api/cloud'
       fullPath: '/api/cloud'
       preLoaderRoute: typeof ApiCloudRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/stats': {
+      id: '/api/admin/stats'
+      path: '/api/admin/stats'
+      fullPath: '/api/admin/stats'
+      preLoaderRoute: typeof ApiAdminStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/driver-sub': {
+      id: '/api/admin/driver-sub'
+      path: '/api/admin/driver-sub'
+      fullPath: '/api/admin/driver-sub'
+      preLoaderRoute: typeof ApiAdminDriverSubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/plan': {
@@ -767,6 +807,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthLogoutRoute: ApiAuthLogoutRoute,
   ApiEntitlementRoute: ApiEntitlementRoute,
   ApiCloudRoute: ApiCloudRoute,
+  ApiAdminStatsRoute: ApiAdminStatsRoute,
+  ApiAdminDriverSubRoute: ApiAdminDriverSubRoute,
   ApiAdminPlanRoute: ApiAdminPlanRoute,
   ApiAuthAmridRoute: ApiAuthAmridRoute,
   ApiAuthOtpRoute: ApiAuthOtpRoute,

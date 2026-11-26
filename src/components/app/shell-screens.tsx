@@ -5,7 +5,7 @@ import { Header, LANG_OPTIONS } from "./ui.tsx";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { InstallButton } from "./install-button.tsx";
 import { ThemeLangBar } from "./theme-lang.tsx";
-import { AdminPlans } from "./admin-plans.tsx";
+import { AdminEntry } from "./admin-screen.tsx";
 
 const NOTIF: Record<string, [string, string, string, string]> = {
   ru: ["Уведомления", "Включены", "Запрещены в браузере", "Включить"],
@@ -379,7 +379,8 @@ export function ShellScreens({ app }: { app: App }) {
               <p className="hint">{t("id_apps_hint")}</p>
             </div>
           )}
-          {screen === "profile" && session && idMode && <AdminPlans />}
+          {/* 26.11.2026: одна админка для всех приложений - отдельный экран */}
+          {screen === "profile" && session && idMode && <AdminEntry app={app} />}
           {screen === "profile" && !session && (
             <>
               <div className="card hero" style={{ textAlign: "center" }}>
