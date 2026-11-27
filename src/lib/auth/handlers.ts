@@ -29,7 +29,7 @@ import {
   type TelegramLinkRecord,
 } from "./telegram-link.ts";
 import { dummyVerifyAuthKey, hashAuthKey, verifyAuthKey } from "./password.ts";
-import { createSession, destroySession, readSession, requireUser, revokeAllSessions, type SignInMethod } from "./session.ts";
+import { createSession, crossSiteRejected, destroySession, readSession, requireUser, revokeAllSessions, type SignInMethod } from "./session.ts";
 import { GOOGLE_FRESH_SEC, GOOGLE_STATE_TTL_SEC, exchangeGoogleCode, googleConfig, googleStateKey, googleSubKey, newGoogleRequest, verifyGoogleIdToken, type GooglePurpose, type GoogleState } from "./google.ts";
 
 const kdfSchema = z.object({
@@ -424,6 +424,7 @@ export async function handleNickSuggest(request: Request): Promise<Response> {
 }
 
 export async function handleKdf(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const ip = clientIp(request);
   const hit = await limits.login.take(`kdf:${ip}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
@@ -451,6 +452,7 @@ export async function handleKdf(request: Request): Promise<Response> {
 }
 
 export async function handleSignup(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const ip = clientIp(request);
   const hit = await limits.login.take(`signup:${ip}`);
   if (!hit.ok) return json({ error: "rate_limited", retryAfterMs: hit.retryAfterMs }, 429);
@@ -502,6 +504,7 @@ export async function handleSignup(request: Request): Promise<Response> {
 }
 
 export async function handleLogin(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const ip = clientIp(request);
   const body = loginSchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
@@ -541,6 +544,7 @@ export async function handleLogin(request: Request): Promise<Response> {
 }
 
 export async function handleOtp(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const parsed = signInOtpSchema.safeParse(await readJson(request));
   if (!parsed.success) return json({ error: "invalid" }, 400);
   const fromCookie = !parsed.data.otpId;
@@ -595,11 +599,13 @@ export async function handleOtp(request: Request): Promise<Response> {
 }
 
 export async function handleLogout(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const cookie = await destroySession(request);
   return jsonWithCookie({ ok: true }, cookie);
 }
 
 export async function handleRecovery(request: Request): Promise<Response> {
+  if (crossSiteRejected(request)) return json({ error: "forbidden" }, 403); // 27.11.2026: вход с чужого сайта (подмена входа)
   const ip = clientIp(request);
   const body = recoverySchema.safeParse(await readJson(request));
   if (!body.success) return json({ error: "invalid" }, 400);
