@@ -2,10 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { detectLang, translate } from "@/lib/i18n.ts";
 import { parseCardTheme } from "@/lib/card/visibility.ts";
 import { getPublicCard } from "@/lib/card/public-card.ts";
-import { buildVcard, vcardFileName } from "@/lib/card/vcard.ts";
 import { CardHero } from "@/components/qr-card.tsx";
 import { serviceName } from "@/components/contact-icons.tsx";
-import { downloadBlob } from "@/components/app/use-id-app.ts";
 import { useEffect, useState } from "react";
 import { addLocalSaved } from "@/lib/card/saved-local.ts";
 
@@ -64,14 +62,10 @@ function PublicCardPage() {
   const data = Route.useLoaderData();
   const [lang] = useState(detectLang);
   const theme = parseCardTheme(data.theme);
-  const saveContact = () => {
-    const blob = new Blob([buildVcard({ nick: data.nick, name: data.displayName, url: data.url, contacts: data.contacts })], { type: "text/vcard" });
-    downloadBlob(blob, vcardFileName(data.nick));
-  };
   return (
     <div className={`app ${data.appearance === "light" ? "light" : "dark"} ds ds-emerald pubcard`}>
       <div className="page">
-        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest onVcard={saveContact} photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
+        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
         <SaveToId nick={data.nick} lang={lang} />
       </div>
     </div>
@@ -79,14 +73,15 @@ function PublicCardPage() {
 }
 
 /**
- * «Save to AMR ID»: the card goes to «My contacts» (live, never goes stale).
- * Signed in → saved to the account, and you can send your own card back.
- * Not signed in → kept on this phone, with an offer to make your own AMR ID in a minute.
+ * 27.11.2026 (Мурад): одна кнопка «Сохранить в AMR ID» вместо файла контакта.
+ * Вошёл в AMR ID → визитка сохраняется в «Мои контакты», можно отправить свою в ответ.
+ * Не вошёл → визитка запоминается на телефоне и сразу открывается вход / создание AMR ID;
+ * после входа она переносится в аккаунт сама.
  */
 function SaveToId({ nick, lang }: { nick: string; lang: ReturnType<typeof detectLang> }) {
   const t = (k: Parameters<typeof translate>[1]) => translate(lang, k);
   const [me, setMe] = useState<string | null | undefined>(undefined);
-  const [state, setState] = useState<"idle" | "saved" | "local">("idle");
+  const [saved, setSaved] = useState(false);
   useEffect(() => {
     void fetch("/api/me", { credentials: "same-origin", cache: "no-store" })
       .then(async (r) => (r.ok ? ((await r.json()) as { nick?: string }).nick ?? null : null))
@@ -97,11 +92,11 @@ function SaveToId({ nick, lang }: { nick: string; lang: ReturnType<typeof detect
   const save = async () => {
     if (me) {
       const r = await fetch("/api/me/saved", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nicks: [nick] }) });
-      if (r.ok) setState("saved");
+      if (r.ok) setSaved(true);
       return;
     }
     addLocalSaved(nick);
-    setState("local");
+    window.location.href = `/?from=${encodeURIComponent(nick)}`;
   };
   const sendMine = () => {
     if (!me) return;
@@ -111,17 +106,14 @@ function SaveToId({ nick, lang }: { nick: string; lang: ReturnType<typeof detect
   };
   return (
     <div className="saveid">
-      {state === "idle" ? (
-        <button className="idbtn" type="button" onClick={() => void save()}>{t("save_to_id")}</button>
+      {saved ? (
+        <>
+          <p className="saveid-done">{t("saved_to_id")}</p>
+          <button className="idbtn" type="button" onClick={sendMine}>{t("send_mine_back")}</button>
+        </>
       ) : (
-        <p className="saveid-done">{state === "saved" ? t("saved_to_id") : t("saved_local")}</p>
+        <button className="idbtn primary" type="button" onClick={() => void save()}>{t("save_to_id")}</button>
       )}
-      {me ? (
-        <button className="idbtn" type="button" onClick={sendMine}>{t("send_mine_back")}</button>
-      ) : (
-        <a className="idbtn primary" href={`/?from=${encodeURIComponent(nick)}`}>{t("create_own_id")}</a>
-      )}
-      {!me ? <p className="saveid-hint">{t("create_own_hint")}</p> : null}
     </div>
   );
 }

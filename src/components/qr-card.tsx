@@ -215,11 +215,7 @@ export function CardHero({
           );
         })}
       </div>
-      {guest ? (
-        <div className="idcard-actions">
-          <button className="idbtn primary" type="button" onClick={onVcard}>{t("save_contact")}</button>
-        </div>
-      ) : (
+      {guest ? null : (
         <>
           <div className="idcard-actions">
             <button className={`idbtn primary${shareOpen ? " is-on" : ""}`} type="button" aria-expanded={shareOpen} aria-haspopup="menu" onClick={() => togglePanel("share")}>{t("share")}</button>
