@@ -67,7 +67,7 @@ function keyFromSeed(seedB64url: string) {
 }
 
 /** "<payload b64url>.<signature b64url>" */
-export function signEntitlement(payload: { app: string; sub: string; nick: string; plan: string; until?: number; trial?: boolean; iat: number; exp: number }, seedB64url: string): string {
+export function signEntitlement(payload: { app: string; sub: string; nick: string; plan: string; until?: number; trial?: boolean; admin?: boolean; iat: number; exp: number }, seedB64url: string): string {
   const body = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const sig = edSign(null, Buffer.from(body, "utf8"), keyFromSeed(seedB64url)).toString("base64url");
   return `${body}.${sig}`;
@@ -100,4 +100,10 @@ export const PLAN_ORIGINS: Record<PlanApp, readonly string[]> = {
 
 export function adminNicks(raw: string | undefined): string[] {
   return (raw ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/** 27.11.2026 (Мурад): владелец AMR (AMR_ADMINS) - высший тариф каждого приложения, без срока и без подписки. */
+export function ownerPlan(app: PlanApp): { plan: string } {
+  const list = PLAN_APPS[app] as readonly string[];
+  return { plan: list[list.length - 1]! };
 }

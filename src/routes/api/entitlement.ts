@@ -47,9 +47,12 @@ export const Route = createFileRoute("/api/entitlement")({
           }
         }
         const now = Math.floor(Date.now() / 1000);
-        const p = planOf(user.plans, app);
+        const { adminNicks, ownerPlan } = await import("@/lib/plans.ts");
+        // владелец AMR: высший тариф без срока и пометка admin - приложение покажет кнопку «Администратор»
+        const owner = adminNicks(env("AMR_ADMINS")).includes(user.nick.toLowerCase());
+        const p: { plan: string; until?: number; trial?: boolean } = owner ? ownerPlan(app) : planOf(user.plans, app);
         const exp = p.until ? Math.min(now + ENTITLEMENT_TTL_SEC, Math.floor(p.until / 1000)) : now + ENTITLEMENT_TTL_SEC;
-        const token = signEntitlement({ app, sub: user.dataId ?? user.nick, nick: user.nick, plan: p.plan, ...(p.until ? { until: p.until } : {}), ...(p.trial ? { trial: true } : {}), iat: now, exp }, seed);
+        const token = signEntitlement({ app, sub: user.dataId ?? user.nick, nick: user.nick, plan: p.plan, ...(p.until ? { until: p.until } : {}), ...(p.trial ? { trial: true } : {}), ...(owner ? { admin: true } : {}), iat: now, exp }, seed);
         return out({ token });
       },
     },

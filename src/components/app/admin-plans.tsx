@@ -6,10 +6,10 @@ const APP_NAME: Record<string, string> = { cut: "AMR Cut", safar: "AMR Safar" };
 const PLAN_NAME: Record<string, string> = { free: "Бесплатно", pro: "Pro", business: "Бизнес" };
 
 /** Only for AMR admins (env AMR_ADMINS): set a plan for a nick until payments exist. */
-export function AdminPlans() {
+export function AdminPlans({ only }: { only?: string } = {}) {
   const [apps, setApps] = useState<Apps | null>(null);
   const [nick, setNick] = useState("");
-  const [app, setApp] = useState("cut");
+  const [app, setApp] = useState(only ?? "cut");
   const [plan, setPlan] = useState("pro");
   const [days, setDays] = useState("30");
   const [msg, setMsg] = useState("");
@@ -20,7 +20,7 @@ export function AdminPlans() {
       if (r.ok && r.data.admin && r.data.apps) setApps(r.data.apps);
     });
   }, []);
-  if (!apps) return null;
+  if (!apps || (only && !apps[only])) return null;
 
   const n = nick.trim().replace(/^@/, "").toLowerCase();
   async function look() {
@@ -41,13 +41,15 @@ export function AdminPlans() {
 
   return (
     <div className="group">
-      <div className="lab">Тарифы (администратор)</div>
+      <div className="lab">Тариф по нику</div>
       <div className="card adm-plans">
         <input className="in" placeholder="ник, например murad.amr" value={nick} onChange={(e) => setNick(e.target.value)} onBlur={() => void look()} autoCapitalize="none" spellCheck={false} />
         <div className="adm-row">
-          <select className="in" value={app} onChange={(e) => { setApp(e.target.value); setPlan("pro"); }}>
-            {Object.keys(apps).map((a) => <option key={a} value={a}>{APP_NAME[a] ?? a}</option>)}
-          </select>
+          {only ? null : (
+            <select className="in" value={app} onChange={(e) => { setApp(e.target.value); setPlan("pro"); }}>
+              {Object.keys(apps).map((a) => <option key={a} value={a}>{APP_NAME[a] ?? a}</option>)}
+            </select>
+          )}
           <select className="in" value={plan} onChange={(e) => setPlan(e.target.value)}>
             {(apps[app] ?? []).map((p) => <option key={p} value={p}>{PLAN_NAME[p] ?? p}</option>)}
           </select>

@@ -958,6 +958,7 @@ a.btn{text-decoration:none}
 .adm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px}
 .adm .card .adm-grid{padding:0 0 10px}
 .adm .card{padding:12px}
+.adm-mini{font-size:14px;opacity:.7;margin-inline-end:6px;flex:none}
 .adm-num{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:10px;background:var(--soft,rgba(127,127,127,.08));min-width:0}
 .adm-num b{font-size:20px;line-height:1.1}
 .adm-num small{font-size:12px;opacity:.8;line-height:1.2}

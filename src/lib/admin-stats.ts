@@ -45,3 +45,22 @@ export async function appCommand(app: AdminApp, secret: string | undefined, payl
     return { status: 504, data: { error: "timeout" } };
   }
 }
+
+/** 27.11.2026 пульт: сколько платных и пробных подписок у каждого приложения (по записям AMR ID). */
+export function countPlans(
+  users: ({ plans?: Record<string, { plan: string; until?: number; trial?: boolean }> } | null)[],
+  apps: readonly string[],
+  nowMs = Date.now(),
+): Record<string, { pro: number; trial: number; business: number }> {
+  const out = Object.fromEntries(apps.map((a) => [a, { pro: 0, trial: 0, business: 0 }]));
+  for (const u of users) {
+    for (const [app, p] of Object.entries(u?.plans ?? {})) {
+      const c = out[app];
+      if (!c || !p || p.plan === "free" || (p.until && p.until <= nowMs)) continue;
+      if (p.trial) c.trial++;
+      else if (p.plan === "business") c.business++;
+      else c.pro++;
+    }
+  }
+  return out;
+}
