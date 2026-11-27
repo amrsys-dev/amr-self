@@ -11,7 +11,7 @@ export type ConnectApp = { id: string; title: string; returnUrl: string; extraRe
 export const CONNECT_APPS: Record<string, ConnectApp> = {
   bazar: {
     id: "bazar",
-    title: "AMR Bazar",
+    title: "AMR Market",
     returnUrl: "https://bazar.amrsys.net/api/auth/amrid",
     secretEnv: "AMR_ID_BAZAR_SECRET",
   },

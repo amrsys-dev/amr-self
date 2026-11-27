@@ -27,7 +27,7 @@ export const ADMIN_APP_LIST = [
   ["safar", "Safar", "safar"],
   ["hostel", "Hostel", "hostel"],
   ["cut", "AMR Cut", "cut"],
-  ["bazar", "Bazar", "bazar"],
+  ["bazar", "AMR Market", "bazar"],
   ["self", "SELF", "self"],
 ] as const;
 type AdminAppId = (typeof ADMIN_APP_LIST)[number][0];
@@ -194,7 +194,7 @@ function AppPage({ id, st }: { id: AdminAppId; st: Stats }) {
         <AdminPlans only="cut" />
       </>
     );
-  return <p className="hint">{id === "bazar" ? "Bazar бесплатный: подписок нет, AMR не участвует в сделках." : "SELF бесплатный: подписок нет."}</p>;
+  return <p className="hint">{id === "bazar" ? "AMR Market бесплатный: подписок нет, AMR не участвует в сделках." : "SELF бесплатный: подписок нет."}</p>;
 }
 
 function SafarPage({ st, planCard }: { st: Stats; planCard: React.ReactNode }) {
