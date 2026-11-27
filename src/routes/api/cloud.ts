@@ -34,7 +34,11 @@ async function handle(request: Request, method: "GET" | "PUT"): Promise<Response
   const raw = await kv.get(nickKey(s.nick));
   if (!raw) return json({ error: "unauthorized" }, 401);
   const user = JSON.parse(raw) as import("@/lib/user.ts").UserRecord;
-  if (!cloudAllowed(user.plans, app)) return json({ error: "plan" }, 402);
+  // 27.11.2026: владелец AMR (AMR_ADMINS) - облако без подписки, как и высший тариф в /api/entitlement
+  const { adminNicks } = await import("@/lib/plans.ts");
+  const { env } = await import("@/lib/env.server.ts");
+  const owner = adminNicks(env("AMR_ADMINS")).includes(user.nick.toLowerCase());
+  if (!owner && !cloudAllowed(user.plans, app)) return json({ error: "plan" }, 402);
   const owner = user.dataId ?? user.nick;
   if (method === "GET") {
     const got = await cloudRead(kv, blobs, app, owner);
