@@ -634,7 +634,7 @@ export function SelfWorkspace({
             ))}
             <a className="svc-card-lg" href="https://bazar.amrsys.net/" target="_blank" rel="noopener">
               <img className="svc-card-img" src="/apps/bazar.webp" alt="" width="56" height="56" />
-              <b>AMR Bazar</b>
+              <b>AMR Market</b>
               <small>{BAZAR_SUB[lang] ?? BAZAR_SUB.en}</small>
             </a>
           </div>
