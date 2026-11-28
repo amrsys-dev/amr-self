@@ -271,7 +271,7 @@ describe("privacy policy page", () => {
         assert.doesNotMatch(text, /распечатайте|print them|اطبعها/i, name);
         assert.doesNotMatch(text, /ключ или секрет|key or secret|المفتاح أو السر/i, name);
       }
-      assert.match(ru, /Bazar получает внутренний номер вашего аккаунта, ник и имя для показа/);
+      assert.match(ru, /Market получает внутренний номер вашего аккаунта, ник и имя для показа/);
       assert.match(ru, /последние 5 версий/);
       assert.match(ru, /действует 5 минут/);
     });
@@ -281,7 +281,7 @@ describe("privacy policy page", () => {
     const all = [...policies.map((p) => ({ name: p.name, text: p.text })), { name: "privacy.html", text: html }];
     const pick = (n: string) => policies.find((p) => p.name === n)!.text;
 
-    it("names the Bazar display name (nick without .amr, no real name)", () => {
+    it("names the Market display name (nick without .amr, no real name)", () => {
       assert.match(pick("privacy-policy.ru.md"), /имя для показа - это тот же ник без окончания \.amr/);
       assert.match(pick("privacy-policy.en.md"), /display name - the same nick without the \.amr ending/);
       assert.match(pick("privacy-policy.ar.md"), /اسم العرض/);
