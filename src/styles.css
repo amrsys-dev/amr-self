@@ -784,6 +784,7 @@ p{margin:0;line-height:1.4}
 /* Имя на визитке: крупно, ник под ним */
 .idcard-name{margin:0;font-size:30px;line-height:1.15;font-weight:800;letter-spacing:-.4px;text-align:center;overflow-wrap:anywhere}
 .idcover-title .idcard-name{text-align:start}
+.idcard-ok{display:inline-block;vertical-align:-2px;margin-inline-start:6px;flex:none}
 .idcard-nick-sm{margin-top:4px;font-size:17px;font-weight:650;opacity:.85;overflow-wrap:anywhere}
 
 .set-row.pwa-set:empty{display:none}

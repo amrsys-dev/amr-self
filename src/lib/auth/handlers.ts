@@ -358,9 +358,15 @@ async function dummyNickProbe(nick: string): Promise<void> {
   await argon2idMaster("amrid-nick-probe", new Uint8Array(salt), ARGON2_PARAMS);
 }
 
+/** 28.11.2026 (Мурад): галочка у аккаунта - у человека настоящий Telegram, подтверждённый кодом через бота AMR ID. */
+export function accountVerified(user: Pick<UserRecord, "otp" | "contacts">): boolean {
+  return Boolean(user.otp?.telegram?.verified) || (user.contacts ?? []).some((c) => c.kind === "telegram" && c.verified);
+}
+
 function sessionPayload(user: UserRecord) {
   return {
     nick: user.nick,
+    verified: accountVerified(user),
     dataId: user.dataId ?? user.nick,
     theme: parseCardTheme(user.theme),
     coverY: clampCoverY(user.coverY),
@@ -1496,6 +1502,7 @@ export async function handlePublicCard(request: Request, nickParam: string): Pro
     {
       nick: user.nick,
       displayName: user.displayName ?? "",
+      verified: accountVerified(user),
       theme,
       coverY: clampCoverY(user.coverY),
       appearance: user.appearance === "light" ? "light" : "dark",

@@ -65,7 +65,7 @@ function PublicCardPage() {
   return (
     <div className={`app ${data.appearance === "light" ? "light" : "dark"} ds ds-emerald pubcard`}>
       <div className="page">
-        <CardHero nick={data.nick} name={data.displayName} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
+        <CardHero nick={data.nick} name={data.displayName} verified={data.verified} url={data.url} theme={theme} contacts={data.contacts} lang={lang} guest photo={data.photo} avatar={data.avatar} coverY={data.coverY} />
         <SaveToId nick={data.nick} lang={lang} />
       </div>
     </div>
