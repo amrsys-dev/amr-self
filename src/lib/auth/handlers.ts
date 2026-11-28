@@ -372,7 +372,8 @@ function sessionPayload(user: UserRecord) {
     theme: parseCardTheme(user.theme),
     coverY: clampCoverY(user.coverY),
     imagePhone: user.imagePhone !== false,
-    findable: Boolean(user.findable),
+    // null - ещё не спрашивали (приложение один раз спросит «Разрешить находить вас?»)
+    findable: user.findable ?? null,
     appearance: user.appearance,
     contacts: user.contacts,
     wrapPassword: user.wrapPassword,
