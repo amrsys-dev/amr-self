@@ -977,3 +977,27 @@ a.btn{text-decoration:none}
 .tgl:checked{background:#34c759}
 .tgl:checked::after{transform:translateX(18px)}
 [dir=rtl] .tgl:checked::after{transform:translateX(-18px)}
+
+/* ---------- 28.11.2026 (Мурад): компактно, в стиле iOS - тоньше строки, меньше пустоты ---------- */
+.set-list{margin-top:14px}
+.set-row{min-height:44px;padding:7px 14px;gap:10px;font-size:16px}
+.set-row svg[width="44"],.set-row svg[width="40"],.set-row svg[width="36"],.set-row img[width="36"]{width:30px;height:30px}
+.set-appic{width:28px;height:28px;border-radius:7px}
+.toggle{width:42px;height:26px;border-radius:13px}
+.toggle i{top:2px;left:2px;width:22px;height:22px;border-radius:11px}
+.toggle.on i{left:18px}
+.self-large h1{font-size:26px;letter-spacing:-.6px}
+.idcard-name{font-size:24px}
+.idcard-nick{font-size:20px;margin-top:8px}
+.idcard-nick-sm{font-size:15px;margin-top:2px}
+.idcard-links{gap:6px}
+.idlink{min-height:48px;padding:6px 10px;gap:10px;border-radius:12px}
+.idlink > svg,.idlink > img,.idlink > span:first-child svg{width:34px;height:34px;flex:none}
+.idlink-copy b{font-size:15px}
+.idlink-copy small{font-size:13px}
+.idlink.idcall b{font-size:15px}
+.idlink.idcall small{font-size:14px}
+.idbtn{min-height:42px;font-size:14px}
+.adm-plans{gap:8px;padding:10px}
+.adm-plans .in{min-height:40px;padding:6px 8px;font-size:14px}
+.adm-row{gap:6px}
