@@ -284,6 +284,7 @@ export function ShellScreens({ app }: { app: App }) {
                 <CardHero
                   nick={session.nick}
                   name={session.displayName}
+                  verified={session.verified}
                   url={cardUrl}
                   theme={session.theme}
                   contacts={publicContacts}

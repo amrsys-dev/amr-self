@@ -62,6 +62,7 @@ export type SessionState = {
   appearance: "dark" | "light";
   contacts: Contact[];
   googleLinked?: boolean;
+  verified?: boolean;
   wrapPassword?: WrappedKey;
   kdf?: { password: KdfParams; recovery: KdfParams };
   cardPath: string;

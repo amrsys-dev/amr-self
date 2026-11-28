@@ -5,6 +5,8 @@ import type { CardTheme, PublicContact } from "./visibility.ts";
 export type CardPayload = {
   nick: string;
   displayName?: string;
+  /** Аккаунт подтверждён через Telegram (галочка у имени). */
+  verified?: boolean;
   theme: CardTheme;
   coverY?: number;
   appearance?: "dark" | "light";

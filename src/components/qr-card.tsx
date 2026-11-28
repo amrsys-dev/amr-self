@@ -29,6 +29,16 @@ export function contactDetail(c: PublicContact, t: (k: MsgKey) => string): strin
   return c.display || (c.action === "write" ? t("write") : t("open"));
 }
 
+/** Галочка подтверждённого аккаунта (Telegram подтверждён кодом через бота AMR ID). */
+function VerifiedMark() {
+  return (
+    <svg className="idcard-ok" viewBox="0 0 24 24" width="20" height="20" role="img" aria-label="✓">
+      <circle cx="12" cy="12" r="10" fill="#2AABEE" />
+      <path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
  * The digital card: one page in the owner's theme. Avatar, nick, then one button
  * per visible contact with its service icon; the page grows with the contacts.
@@ -46,6 +56,7 @@ export function CardHero({
   photo,
   avatar,
   name,
+  verified,
   onPickPhoto,
   onRemovePhoto,
   coverY = 50,
@@ -68,6 +79,8 @@ export function CardHero({
   avatar?: string | null;
   /** Name in any language, shown large above the nick. */
   name?: string;
+  /** 28.11.2026: аккаунт подтверждён через Telegram - галочка у имени. */
+  verified?: boolean;
   onPickPhoto?: (file: File, slot: PhotoSlot) => Promise<string> | void;
   onRemovePhoto?: (slot: PhotoSlot) => Promise<string> | void;
   /** Cover photo position, 0 (top) … 100 (bottom). */
@@ -157,8 +170,8 @@ export function CardHero({
             <button type="button" className="idpen idpen-ava" aria-label={t("face_photo")} onClick={() => togglePanel("avatar")}><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/><path d="M13 7l4 4" stroke="currentColor" strokeWidth="1.8"/></svg></button>
           ) : null}
         </div>
-        {name ? <h1 className="idcard-name" dir="auto">{name}</h1> : null}
-        {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}</h1>}
+        {name ? <h1 className="idcard-name" dir="auto">{name}{verified ? <VerifiedMark /> : null}</h1> : null}
+        {name ? <div className="idcard-nick-sm">{nick}</div> : <h1 className="idcard-nick">{nick}{verified ? <VerifiedMark /> : null}</h1>}
         <div className="idcard-sub">AMR ID</div>
         {busy ? <div className="idmsg">{t("photo_busy")}</div> : msg ? <div className="idmsg err" role="alert">{msg}</div> : null}
       </div>
