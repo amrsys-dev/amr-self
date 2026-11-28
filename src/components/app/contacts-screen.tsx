@@ -82,7 +82,7 @@ export function ContactsScreen({ app }: { app: App }) {
                   </span>
                   <span style={{ minWidth: 0, flex: 1 }}>
                     <b dir="auto" style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.missing ? i.nick : i.displayName || i.nick}</b>
-                    <small style={{ display: "block", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.missing ? t("contacts_missing") : i.phone || i.nick}</small>
+                    {i.missing || i.phone || i.displayName ? <small style={{ display: "block", opacity: 0.7, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.missing ? t("contacts_missing") : i.phone || i.nick}</small> : null}
                     {i.kinds?.length ? (
                       <span style={{ display: "flex", gap: 4, marginTop: 4 }}>
                         {Array.from(new Set<ContactKind>(i.kinds)).slice(0, 6).map((k) => (
@@ -129,14 +129,11 @@ export function ContactsScreen({ app }: { app: App }) {
             )}
           </>
         ) : null}
-        <label className="set-row" style={{ marginTop: 12, gap: 10, cursor: "pointer" }}>
-          <input type="checkbox" checked={Boolean(session.findable)} onChange={(e) => void saveProfile({ findable: e.target.checked })} />
-          <span style={{ flex: 1 }}>
-            <b style={{ display: "block" }}>{t("find_me")}</b>
-            <small style={{ opacity: 0.7 }}>{t("find_me_hint")}</small>
-          </span>
+        {/* 28.11.2026 (Мурад): одна аккуратная строка - надпись слева, переключатель справа, без лишних пояснений */}
+        <label className="card find-row">
+          <span>{t("find_me")}</span>
+          <input type="checkbox" role="switch" className="tgl" checked={Boolean(session.findable)} onChange={(e) => void saveProfile({ findable: e.target.checked })} />
         </label>
-        <p className="hint" style={{ marginTop: 12 }}>{t("contacts_hint")}</p>
       </div>
     </>
   );

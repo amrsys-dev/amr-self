@@ -2,7 +2,7 @@ import { encode } from "uqr";
 import { cardBackground, type CardTheme, type PublicContact } from "@/lib/card/visibility.ts";
 import type { Lang, MsgKey } from "@/lib/i18n.ts";
 import { translate as tr } from "@/lib/i18n.ts";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBackLayer } from "@/lib/back-stack.ts";
 import { ServiceIcon, SiteIcon, serviceName } from "./contact-icons.tsx";
 
@@ -110,6 +110,11 @@ export function CardHero({
   }
   const shareOpen = panel === "share";
   const qr = panel === "qr";
+  // 28.11.2026 (Мурад): QR открылся - сразу показать его целиком, а не прыгать наверх
+  const qrRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (qr) requestAnimationFrame(() => qrRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }, [qr]);
   const togglePanel = (next: "share" | "qr" | "cover" | "avatar") => setPanel((p) => (p === next ? "" : next));
   const closePanel = () => setPanel("");
   useBackLayer(panel !== "", closePanel);
@@ -248,7 +253,7 @@ export function CardHero({
         </>
       )}
       {qr ? (
-        <div className={`idqr idqr-card${bg ? " has" : ""}`}>
+        <div ref={qrRef} className={`idqr idqr-card${bg ? " has" : ""}`}>
           {bg ? <img className="idqr-bg" src={bg} alt="" style={own ? { objectPosition: `center ${coverY}%` } : undefined} /> : null}
           <div className="idqr-who">
             <span className="idqr-ava">{avatar ? <img src={avatar} alt="" /> : letter}</span>
