@@ -18,6 +18,8 @@ export type UserRecord = {
   share?: { key: string; v: number; type?: string };
   /** Name shown on the card, any language (e.g. full Arabic or Cyrillic name). Public. */
   displayName?: string;
+  /** 28.11.2026 (Мурад): «Меня можно найти» - визитка видна в поиске AMR ID. По умолчанию выключено. */
+  findable?: boolean;
   createdAt: string;
   /** Hash of the client-derived auth key (never a raw password). */
   passwordHash: string;

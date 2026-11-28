@@ -16,6 +16,7 @@ import { generateNick, nickProblem, normalizeNick, parseNickFormat, publicCardPa
 import { getStores } from "../storage/index.ts";
 import { isTelegramUserId, telegramFromUserInput, telegramPublicView, sanitizeTelegramRecord } from "../telegram.ts";
 import { dataBlobKey, dataVersionKey, nickKey, otpIndexKey, otpKey, sessionKey, sessionsOfKey, type OtpChannel, type UserRecord } from "../user.ts";
+import { createKvRateLimiter } from "../rate-limit.ts";
 import { generateOtpDigits, hashOtp, otpMatches, OTP_MAX_ATTEMPTS, OTP_TTL_MS, type OtpRecord } from "./otp.ts";
 import { sendNotice, sendOtp } from "./otp-providers.ts";
 import {
@@ -371,6 +372,7 @@ function sessionPayload(user: UserRecord) {
     theme: parseCardTheme(user.theme),
     coverY: clampCoverY(user.coverY),
     imagePhone: user.imagePhone !== false,
+    findable: Boolean(user.findable),
     appearance: user.appearance,
     contacts: user.contacts,
     wrapPassword: user.wrapPassword,
@@ -781,6 +783,7 @@ const patchSchema = z.object({
   theme: z.enum(CARD_THEMES).optional(),
   coverY: z.number().min(0).max(100).optional(),
   imagePhone: z.boolean().optional(),
+  findable: z.boolean().optional(),
   appearance: z.enum(["dark", "light"]).optional(),
   displayName: z.string().max(80).regex(NO_CONTROL).optional(),
   contacts: z
@@ -806,6 +809,11 @@ export async function handleMePatch(request: Request): Promise<Response> {
   if (body.data.appearance) user.appearance = body.data.appearance;
   if (body.data.coverY !== undefined) user.coverY = clampCoverY(body.data.coverY);
   if (body.data.imagePhone !== undefined) user.imagePhone = body.data.imagePhone;
+  if (body.data.findable !== undefined) {
+    user.findable = body.data.findable;
+    if (user.findable) await getStores().kv.put(findKey(user.dataId ?? user.nick), user.nick);
+    else await getStores().kv.delete(findKey(user.dataId ?? user.nick));
+  }
   if (body.data.displayName !== undefined) {
     const name = cleanDisplayName(body.data.displayName);
     if (name) user.displayName = name;
@@ -969,6 +977,7 @@ async function wipeAccount(request: Request, user: UserRecord): Promise<Response
   if (user.avatar) await stores.blobs.delete(user.avatar.key);
   if (user.share) await stores.blobs.delete(user.share.key);
   await stores.kv.delete(`saved:${user.dataId ?? user.nick}`);
+  await stores.kv.delete(findKey(user.dataId ?? user.nick));
   await stores.kv.delete(dataVersionKey(nick));
   await stores.kv.delete(nickKey(nick));
   await reserveNick(nick, "retired");
@@ -1397,6 +1406,7 @@ export async function handleChangeNick(request: Request): Promise<Response> {
     return json({ error: "nick_taken" }, 409);
   }
   if (user.google?.sub) await stores.kv.put(googleSubKey(user.google.sub), next);
+  if (user.findable) await stores.kv.put(findKey(user.dataId ?? oldNick), next);
 
   const version = await readDataVersion(stores.kv, oldNick);
   if (version > 0) {
@@ -1564,4 +1574,38 @@ export async function handleTelegramLink(request: Request): Promise<Response> {
     return jsonWithCookie({ status: "linked", ...sessionPayload(user) }, cookie);
   }
   return json({ status: "linked", nick: rec.nick });
+}
+
+
+/* ---------- 28.11.2026 (Мурад): поиск людей в AMR ID - только тех, кто включил «Меня можно найти» ---------- */
+export const findKey = (dataId: string) => `find:${dataId}`;
+const FIND_LIMIT = { windowMs: 60_000, max: 20 };
+
+export function findMatches(q: string, nick: string, name: string): boolean {
+  const n = q.trim().toLowerCase().replace(/^@/, "");
+  if (n.length < 2) return false;
+  return nick.toLowerCase().includes(n) || name.toLowerCase().includes(n);
+}
+
+export async function handleFind(request: Request): Promise<Response> {
+  const user = await requireUser(request);
+  if (user instanceof Response) return user;
+  const q = (new URL(request.url).searchParams.get("q") ?? "").slice(0, 40);
+  if (q.trim().replace(/^@/, "").length < 2) return json({ items: [] });
+  const { kv } = getStores();
+  const rl = await createKvRateLimiter(kv, FIND_LIMIT, "find").take(user.dataId ?? user.nick);
+  if (!rl.ok) return json({ error: "rate_limited" }, 429);
+  const keys = (await kv.list("find:")).slice(0, 1000);
+  const items: { nick: string; displayName: string; avatar: string | null; verified: boolean }[] = [];
+  for (const k of keys) {
+    if (items.length >= 20) break;
+    const nick = await kv.get(k);
+    if (!nick || nick === user.nick) continue;
+    const raw = await kv.get(nickKey(nick));
+    if (!raw) continue;
+    const u = JSON.parse(raw) as UserRecord;
+    if (!u.findable || !findMatches(q, u.nick, u.displayName ?? "")) continue;
+    items.push({ nick: u.nick, displayName: u.displayName ?? "", avatar: avatarUrl(u), verified: accountVerified(u) });
+  }
+  return json({ items }, 200, { "cache-control": "private, no-store" });
 }
