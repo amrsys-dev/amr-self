@@ -377,7 +377,6 @@ export function ShellScreens({ app }: { app: App }) {
                   </a>
                 ))}
               </div>
-              <p className="hint">{t("id_apps_hint")}</p>
             </div>
           )}
           {/* 26.11.2026: одна админка для всех приложений - отдельный экран */}
