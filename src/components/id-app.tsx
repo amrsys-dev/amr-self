@@ -1,7 +1,7 @@
 import { isRtl } from "@/lib/i18n.ts";
 import { AuthScreens } from "./app/auth-screens.tsx";
 import { CardScreens } from "./app/card-screens.tsx";
-import { ContactsScreen } from "./app/contacts-screen.tsx";
+import { ContactsScreen, FindAsk } from "./app/contacts-screen.tsx";
 import { SubsScreen } from "./app/subs-screen.tsx";
 import { AdminScreen } from "./app/admin-screen.tsx";
 import { ContactSheet } from "./app/contact-sheet.tsx";
@@ -20,6 +20,7 @@ export function IdApp() {
       <SecurityScreens app={app} />
       <CardScreens app={app} />
       <ContactsScreen app={app} />
+      <FindAsk app={app} />
       <SubsScreen app={app} />
       <AdminScreen app={app} />
       <ContactSheet app={app} />

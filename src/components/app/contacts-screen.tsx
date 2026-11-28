@@ -141,3 +141,23 @@ export function ContactsScreen({ app }: { app: App }) {
     </>
   );
 }
+
+/** 28.11.2026 (Мурад): один раз после входа спросить «Разрешить находить вас по имени?». Ответ сохраняется в аккаунте. */
+export function FindAsk({ app }: { app: App }) {
+  const { t, session, saveProfile, screen } = app;
+  if (!session || session.findable !== null || screen !== "profile") return null;
+  return (
+    <>
+      <div className="dim fixed-dim" />
+      <div className="sheet idshare-sheet" role="dialog" aria-label={t("find_ask")}>
+        <div className="handle" />
+        <h2 style={{ margin: "4px 0 6px" }}>{t("find_ask")}</h2>
+        <p className="hint">{t("find_me_hint")}</p>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button type="button" className="btn s" style={{ flex: 1 }} onClick={() => void saveProfile({ findable: false })}>{t("find_no")}</button>
+          <button type="button" className="btn p" style={{ flex: 1 }} onClick={() => void saveProfile({ findable: true })}>{t("find_yes")}</button>
+        </div>
+      </div>
+    </>
+  );
+}
