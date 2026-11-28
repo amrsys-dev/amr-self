@@ -969,3 +969,11 @@ a.btn{text-decoration:none}
 .adm-bar b{font-size:11px;margin-top:2px}
 .adm-bar small{font-size:10px;opacity:.7}
 .adm .adm-row{grid-template-columns:1fr}
+/* 28.11.2026 (Мурад): компактная строка с переключателем в стиле iOS */
+.find-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:10px 14px;min-height:48px;font-size:16px;cursor:pointer}
+.find-row span{flex:1;min-width:0}
+.tgl{appearance:none;-webkit-appearance:none;flex:none;width:46px;height:28px;border-radius:14px;background:var(--hair,rgba(127,127,127,.35));position:relative;cursor:pointer;transition:background .2s;margin:0}
+.tgl::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.tgl:checked{background:#34c759}
+.tgl:checked::after{transform:translateX(18px)}
+[dir=rtl] .tgl:checked::after{transform:translateX(-18px)}
