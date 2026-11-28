@@ -8,16 +8,33 @@ import { api } from "@/lib/client.ts";
 type Item = { nick: string; displayName?: string; avatar?: string | null; kinds?: ContactKind[]; phone?: string; missing?: boolean };
 
 /** «My contacts»: cards saved in AMR ID. Always fresh - read from their owners every time. */
+type Found = { nick: string; displayName: string; avatar: string | null; verified: boolean };
+
 export function ContactsScreen({ app }: { app: App }) {
-  const { t, screen, setScreen, session } = app;
+  const { t, screen, setScreen, session, saveProfile } = app;
   const [items, setItems] = useState<Item[] | null>(null);
   const [q, setQ] = useState("");
+  // 28.11.2026 (Мурад): поиск людей по всему AMR ID - только тех, кто включил «Меня можно найти»
+  const [found, setFound] = useState<Found[] | null>(null);
+  const [savedNow, setSavedNow] = useState<string[]>([]);
   useEffect(() => {
     if (screen !== "contacts" || !session) return;
     void api<{ items: Item[] }>("/api/me/saved").then((r) => setItems(r.ok ? r.data.items : []));
   }, [screen, session?.nick]);
+  useEffect(() => {
+    const v = q.trim().replace(/^@/, "");
+    if (screen !== "contacts" || v.length < 2) return setFound(null);
+    const id = setTimeout(() => {
+      void api<{ items: Found[] }>(`/api/find?q=${encodeURIComponent(v)}`).then((r) => setFound(r.ok ? r.data.items : []));
+    }, 450);
+    return () => clearTimeout(id);
+  }, [q, screen]);
   if (!session || screen !== "contacts") return null;
   const query = q.trim().toLowerCase();
+  const saveFound = async (nick: string) => {
+    const r = await api("/api/me/saved", { method: "POST", body: JSON.stringify({ nicks: [nick] }) });
+    if (r.ok) setSavedNow((l) => [...l, nick]);
+  };
   const shown = (items ?? []).filter((i) => !query || i.nick.includes(query) || (i.displayName ?? "").toLowerCase().includes(query) || (i.phone ?? "").replace(/\D/g, "").includes(query.replace(/\D/g, "") || "\u0000"));
   const remove = async (nick: string) => {
     if (!window.confirm(t("contacts_remove_q").replace("{n}", nick))) return;
@@ -46,7 +63,7 @@ export function ContactsScreen({ app }: { app: App }) {
     <>
       <Header title={t("contacts_title")} onBack={() => setScreen("profile")} />
       <div className="page">
-        {items && items.length > 6 ? (
+        {items ? (
           <div className="field" style={{ marginBottom: 12 }}>
             <div className="box">
               <input type="search" placeholder={t("contacts_search")} value={q} onChange={(e) => setQ(e.target.value)} />
@@ -85,6 +102,40 @@ export function ContactsScreen({ app }: { app: App }) {
             ))}
           </div>
         ) : null}
+        {found !== null ? (
+          <>
+            <p className="hint" style={{ margin: "12px 0 6px", fontWeight: 700 }}>{t("find_title")}</p>
+            {found.filter((f) => !(items ?? []).some((i) => i.nick === f.nick)).length ? (
+              <div className="card pad0 set-list">
+                {found.filter((f) => !(items ?? []).some((i) => i.nick === f.nick)).map((f) => (
+                  <div className="set-row" key={f.nick}>
+                    <a href={`/u/${encodeURIComponent(f.nick)}`} style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, color: "inherit", textDecoration: "none" }}>
+                      <span style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", flex: "0 0 40px", background: "var(--acc, #00d4ff)", display: "grid", placeItems: "center", fontWeight: 800, color: "#0b0e11" }}>
+                        {f.avatar ? <img src={f.avatar} alt="" width={40} height={40} style={{ objectFit: "cover", width: 40, height: 40 }} /> : (f.displayName || f.nick)[0]?.toUpperCase()}
+                      </span>
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <b dir="auto" style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.displayName || f.nick}{f.verified ? " ✓" : ""}</b>
+                        <small style={{ display: "block", opacity: 0.7 }}>{f.nick}</small>
+                      </span>
+                    </a>
+                    <button type="button" className="btn s" disabled={savedNow.includes(f.nick)} onClick={() => void saveFound(f.nick)}>
+                      {savedNow.includes(f.nick) ? t("find_saved") : t("find_save")}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">{t("find_none")}</p>
+            )}
+          </>
+        ) : null}
+        <label className="set-row" style={{ marginTop: 12, gap: 10, cursor: "pointer" }}>
+          <input type="checkbox" checked={Boolean(session.findable)} onChange={(e) => void saveProfile({ findable: e.target.checked })} />
+          <span style={{ flex: 1 }}>
+            <b style={{ display: "block" }}>{t("find_me")}</b>
+            <small style={{ opacity: 0.7 }}>{t("find_me_hint")}</small>
+          </span>
+        </label>
         <p className="hint" style={{ marginTop: 12 }}>{t("contacts_hint")}</p>
       </div>
     </>
